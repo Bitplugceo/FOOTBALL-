@@ -2605,6 +2605,10 @@ body.dark-mode .tracker-analytics-section-head {
 </header>
 
     <div class="wrapper">
+      <div id="liveEngineDebugger" style="background:#050505; color:#49d45f; padding:10px; font-family: ui-monospace, monospace; font-size:11px; margin-bottom:10px; border:1px solid #333; border-left: 4px solid #49d45f; max-height:250px; overflow-y:auto; word-break:break-word;">
+         <div style="color:#aaa; font-weight:bold; margin-bottom:5px;">[SYSTEM] Live Auto-Fetch Monitor Active...</div>
+      </div>
+
 
         <div class="section" id="leagueSection">
       <h3>League &amp; Match Selection</h3>
@@ -3275,6 +3279,15 @@ function getLeagueTrustSortRank(level) {
 const LEAGUE_FETCH_RULES = new Proxy({}, {
   get: function(target, leagueKey) {
     if (!leagueKey || leagueKey === "unknown") return null;
+    return {
+      recentSeasons: 2,
+      scheduleTypes: ["2"], // Soccer regular season only
+      h2hScheduleTypes: ["2"],
+      regulationPeriods: 2 
+    };
+  }
+});
+
 
     // Soccer standard rules
     return {
@@ -5502,51 +5515,35 @@ Any suggestion made here without proof is an audit error.
             async function proxyFetch(url, timeoutMs = 12000) {
   const fetchLabel = getEngineFetchLabel(url);
   engineDebug("fetch start", { request: fetchLabel, timeoutMs });
+  uiLog(`🌐 Requesting: ${fetchLabel}`);
 
-  if (typeof uiLog === "function") {
-    uiLog(`🌐 Attempting DIRECT fetch to: ${url}`);
+  async function fetchJson(requestUrl, label) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const res = await fetch(requestUrl, { 
+        signal: ctrl.signal, 
+        headers: { "X-Engine-Proxy-Token": "v2_engine_strict_auth_9982" }, 
+        cache: "no-store" 
+      });
+      if (!res.ok) {
+        uiLog(`❌ ESPN/Worker returned HTTP ${res.status}`, true);
+        throw new Error(label + " HTTP " + res.status);
+      }
+      const text = await res.text();
+      try { return JSON.parse(text); } catch (e) { throw new Error(label + " bad JSON"); }
+    } finally { clearTimeout(timer); }
   }
 
   try {
-    // Attempt to bypass the Cloudflare Worker and hit ESPN directly
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-
-    const res = await fetch(url, { 
-      signal: ctrl.signal,
-      cache: "no-store",
-      headers: { "Accept": "application/json" }
-    });
-
-    clearTimeout(timer);
-
-    if (!res.ok) {
-      throw new Error(`Direct HTTP ${res.status}`);
-    }
-
-    const data = await res.json();
-    if (typeof uiLog === "function") uiLog(`✅ Direct fetch successful!`);
-    return data;
-
-  } catch (directErr) {
-    if (typeof uiLog === "function") {
-      uiLog(`⚠️ Direct fetch failed (${directErr.message}). Trying Worker...`, true);
-    }
-
-    // Fallback to worker if direct fails
-    const workerUrl = WORKER_URL + "?url=" + encodeURIComponent(url);
-    const res = await fetch(workerUrl, { 
-      headers: { "X-Engine-Proxy-Token": "v2_engine_strict_auth_9982" }, 
-      cache: "no-store" 
-    });
-
-    if (!res.ok) {
-      if (typeof uiLog === "function") uiLog(`❌ Worker threw HTTP ${res.status}. Check your Cloudflare code!`, true);
-      throw new Error("Worker HTTP " + res.status);
-    }
-    return await res.json();
+    return await fetchJson(WORKER_URL + "?url=" + encodeURIComponent(url), "Worker");
+  } catch (workerErr) {
+    uiLog(`⚠️ Primary fetch failed, retrying...`, true);
+    await new Promise(res => setTimeout(res, 800));
+    return await fetchJson(WORKER_URL + "?url=" + encodeURIComponent(url), "Worker Retry");
   }
 }
+
 
 
 
@@ -10392,7 +10389,7 @@ updateIntelligencePack();
 
     async function searchTeamFromAPI(base, name, league) {
   const n = normalizeTeamName(name);
-  uiLog(`🔎 Searching ESPN for: "${name}" (${league})`);
+  uiLog(`🔎 Resolving ID for: "${name}"...`);
 
   try {
     const data = await proxyFetch(base + "/teams?limit=500");
@@ -10402,88 +10399,58 @@ updateIntelligencePack();
     if (!teams.length) teams = data?.teams || [];
 
     const words = n.split(/\s+/).filter(w => w.length >= 3);
-    let best = null, bestScore = 0, bestName = "";
+    let best = null, bestScore = 0;
 
     for (const t of teams) {
       const team = t.team || t;
       const displayName = normalizeTeamName(team.displayName || "");
       const shortName = normalizeTeamName(team.shortDisplayName || "");
-      const nickname = normalizeTeamName(team.nickname || "");
-      const location = normalizeTeamName(team.location || "");
-      const abbrev = normalizeTeamName(team.abbreviation || "");
 
       if (displayName === n || shortName === n) {
-        uiLog(`✅ Exact match found: ${team.displayName} (ID: ${team.id})`);
+        uiLog(`✅ Found exact match: ${team.displayName} (ID: ${team.id})`);
         return String(team.id);
       }
 
       let score = 0;
       if (displayName.includes(n) || n.includes(displayName)) score += 4;
       if (shortName.includes(n) || n.includes(shortName)) score += 4;
-      if (nickname && (nickname === n || n.includes(nickname))) score += 2;
-      if (location && n.includes(location)) score += 2;
-      if (abbrev && abbrev === n) score += 2;
-      score += words.filter(w => displayName.includes(w) || shortName.includes(w)).length;
-
-      if (score > bestScore) { 
-        bestScore = score; 
-        best = String(team.id); 
-        bestName = team.displayName;
-      }
+      if (score > bestScore) { bestScore = score; best = String(team.id); }
     }
-
-    if (best && bestScore >= 3 && validateTeamId(best, league)) {
-      uiLog(`⚠️ Fuzzy match selected: ${bestName} (Score: ${bestScore}, ID: ${best})`);
+    if (best && bestScore >= 3) {
+      uiLog(`⚠️ Fuzzy match selected (ID: ${best})`);
       return best;
     }
+  } catch (e) { uiLog(`❌ Primary search failed`, true); }
 
-    uiLog(`❌ No valid matches in direct catalog for "${name}". Falling back to global search...`, true);
-  } catch (e) {
-    uiLog(`❌ Primary search failed: ${e.message}`, true);
-  }
-
-  // Fallback search
   try {
     const catalog = await fetchLeagueTeamCatalog(league);
     const catalogMap = new Map(catalog.map(t => [String(t.id), normalizeTeamName(t.name)]));
+
+    // FIX: Removed &sport=basketball from this URL
     const data = await proxyFetch(
       "https://site.api.espn.com/apis/common/v3/search?query=" +
-      encodeURIComponent(name) + "&limit=10&type=team&sport=basketball"
+      encodeURIComponent(name) + "&limit=10&type=team" 
     );
 
-    let bestId = null, bestScore = 0, bestFallbackName = "";
+    let bestId = null, bestScore = 0;
     for (const r of (data?.items || data?.results || [])) {
       const uid = r?.uid || r?.team?.uid || "";
-      const mUid = uid.match(/t:(\d+)/);
-      const id = mUid ? mUid[1] : (r?.id || r?.team?.id ? String(r?.id || r?.team?.id) : null);
-      if (!id || !catalogMap.has(String(id))) continue;
+      const id = uid.match(/t:(\d+)/)?.[1] || String(r?.id || r?.team?.id || "");
+      if (!id || !catalogMap.has(id)) continue;
 
-      const resultName = normalizeTeamName(r?.displayName || r?.team?.displayName || r?.name || "");
-      const catalogName = catalogMap.get(String(id)) || "";
-      let score = 0;
-      if (resultName === n || catalogName === n) score += 6;
-      else {
-        if (resultName && (resultName.includes(n) || n.includes(resultName))) score += 2;
-        if (catalogName && (catalogName.includes(n) || n.includes(catalogName))) score += 4;
-      }
-      if (score > bestScore) { 
-        bestScore = score; 
-        bestId = id; 
-        bestFallbackName = catalogName;
-      }
+      const resultName = normalizeTeamName(r?.displayName || "");
+      let score = (resultName === n) ? 6 : (resultName.includes(n) ? 2 : 0);
+      if (score > bestScore) { bestScore = score; bestId = id; }
     }
-
-    if (bestId && bestScore >= 2 && validateTeamId(bestId, league)) {
-      uiLog(`⚠️ Fallback fuzzy match: ${bestFallbackName} (ID: ${bestId})`);
+    if (bestId && bestScore >= 2) {
+      uiLog(`⚠️ Fallback match selected (ID: ${bestId})`);
       return bestId;
     }
-    uiLog(`❌ Total failure finding team ID for "${name}".`, true);
+    uiLog(`❌ Could not resolve ID for "${name}".`, true);
     return null;
-  } catch (e) {
-    uiLog(`❌ Common search failed: ${e.message}`, true);
-    return null;
-  }
+  } catch (e) { return null; }
 }
+
 
 
     async function fetchInjuryMeta(base, teamId, teamAvgScored, league) {
@@ -11151,28 +11118,30 @@ async function runMassacreMonteCarlo(projA, projB, line) {
 
 // --- BATCH 1: UNIVERSAL FOOTBALL FETCHING & A-Z LEAGUES ---
 
-// --- LIVE FETCH DEBUGGER ---
-function uiLog(msg, isError = false) {
-  const logDiv = document.getElementById("fetchDebugLog");
-  if (!logDiv) return;
-  logDiv.style.display = "block";
-  const color = isError ? "#f44336" : "#49d45f";
-  const time = new Date().toLocaleTimeString([], {hour12: false});
-  logDiv.innerHTML += `<div style="color: ${color}">[${time}] > ${safeText(msg)}</div>`;
-  logDiv.scrollTop = logDiv.scrollHeight;
-  console.log("[FETCH UI]", msg);
+// --- LIVE UI LOGGER ---
+function uiLog(msg, isErr = false) {
+  const el = document.getElementById("liveEngineDebugger");
+  if(el) {
+    const color = isErr ? "#ff5c61" : "#49d45f";
+    el.innerHTML += `<div style="color:${color}; margin-top:4px;">&gt; ${safeText(msg)}</div>`;
+    el.scrollTop = el.scrollHeight;
+  }
+  console.log("[FETCH]", msg);
 }
 
 function clearUiLog() {
-  const logDiv = document.getElementById("fetchDebugLog");
-  if (logDiv) { logDiv.innerHTML = ""; logDiv.style.display = "none"; }
+  const el = document.getElementById("liveEngineDebugger");
+  if (el) el.innerHTML = "<div style='color:#aaa; font-weight:bold; margin-bottom:5px;'>[SYSTEM] Live Auto-Fetch Monitor Active...</div>";
 }
 
+
 async function fetchESPN() {
-  clearUiLog();
+  document.getElementById("liveEngineDebugger").innerHTML = "<div style='color:#aaa; font-weight:bold; margin-bottom:5px;'>[SYSTEM] Live Auto-Fetch Monitor Active...</div>";
   const league = document.getElementById("leagueSelect").value;
   const teamAName = document.getElementById("teamAName").value.trim();
   const teamBName = document.getElementById("teamBName").value.trim();
+
+  uiLog(`🚀 Auto-Fetch triggered: ${teamAName} vs ${teamBName}`);
 
   if (!teamAName || !teamBName || !league || league === "unknown") {
     setStatusText("&#x274C; Select a league and match from the list.", "err");
@@ -11182,37 +11151,28 @@ async function fetchESPN() {
   const btn = document.getElementById("fetchBtn");
   if (btn) btn.disabled = true;
   setStatusHTML('<span class="spinner"></span> &#x26BD; Fetching Pitch Intelligence...', "loading");
-  uiLog(`🚀 Starting fetch for ${teamAName} vs ${teamBName} (${league})`);
 
   try {
     const espnBase = getLeagueBase(league);
 
     let tA = selectedTeamIds.A;
-    if (tA) uiLog(`✅ Team A already cached (ID: ${tA})`);
+    if (tA) uiLog(`✅ Using cached Team A ID: ${tA}`);
     else tA = await searchTeamFromAPI(espnBase, teamAName, league);
 
     let tB = selectedTeamIds.B;
-    if (tB) uiLog(`✅ Team B already cached (ID: ${tB})`);
+    if (tB) uiLog(`✅ Using cached Team B ID: ${tB}`);
     else tB = await searchTeamFromAPI(espnBase, teamBName, league);
 
-    if (!tA || !tB) {
-      uiLog(`🛑 FATAL: Missing ID for A (${tA}) or B (${tB}). Fetch aborted.`, true);
-      throw new Error("Could not resolve team IDs. Check names.");
-    }
+    if (!tA || !tB) throw new Error("Could not resolve team IDs.");
 
-    uiLog(`📡 Fetching Schedules... A(ID:${tA}), B(ID:${tB})`);
+    uiLog(`📡 Pulling 10-game history...`);
     const [aStats, bStats] = await Promise.all([
       fetchScheduleCore(espnBase, tA, league, null, true),
       fetchScheduleCore(espnBase, tB, league, null, true)
     ]);
 
-    if (!aStats) uiLog(`❌ A-Stats returned NULL`, true);
-    else uiLog(`✅ A-Stats pulled ${aStats.scored.length} games.`);
-
-    if (!bStats) uiLog(`❌ B-Stats returned NULL`, true);
-    else uiLog(`✅ B-Stats pulled ${bStats.scored.length} games.`);
-
     if (!aStats || !bStats) throw new Error("League data unavailable for these teams.");
+    uiLog(`✅ Match history successfully extracted.`);
 
     document.getElementById("aFTScored").value = aStats.scored.join(",");
     document.getElementById("aFTAllowed").value = aStats.allowed.join(",");
@@ -11225,7 +11185,7 @@ async function fetchESPN() {
     setAutoTagVisible("aAutoTag", true);
     setAutoTagVisible("bAutoTag", true);
 
-    uiLog(`📡 Scanning for H2H history...`);
+    uiLog(`📡 Scanning H2H database...`);
     const h2h = await fetchH2HCore(espnBase, tA, tB, league);
     if (h2h?.length >= 2) {
       uiLog(`✅ Found ${h2h.length} recent H2H matchups.`);
@@ -11234,20 +11194,19 @@ async function fetchESPN() {
       document.getElementById("useFTH2H").checked = true;
       setAutoTagVisible("h2hAutoTag", true);
     } else {
-      uiLog(`⚠️ H2H disabled: Only found ${h2h?.length || 0} recent matchups (Need 2+).`, true);
+      uiLog(`⚠️ H2H skipped: Found less than 2 recent matchups.`);
     }
 
     setStatusHTML("&#x2705; Tactical Data Synchronized.", "ok");
-    uiLog(`🎉 Fetch cycle complete.`);
+    uiLog(`🎉 Auto-fetch cycle complete!`);
     updateSectionLocks();
     updateIntelligencePack();
   } catch (e) {
-    uiLog(`❌ Fetch Error: ${e.message}`, true);
+    uiLog(`❌ FATAL: ${e.message}`, true);
     setStatusText("&#x274C; Fetch Error: " + e.message, "err");
-  } finally { 
-    if (btn) btn.disabled = false; 
-  }
+  } finally { if (btn) btn.disabled = false; }
 }
+
 
 
 async function loadFixtures(timeFilter = 'all') {
