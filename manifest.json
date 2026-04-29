@@ -1,0 +1,20 @@
+{
+  "name": "Football Prediction Engine",
+  "short_name": "FB Engine",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#d91f26",
+  "icons": [
+    {
+      "src": "0A45F320-A89F-4851-AA4E-CE22138FD52F.jpeg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "0A45F320-A89F-4851-AA4E-CE22138FD52F.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
