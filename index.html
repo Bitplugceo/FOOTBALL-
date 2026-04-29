@@ -11174,7 +11174,6 @@ async function loadFixtures(timeFilter = 'all') {
   } else {
     dParam = `${getFmt(0)}-${getFmt(7)}`; // default: all 7 days
   }
-  let dParam = (timeFilter==='today') ? getFmt(0) : (timeFilter==='tomorrow') ? getFmt(1) : `${getFmt(0)}-${getFmt(7)}`;
 
   try {
     const data = await proxyFetch(`${base}/scoreboard?dates=${dParam}&limit=800`);
@@ -11310,7 +11309,8 @@ function renderDateList() {
   for (let i = 2; i <= 5; i++) {
     const d = new Date();
     d.setDate(d.getDate() + i);
-    opts.push({ label: dayNames[d.getDay()], value: getLocalDateKey(i) });
+    const key = d.toISOString().split('T')[0].replace(/-/g, '');
+    opts.push({ label: dayNames[d.getDay()], value: key });
   }
   opts.push({ label: "Weekend", value: "weekend" });
 
@@ -11653,9 +11653,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   </div>
 </div>
 
-<div id="engineLiveMonitor" style="margin:15px;background:#000;border:1px solid #444;padding:10px;font-family:monospace;font-size:10px;color:#0f0;max-height:100px;overflow-y:auto;">
-  <div style="color:#aaa;border-bottom:1px solid #222;padding-bottom:4px;margin-bottom:4px;font-weight:bold;">LIVE SYSTEM MONITOR:</div>
-  <div id="monitorLogs">Initialising Football Engine...</div>
-</div>
 </body>
 </html>
