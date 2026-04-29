@@ -10725,6 +10725,8 @@ async function fetchScheduleCore(base, teamId, leagueKey, requiredVenue, allowFa
       };
     })
   );
+    summaries.push(...chunkResults.filter(Boolean));
+  }
 
 
   summaries.filter(Boolean).forEach(game => {
