@@ -10998,16 +10998,23 @@ const cls =
 
                 
 
-    function handleProMatchClick(element, homeName, homeId, awayName, awayId, slug) {
+    function handleProMatchClick(element) {
+  const homeName = element.dataset.home   || "";
+  const homeId   = element.dataset.homeId || "";
+  const awayName = element.dataset.away   || "";
+  const awayId   = element.dataset.awayId || "";
+  const slug     = element.dataset.slug   || "";
+
   document.querySelectorAll('.pro-match-item').forEach(el => el.classList.remove('active'));
   element.classList.add('active');
-  // Sync leagueSelect to the fixture's league so fetchESPN works
-  if (slug && slug !== "all") {
+
+  // Always sync leagueSelect to this fixture's actual league
+  if (slug && slug !== "all" && slug !== "unknown") {
     uiState.appliedLeagueSlug = slug;
     const sel = document.getElementById("leagueSelect");
     if (sel) { sel.innerHTML = `<option value="${slug}">${slug}</option>`; sel.value = slug; }
   }
-  openSection("espnSection");
+
   pickFixture(homeName, homeId, awayName, awayId);
 }
 
@@ -11184,10 +11191,11 @@ async function loadFixtures(timeFilter = 'all') {
     let allEvents = [];
 
     if (!league || league === "all" || league === "unknown") {
-      // ALL LEAGUES MODE: batch-fetch top leagues in groups of 4
+      // ALL LEAGUES MODE: batch-fetch all leagues in groups of 4
       const slugs = SOCCER_TAXONOMY.flatMap(cat => cat.leagues.map(l => l.slug));
       const batchSize = 4;
       for (let i = 0; i < slugs.length; i += batchSize) {
+        if (myToken !== _fixtureLoadToken) return;
         const chunk = slugs.slice(i, i + batchSize);
         const results = await Promise.all(chunk.map(async sl => {
           try {
@@ -11197,7 +11205,6 @@ async function loadFixtures(timeFilter = 'all') {
           } catch(e) { return []; }
         }));
         results.forEach(r => allEvents.push(...r));
-        if (myToken !== _fixtureLoadToken) return;
       }
       allEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
     } else {
@@ -11205,7 +11212,7 @@ async function loadFixtures(timeFilter = 'all') {
       const base = getLeagueBase(league);
       const data = await proxyFetch(`${base}/scoreboard?dates=${dParam}&limit=800`);
       if (myToken !== _fixtureLoadToken) return;
-      allEvents = (data?.events || []).filter(ev => ev.status?.type?.state === "pre");
+      allEvents = (data?.events || []).filter(ev => ev.status?.type?.state === "pre").map(ev => ({...ev, _slug: league}));
     }
 
     if (!allEvents.length) {
@@ -11217,11 +11224,18 @@ async function loadFixtures(timeFilter = 'all') {
       const c = ev.competitions[0];
       const h = c.competitors.find(x=>x.homeAway==="home") || c.competitors[0];
       const a = c.competitors.find(x=>x.homeAway==="away") || c.competitors[1];
-      const slug = ev._slug || league;
+      const evSlug = ev._slug || league;
       const d = new Date(ev.date);
       const timeStr = d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
       const dateStr = d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
-      return `<div class="pro-match-item" onclick="handleProMatchClick(this, '${escapeHtml(h.team.displayName)}', '${h.team.id}', '${escapeHtml(a.team.displayName)}', '${a.team.id}', '${slug}')">
+      // Use data-* attrs — avoids apostrophe/quote issues in onclick
+      return `<div class="pro-match-item"
+        data-home="${h.team.displayName}"
+        data-home-id="${h.team.id}"
+        data-away="${a.team.displayName}"
+        data-away-id="${a.team.id}"
+        data-slug="${evSlug}"
+        onclick="handleProMatchClick(this)">
         <div class="pro-match-time"><div>${timeStr}</div><div class="pro-match-id">${dateStr}</div></div>
         <div class="pro-match-teams"><div class="pro-match-team">${h.team.displayName}</div><div class="pro-match-team">${a.team.displayName}</div></div>
       </div>`;
