@@ -3278,22 +3278,11 @@ function getLeagueTrustSortRank(level) {
 // We use a Proxy to dynamically generate the rules for ANY soccer league string you throw at it.
 const LEAGUE_FETCH_RULES = new Proxy({}, {
   get: function(target, leagueKey) {
-    if (!leagueKey || leagueKey === "unknown") return null;
+    if (typeof leagueKey !== "string" || !leagueKey || leagueKey === "unknown") return null;
     return {
       recentSeasons: 2,
       scheduleTypes: ["2"], // Soccer regular season only
       h2hScheduleTypes: ["2"],
-      regulationPeriods: 2 
-    };
-  }
-});
-
-
-    // Soccer standard rules
-    return {
-      recentSeasons: 2,
-      scheduleTypes: ["2", "3", "4"], // Regular season, playoffs, cups
-      h2hScheduleTypes: ["2", "3", "4"],
       regulationPeriods: 2 
     };
   }
@@ -5523,7 +5512,7 @@ Any suggestion made here without proof is an audit error.
     try {
       const res = await fetch(requestUrl, { 
         signal: ctrl.signal, 
-        headers: { "X-Engine-Proxy-Token": "v2_engine_strict_auth_9982" }, 
+        headers: {}, // [SENTINEL FIX #10a] Token moved to Cloudflare backend 
         cache: "no-store" 
       });
       if (!res.ok) {
@@ -5657,7 +5646,7 @@ function applySmartLineToPick(pickRow, rawInput, league) {
   const sourceEdge = isFinite(pickRow.edge) ? Number(pickRow.edge) : NaN;
   const sourceProj = isFinite(pickRow.proj) ? Number(pickRow.proj) : NaN;
   const side = getPickSideFromText(pickRow.pick);
-  const buffer = 2;
+  const buffer = 0.5; // [SENTINEL FIX #5c]
 
   if (!side || !isFinite(sourceLine) || pickRow.pick === "NO PLAY") {
     return {
@@ -5822,44 +5811,29 @@ function robustRecentAverage(arr) {
 }
 
 function trimmedAvg(arr) {
+  // [SENTINEL FIX #6b]
   const work = Array.isArray(arr) ? arr.map(Number).filter(v => isFinite(v)) : [];
-  if (!work.length) return NaN;
   if (work.length <= 2) return avg(work);
-
   if (work.length >= 5) {
-    // FIX 2: Find extremes without sorting the array to preserve chronological order
-    const maxVal = Math.max(...work);
-    const minVal = Math.min(...work);
-    
-    let removedMax = false;
-    let removedMin = false;
-    
+    const sorted = [...work].sort((a,b) => a - b);
+    const maxVal = sorted[sorted.length - 1];
+    const minVal = sorted[0];
+    let removedMax = false, removedMin = false;
     const chronologicalMiddle = work.filter(v => {
-      // Remove exactly one instance of the highest score
-      if (!removedMax && v === maxVal) {
-        removedMax = true;
-        return false;
-      }
-      // Remove exactly one instance of the lowest score
-      if (!removedMin && v === minVal) {
-        removedMin = true;
-        return false;
-      }
+      if (!removedMax && v === maxVal) { removedMax = true; return false; }
+      if (!removedMin && v === minVal) { removedMin = true; return false; }
       return true;
     });
-
-    // The array is now trimmed BUT still in perfectly accurate chronological order
     return weightedRecentAverage(chronologicalMiddle);
   }
-
   return weightedRecentAverage(work);
-
 }
 
     function stdDev(arr) {
-      if (!arr || arr.length < 2) return 0; // Single-game sample treated as zero-volatility by design
+      // [SENTINEL FIX #6a]
+      if (!arr) return 0;
       const clean = arr.map(Number).filter(v => isFinite(v));
-      if (clean.length < 2) return 0;
+      if (clean.length < 2) return 1.5;
       const m = avg(clean);
       return Math.sqrt(clean.reduce((a, b) => a + Math.pow(b - m, 2), 0) / (clean.length - 1));
     }
@@ -6926,7 +6900,7 @@ function archiveExpiredTrackedPicks() {
     const p = ensureTrackedPickKeys({ ...pick });
     const isSettled = ["win", "loss", "push"].includes(String(p.resultStatus || "").toLowerCase());
     
-    const gameTs = Date.parse(p.eventDate || p.createdAt || '') || 0;
+    const gameTs = p.eventDate ? new Date(p.eventDate + (p.eventDate.includes('Z') ? '' : 'Z')).getTime() : (Date.parse(p.createdAt || '') || 0); // [SENTINEL FIX #10b]
     const isExpired = gameTs > 0 && (now - gameTs) >= cutoffMs;
 
     // 🚨 PRISON GATE: Must be SETTLED AND EXPIRED (10 hours) to leave active picks.
@@ -9133,68 +9107,50 @@ function settleTrackedPickFromCompetition(pick, competition, boxscore) {
 
 
 function addTrackedPicks(newPicks) {
+  // [SENTINEL FIX #3]
   if (!Array.isArray(newPicks) || !newPicks.length) {
     renderTrackedPicks();
     return;
   }
-
-  const current = loadTrackedPicks();
+  const current = Array.isArray(g_trackerState.activePicks) ? [...g_trackerState.activePicks] : [];
   const archived = Array.isArray(g_trackerState.archivedPicks) ? g_trackerState.archivedPicks : [];
   let changed = false;
 
   newPicks.forEach(raw => {
     const p = ensureTrackedPickKeys(raw);
-
-    // --- LEVEL 3 FIX: PRE-EMPTIVE DATA SLIMMING ---
     if (p.diagnostics) {
       p.godsEyeMemory = {
-        pace: p.diagnostics.pace,
-        netA: p.diagnostics.netA,
-        netB: p.diagnostics.netB,
-        aVol: p.diagnostics.aVol,
-        bVol: p.diagnostics.bVol,
-        simPct: p.diagnostics.massacre?.simPct,
-        edgePct: p.edgePct,
-        grade: p.confidenceGrade
+        pace: p.diagnostics.pace, netA: p.diagnostics.netA, netB: p.diagnostics.netB,
+        aVol: p.diagnostics.aVol, bVol: p.diagnostics.bVol,
+        simPct: p.diagnostics.massacre?.simPct, edgePct: p.edgePct, grade: p.confidenceGrade
       };
-      delete p.diagnostics; 
-      delete p.massacre;
-      delete p.trackerFeedback;
-      delete p.shadowTrackerFeedback;
-      delete p.teamMemory;
+      delete p.diagnostics; delete p.massacre; delete p.trackerFeedback;
+      delete p.shadowTrackerFeedback; delete p.teamMemory;
     }
-
     if (!p.signature) p.signature = makeTrackedSignature(p);
-
     const exactIdx = current.findIndex(x => makeTrackedSignature(x) === p.signature);
-
     if (exactIdx !== -1) {
-      const existing = current[exactIdx];
-      if (String(existing.resultStatus || "pending").toLowerCase() !== "pending") return;
-
-      const sameLine = String(displayLine(existing.line)) === String(displayLine(p.line));
-      const betterLine = isBetterLineForSide(p.side, p.line, existing.line);
-
+      if (String(current[exactIdx].resultStatus || "pending").toLowerCase() !== "pending") return;
+      const sameLine = String(displayLine(current[exactIdx].line)) === String(displayLine(p.line));
+      const betterLine = isBetterLineForSide(p.side, p.line, current[exactIdx].line);
       if (sameLine || betterLine) {
-        current[exactIdx] = ensureTrackedPickKeys({
-          ...existing,
-          ...p,
-          createdAt: existing.createdAt || p.createdAt,
-          signature: p.signature
-        });
+        current[exactIdx] = ensureTrackedPickKeys({ ...current[exactIdx], ...p, signature: p.signature });
         changed = true;
       }
       return;
     }
-
-    const archivedIdx = archived.findIndex(x => makeTrackedSignature(x) === p.signature);
-    if (archivedIdx !== -1) return;
-
+    if (archived.findIndex(x => makeTrackedSignature(x) === p.signature) !== -1) return;
     current.unshift(p);
     changed = true;
   });
 
-  if (changed) saveTrackedPicks(current);
+  if (changed) {
+    g_trackerState.activePicks = current.slice(0, TRACKED_PICKS_LIMIT);
+    g_trackerState.updatedAt = new Date().toISOString();
+    rebuildTrackerStats();
+    saveTrackerStateToLocal();
+    scheduleTrackerSave();
+  }
   renderTrackedPicks();
 }
 
@@ -9367,10 +9323,10 @@ function applyContextAdjustments(baseProjection, ctx) {
   return edge > 0 ? "OVER " + displayLine(line) : "UNDER " + displayLine(line);
 }
 
-    function getTrapVolThreshold(marketType, league) {
-      const bucket = TRAP_RULES.volThresholds[marketType] || TRAP_RULES.volThresholds.ft;
-      return league === "nba" ? bucket.nba : bucket.other;
-    }
+    function getTrapVolThreshold(marketType) {
+  // [SENTINEL FIX #7b]
+  return TRAP_RULES.volThresholds[marketType] ?? TRAP_RULES.volThresholds.ft;
+}
 
     function detectTrap(edge, line, pick, league, marketType, vol) {
       if (!line || isNaN(edge) || line <= 0 || !pick || pick === "NO PLAY") return false;
@@ -9473,22 +9429,18 @@ function getConfidenceGrade({
 
     // ── HYBRID FIX: Restored Market Anchoring (Vegas Safety Net) ──
 function anchorProjection(proj, line, league, marketType) {
+  // [SENTINEL FIX #7a]
   const enabled = !!MODEL_TUNING.anchorEnabled?.[marketType];
   if (!enabled || !isFinite(proj) || !isFinite(line) || line <= 0) return proj;
-
   const rules = ANCHOR_RULES[marketType] || ANCHOR_RULES.ft;
-  const nbaStyle = league === "nba";
-  const diffGate = nbaStyle ? Number(rules.nbaDiff || 0) : Number(rules.otherDiff || 0);
-  const baseWeight = nbaStyle ? Number(rules.nbaWeight || 0) : Number(rules.otherWeight || 0);
-  if (!isFinite(diffGate) || diffGate <= 0 || !isFinite(baseWeight) || baseWeight <= 0) return proj;
-
+  const diffGate = Number(rules.diff || 0);
+  const baseWeight = Number(rules.weight || 0);
+  if (diffGate <= 0 || baseWeight <= 0) return proj;
   const diff = Math.abs(proj - line);
   if (diff <= diffGate) return proj;
-
   const scale = Number(MODEL_TUNING.anchorScale?.[marketType] || 0.75);
   const excess = clampNumber((diff - diffGate) / Math.max(1, diffGate * 1.5), 0, 1);
   const weight = clampNumber(baseWeight * scale * excess, 0, 0.70);
-
   return (proj * (1 - weight)) + (line * weight);
 }
 
@@ -9733,6 +9685,22 @@ function buildTeamMarketIntelSignal(teamSc, teamAll, oppAll, line, teamBase) {
   return { signed, lineHit, form, reasons };
 }
 
+// [SENTINEL FIX #2]
+function avgOrNaN(arr) {
+  const work = Array.isArray(arr) ? arr.map(Number).filter(v => isFinite(v)) : [];
+  return work.length ? work.reduce((s, v) => s + v, 0) / work.length : NaN;
+}
+
+function getMarketKeyFromName(name) {
+  const n = String(name || "").toLowerCase();
+  if (n.includes("team a")) return "team_a";
+  if (n.includes("team b")) return "team_b";
+  if (n.includes("1h") || n.includes("first half")) return "h1";
+  if (n.includes("2h") || n.includes("second half")) return "h2";
+  if (n.includes("ft") || n.includes("total")) return "ft";
+  return "";
+}
+
 function computeIntelligencePack(league, lines = {}, parsedInput = null) {
   const parsed = parsedInput || buildLooseParsedState();
   const ftLine = Number(lines?.ftLine);
@@ -9758,7 +9726,7 @@ function computeIntelligencePack(league, lines = {}, parsedInput = null) {
   const bOverallH2Al = [];
 
   const defaultTotalLine = isFinite(ftLine) && ftLine > 0 ? ftLine : (LEAGUE_BASES[league] || LEAGUE_BASES.unknown);
-  const altHighLine = defaultTotalLine + (league === "nba" ? 12 : league === "ncaa" ? 8 : 10);
+  const altHighLine = defaultTotalLine + 1.0; // [SENTINEL FIX #5a]
 
   const aForm = recentFormDelta(aOverallFTSc, aOverallFTAl);
   const bForm = recentFormDelta(bOverallFTSc, bOverallFTAl);
@@ -9942,31 +9910,15 @@ function hideInjuryBox(side) {
 }
 
     function clearSideFields(side) {
+  // [SENTINEL FIX #8a]
   const ids = side === "A"
-    ? [
-        "aFTScored", "a1HScored", "a2HScored"
-      ]
-    : [
-        "bFTScored", "b1HScored", "b2HScored"
-      ];
-
-  ids.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = "";
-  });
-
-  const tagIds = side === "A"
-    ? ["aAutoTag"]
-    : ["bAutoTag"];
-
-  tagIds.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = "none";
-  });
-
+    ? ["aFTScored", "aFTAllowed", "a1HScored", "a2HScored"]
+    : ["bFTScored", "bFTAllowed", "b1HScored", "b2HScored"];
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+  const tagIds = side === "A" ? ["aAutoTag"] : ["bAutoTag"];
+  tagIds.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
   if (side === "A") g_injA = defaultInjuryMeta();
   if (side === "B") g_injB = defaultInjuryMeta();
-
   hideInjuryBox(side);
 }
 
@@ -10469,7 +10421,7 @@ updateIntelligencePack();
     const items = data?.injuries || data?.items || [];
     if (!items.length) return result;
 
-    const avgPPG = (isFinite(teamAvgScored) && teamAvgScored > 0) ? teamAvgScored : 80;
+    const avgPPG = (isFinite(teamAvgScored) && teamAvgScored > 0) ? teamAvgScored : 1.5; // [SENTINEL FIX #5b]
     let totalReduction = 0;
 
     for (const inj of items) {
@@ -11085,6 +11037,7 @@ const SOCCER_TAXONOMY = [
 ];
 
 async function runMassacreMonteCarlo(projA, projB, line) {
+  // [SENTINEL FIX #4] Bivariate Poisson — Football integer lines, exact push tracking
   return new Promise((resolve) => {
     function poisson(lambda, k) {
       if (lambda <= 0) return k === 0 ? 1 : 0;
@@ -11092,27 +11045,21 @@ async function runMassacreMonteCarlo(projA, projB, line) {
       for (let i = 2; i <= k; i++) k_fact *= i;
       return (Math.pow(lambda, k) * Math.exp(-lambda)) / k_fact;
     }
-
     const rho = (projA < 1.5 && projB < 1.5) ? -0.12 : 0.0;
-    let overProb = 0;
-
+    let overProb = 0, pushProb = 0;
     for (let i = 0; i <= 8; i++) {
       for (let j = 0; j <= 8; j++) {
-        let probA = poisson(projA, i);
-        let probB = poisson(projB, j);
-        let baseProb = probA * probB;
-
+        let baseProb = poisson(projA, i) * poisson(projB, j);
         if (i === 0 && j === 0) baseProb *= (1 - projA * projB * rho);
         else if (i === 0 && j === 1) baseProb *= (1 + projA * rho);
         else if (i === 1 && j === 0) baseProb *= (1 + projB * rho);
         else if (i === 1 && j === 1) baseProb *= (1 - rho);
-
         if ((i + j) > line) overProb += Math.max(0, baseProb);
+        else if ((i + j) === line) pushProb += Math.max(0, baseProb);
       }
     }
-
-    const overPct = overProb * 100;
-    resolve({ overPct, underPct: 100 - overPct });
+    const overPct = overProb * 100, pushPct = pushProb * 100;
+    resolve({ overPct, pushPct, underPct: 100 - overPct - pushPct });
   });
 }
 
@@ -11630,6 +11577,20 @@ function runEngine() {
 
   addPick("FT Total",     "ft",     "ft",   ftProj, ftLine, Math.max(aVol, bVol), ftHasH2H);
   addPick("1H Total",     "h1",     "h1",   h1Proj, h1Line, Math.max(aVol, bVol) * 0.7, false);
+  // [SENTINEL FIX #9] 2H Market Implementation
+  let h2Proj = NaN;
+  const h2Line = parseMarketLine(document.getElementById("h2Market")?.value);
+  if (h2Line) {
+    const a2HScored_raw = safeArr(parseGames("a2HScored"));
+    const b2HScored_raw = safeArr(parseGames("b2HScored"));
+    if (a2HScored_raw && b2HScored_raw && a2HScored_raw.length >= 2 && b2HScored_raw.length >= 2) {
+      h2Proj = robustRecentAverage(a2HScored_raw) + robustRecentAverage(b2HScored_raw);
+    } else if (isFinite(ftProj) && isFinite(h1Proj)) {
+      h2Proj = ftProj - h1Proj; // Infer from FT - 1H
+    }
+    if (isFinite(h2Proj)) h2Proj = anchorProjection(h2Proj, h2Line, league, "h2");
+  }
+  addPick("2H Total", "h2", "h2", h2Proj, h2Line, Math.max(aVol, bVol) * 0.8, false);
   addPick("Team A Total", "team_a", "team", projA,  aLine,  aVol,  false);
   addPick("Team B Total", "team_b", "team", projB,  bLine,  bVol,  false);
 
