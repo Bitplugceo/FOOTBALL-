@@ -9613,6 +9613,14 @@ function getIntelSeries(side, scopeName, key, fallback = []) {
 }
 
 function buildTotalMarketIntelSignal(aSc, aAll, bSc, bAll, line, teamBase) {
+// ── avgOrNaN: returns array average or NaN if empty/invalid ──
+function avgOrNaN(arr) {
+  if (!Array.isArray(arr) || !arr.length) return NaN;
+  const nums = arr.map(Number).filter(v => isFinite(v));
+  if (!nums.length) return NaN;
+  return nums.reduce((s, v) => s + v, 0) / nums.length;
+}
+
   const as = avgOrNaN(aSc);
   const aa = avgOrNaN(aAll);
   const bs = avgOrNaN(bSc);
@@ -11266,6 +11274,15 @@ async function loadFixtures(timeFilter = 'all') {
       allEvents = (data?.events || []).filter(ev => ev.status?.type?.state === "pre").map(ev => ({...ev, _slug: league}));
     }
 
+    // Track which leagues actually have matches — used by dynamic league picker
+    uiState.activeLeagueSlugs = new Set(allEvents.map(ev => ev._slug).filter(Boolean));
+    if (uiState.activeCategoryIdx >= 0) {
+      // If current category has no matches, reset to -1 (All)
+      const cat = SOCCER_TAXONOMY[uiState.activeCategoryIdx];
+      if (cat && !cat.leagues.some(l => uiState.activeLeagueSlugs.has(l.slug))) {
+        uiState.activeCategoryIdx = -1;
+      }
+    }
     if (!allEvents.length) {
       list.innerHTML = '<div style="padding:20px; text-align:center;">No upcoming matches found.</div>';
       return;
@@ -11304,7 +11321,8 @@ const uiState = {
   appliedLeagueSlug: null,
   selectedDateOffset: "all",
   currentModalType: null,
-  activeCategoryIdx: 0
+  activeCategoryIdx: 0,
+  activeLeagueSlugs: new Set()  // dynamically populated from live fixture fetch
 };
 
 function openProModal(type) {
@@ -11342,15 +11360,24 @@ function closeProModal() {
 function renderLeaguePaneLeft() {
   const left = document.getElementById("proPaneLeft");
   if (!left) return;
+  const active = uiState.activeLeagueSlugs;
+  const hasLive = active && active.size > 0;
+  const liveCount = hasLive ? active.size : null;
+  const allLabel = hasLive
+    ? `&#x1F310; All Leagues <span style="font-size:10px;opacity:0.7;">(${liveCount})</span>`
+    : `&#x1F310; All Leagues`;
   const allItem = `<div class="pane-item ${uiState.activeCategoryIdx === -1 ? "active" : ""}"
        onclick="selectAllLeagues(this)">
-    <span>&#x1F310; All Leagues</span><span>&#x203A;</span>
+    <span>${allLabel}</span><span>&#x203A;</span>
   </div>`;
-  const catItems = SOCCER_TAXONOMY.map((cat, idx) => `
-    <div class="pane-item ${idx === uiState.activeCategoryIdx ? "active" : ""}"
+  // Only show categories that have at least one league with live fixtures
+  const catItems = SOCCER_TAXONOMY.map((cat, idx) => {
+    if (hasLive && !cat.leagues.some(l => active.has(l.slug))) return "";
+    return `<div class="pane-item ${idx === uiState.activeCategoryIdx ? "active" : ""}"
          onclick="selectLeagueCategory(${idx}, this)">
       <span>${safeText(cat.cat)}</span><span>&#x203A;</span>
-    </div>`).join("");
+    </div>`;
+  }).join("");
   left.innerHTML = allItem + catItems;
 }
 
@@ -11380,7 +11407,15 @@ function renderLeaguePaneRight(catIdx = 0) {
   if (!right) return;
   const cat = SOCCER_TAXONOMY[catIdx];
   if (!cat) { right.innerHTML = ""; return; }
-  right.innerHTML = cat.leagues.map(lg => `
+  const active = uiState.activeLeagueSlugs;
+  const hasLive = active && active.size > 0;
+  // Filter to leagues that have live fixtures (if any are loaded); show all if none loaded yet
+  const visibleLeagues = hasLive ? cat.leagues.filter(lg => active.has(lg.slug)) : cat.leagues;
+  if (!visibleLeagues.length) {
+    right.innerHTML = '<div class="pane-item" style="color:#aaa; font-style:italic; pointer-events:none;">No matches today in this group</div>';
+    return;
+  }
+  right.innerHTML = visibleLeagues.map(lg => `
     <div class="pane-item ${uiState.stagedLeagueSlug === lg.slug ? "active" : ""}"
          onclick="stageLeague('${lg.slug}', this)">
       <span>${safeText(lg.name)}</span>
