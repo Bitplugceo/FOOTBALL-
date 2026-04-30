@@ -388,18 +388,7 @@ input,
       cursor: not-allowed;
     }
 
-    .fetch-btn {
-      background: #49a443 !important;
-      color: #fff !important;
-      padding: 6px 12px !important;
-      font-size: 12px !important;
-      font-weight: 700 !important;
-      border: none !important;
-      cursor: pointer;
-      margin-top: 4px;
-      box-shadow: 0 2px 6px rgba(73, 164, 67, 0.2);
-    }
-
+    
     .fixture-toolbar {
       display: flex;
       gap: 8px;
@@ -520,24 +509,8 @@ input,
       color: #d98a00;
     }
 
-    .autofill-indicator {
-      font-size: 10px;
-      color: #2f8f4a;
-      display: none;
-    }
-
-    .spinner {
-      display: inline-block;
-      width: 10px;
-      height: 8px;
-      border: 2px solid #4aa346;
-      border-top-color: transparent;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-      vertical-align: middle;
-      margin-right: 4px;
-    }
-
+    
+    
     @keyframes spin {
       to {
         transform: rotate(360deg);
@@ -2605,20 +2578,12 @@ body.dark-mode .tracker-analytics-section-head {
 </header>
 
     <div class="wrapper">
-      <div id="liveEngineDebugger" style="background:#050505; color:#49d45f; padding:10px; font-family: ui-monospace, monospace; font-size:11px; margin-bottom:10px; border:1px solid #333; border-left: 4px solid #49d45f; max-height:250px; overflow-y:auto; word-break:break-word;">
-         <div style="color:#aaa; font-weight:bold; margin-bottom:5px;">[SYSTEM] Live Auto-Fetch Monitor Active...</div>
-      </div>
-
+      
 
         <div class="section" id="leagueSection">
       <h3>League &amp; Match Selection</h3>
       <div class="section-body" style="padding: 0;">
         <select id="leagueSelect" style="display:none;"></select>
-        <div id="fixtureToolbar" style="display:none;">
-          <button type="button" id="fixturesTodayBtn">0</button>
-          <button type="button" id="fixturesTomorrowBtn">1</button>
-        </div>
-        <select id="fixtureSelect" style="display:none;"></select>
 
         <div class="pro-toolbar" style="margin: 0; box-shadow: none; border-left: none; border-right: none; border-top: none;">
           <button type="button" class="pro-toolbar-btn active-text" id="uiDateBtn">All</button>
@@ -2631,29 +2596,7 @@ body.dark-mode .tracker-analytics-section-head {
       </div>
     </div>
 
-    <div class="section" id="espnSection" style="display:none;">
-      <h3>&#x26A1; Fetch Status &amp; Injuries</h3>
-      <div class="section-body">
-        <div style="display: none;">
-          <label id="teamALabel">Home Team</label>
-          <div class="autocomplete-wrap">
-            <input id="teamAName" autocomplete="off" />
-            <div class="autocomplete-list" id="dropA"></div>
-          </div>
-          <label id="teamBLabel">Away Team</label>
-          <div class="autocomplete-wrap">
-            <input id="teamBName" autocomplete="off" />
-            <div class="autocomplete-list" id="dropB"></div>
-          </div>
-          <button class="fetch-btn" id="fetchBtn" type="button">Fetch</button>
-        </div>
-        <div id="fetchStatus" style="margin-top: 10px; font-size: 11px; font-weight: bold;"></div>
-        <div id="fetchDebugLog" style="margin-top: 8px; font-family: ui-monospace, monospace; font-size: 10px; line-height: 1.4; color: #49d45f; background: #000; border: 1px solid #333; padding: 8px; max-height: 150px; overflow-y: auto; display: none; word-break: break-word;"></div>
-        <div class="injury-box" id="injuryBoxA"><div class="inj-title" id="injuryTitleA">Home - Injury Report</div><div id="injuryContentA"></div></div>
-        <div class="injury-box" id="injuryBoxB"><div class="inj-title" id="injuryTitleB">Away - Injury Report</div><div id="injuryContentB"></div></div>
-      </div>
-    </div>
-
+    
     <div class="section" id="marketSection">
 
   <h3>Market Lines</h3>
@@ -2679,7 +2622,7 @@ body.dark-mode .tracker-analytics-section-head {
 
 </div>
 <div class="section" id="teamASection">
-  <h3>Team A - Last 5 Overall <span class="autofill-indicator" id="aAutoTag">✅ Auto-filled</span></h3>
+  <h3>Team A - Last 5 Overall </h3>
 
 <label id="aFTScoredLabel">Goals Scored <span style="font-size:10px;color:#888;">(recent → oldest)</span></label>
 <input id="aFTScored" placeholder="2,1,0,3,1" />
@@ -2707,7 +2650,7 @@ body.dark-mode .tracker-analytics-section-head {
 </div>
 
 <div class="section" id="teamBSection">
-  <h3>Team B - Last 5 Overall <span class="autofill-indicator" id="bAutoTag">✅ Auto-filled</span></h3>
+  <h3>Team B - Last 5 Overall </h3>
 
 <label id="bFTScoredLabel">Goals Scored <span style="font-size:10px;color:#888;">(recent → oldest)</span></label>
 <input id="bFTScored" placeholder="1,2,1,1,0" />
@@ -2735,7 +2678,7 @@ body.dark-mode .tracker-analytics-section-head {
 </div>
 
 <div class="section" id="h2hSection">
-<h3>H2H TEST <span class="autofill-indicator" id="h2hAutoTag">✅ Auto-filled (2024+, expanded matchup history)</span></h3>
+<h3>H2H TEST </h3>
 
 <label id="useFTH2HLabel"><input type="checkbox" id="useFTH2H" /> Use FT H2H (min 2 games)</label>
 <input id="aFTH2H" placeholder="2,1,3,0,1" />
@@ -2755,7 +2698,7 @@ body.dark-mode .tracker-analytics-section-head {
 </div>
 
 <div class="section" id="intelSection">
-  <h3>📈 Intelligence Pack <span class="autofill-indicator" id="intelAutoTag">✅ Auto-derived</span></h3>
+  <h3>📈 Intelligence Pack </h3>
 
   <div style="font-size:11px;color:#7b8088;margin:0 0 8px 0;font-weight:700;line-height:1.5;">
     Layer 2 view: current form, offense/defense, spread profile, and total-hit profile from fetched/manual data.
@@ -3276,52 +3219,6 @@ function getLeagueTrustSortRank(level) {
 
 // Football uses 2 halves (regulationPeriods: 2) and different schedule types.
 // We use a Proxy to dynamically generate the rules for ANY soccer league string you throw at it.
-const LEAGUE_FETCH_RULES = new Proxy({}, {
-  get: function(target, leagueKey) {
-    if (!leagueKey || leagueKey === "unknown") return null;
-    return {
-      recentSeasons: 2,
-      scheduleTypes: ["2", "3", "4"], // Regular season, playoffs, cups
-      h2hScheduleTypes: ["2", "3", "4"],
-      regulationPeriods: 2 
-    };
-  }
-});
-
-
-
-        // Basketball hardcoded maps wiped out. 
-    // Engine will now dynamically search ESPN's soccer databases for team IDs.
-    // Basketball Maps DELETED.
-const NBA_TEAM_MAP = {};
-    const NCAA_TEAM_MAP = {};
-    const _schedCache = new Map();
-    const _summaryCache = new Map();
-    const _fixtureCache = new Map();
-    const _teamCatalogCache = new Map();
-let g_activeFetchController = null;
-
-// CORE UI STATE VARIABLES (Restored)
-let _fixtureLoadToken = 0;
-let activeDropTeam = null;
-let selectedTeamIds = { A: null, B: null };
-let g_teamSearchControllers = { A: null, B: null };
-let g_lastFetchedTeams = { A: "", B: "" };
-
-
-
-    const defaultFetchMeta = () => ({
-      A: {
-        ft: { source: "manual", venueReliable: true },
-        h1: { source: "manual", venueReliable: true },
-        h2: { source: "manual", venueReliable: true }
-      },
-      B: {
-        ft: { source: "manual", venueReliable: true },
-        h1: { source: "manual", venueReliable: true },
-        h2: { source: "manual", venueReliable: true }
-      }
-    });
 
     function defaultInjuryMeta() {
   return {
@@ -3335,8 +3232,7 @@ let g_lastFetchedTeams = { A: "", B: "" };
   };
 }
 
-    let g_fetchMeta = defaultFetchMeta();
-
+    
 const g_h2hManualPreference = { ft: null, h1: null, h2: null };
 
 function getH2HFieldIds(kind) {
@@ -4949,18 +4845,6 @@ function summarizePickDecisionForDebug(name, pick, line, edge, confidence, note,
   };
 }
 
-function getEngineFetchLabel(url) {
-  try {
-    const u = new URL(String(url), window.location.href);
-    const params = new URLSearchParams(u.search);
-    if (params.has("event")) params.set("event", params.get("event") || "");
-    if (params.has("dates")) params.set("dates", params.get("dates") || "");
-    return `${u.pathname}${params.toString() ? "?" + params.toString() : ""}`;
-  } catch (err) {
-    return String(url || "").slice(0, 160);
-  }
-}
-
 function getTrackerStateDebugScore(state) {
   return getTrackerStateLocalScore(state || {});
 }
@@ -5110,7 +4994,6 @@ function showFetchInputErrors() {
 }
 
 function getSelectedFixtureOption() {
-  const select = document.getElementById("fixtureSelect");
   if (!select || select.selectedIndex < 0) return null;
   const opt = select.options[select.selectedIndex];
   return opt && opt.value ? opt : null;
@@ -5231,9 +5114,7 @@ function buildFetchAuditIssues({
   return issues;
 }
 
-function validateFetchSection() {
   const league = document.getElementById("leagueSelect")?.value || "";
-  const fetchBtn = document.getElementById("fetchBtn");
   const teamAName = document.getElementById("teamAName")?.value.trim() || "";
   const teamBName = document.getElementById("teamBName")?.value.trim() || "";
   const supported = league !== "" && league !== "unknown";
@@ -5241,7 +5122,6 @@ function validateFetchSection() {
   const hasActivity = !!teamAName || !!teamBName || !!fixtureOpt;
 
   if (!supported) {
-    if (fetchBtn) fetchBtn.disabled = true;
     setFetchInputErrors([]);
     return false;
   }
@@ -5304,7 +5184,6 @@ function validateFetchSection() {
     errors.length === 0 &&
     !!teamAName &&
     !!teamBName;
-  if (fetchBtn) fetchBtn.disabled = !isValid;
 
   setFetchInputErrors(hasActivity ? errors : []);
   if (isValid) acknowledgeGlobalEngineAlert(); // Instantly clears red screen when teams are valid
@@ -5457,8 +5336,6 @@ function buildCompactFetchStatus(messages = [], fetchAuditIssues = []) {
   return summary;
 }
 
-    function unlockFetchBtn() {
-  validateFetchSection();
 }
 
     function setManualSource(side, bucket) {
@@ -5502,43 +5379,6 @@ proven in this exact build.
 
 If proof is absent, this section must be skipped completely.
 Any suggestion made here without proof is an audit error.
-*/
-            async function proxyFetch(url, timeoutMs = 12000) {
-  const fetchLabel = getEngineFetchLabel(url);
-  engineDebug("fetch start", { request: fetchLabel, timeoutMs });
-  uiLog(`🌐 Requesting: ${fetchLabel}`);
-
-  async function fetchJson(requestUrl, label) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-    try {
-      const res = await fetch(requestUrl, { 
-        signal: ctrl.signal, 
-        headers: { "X-Engine-Proxy-Token": "v2_engine_strict_auth_9982" }, 
-        cache: "no-store" 
-      });
-      if (!res.ok) {
-        uiLog(`❌ ESPN/Worker returned HTTP ${res.status}`, true);
-        throw new Error(label + " HTTP " + res.status);
-      }
-      const text = await res.text();
-      try { return JSON.parse(text); } catch (e) { throw new Error(label + " bad JSON"); }
-    } finally { clearTimeout(timer); }
-  }
-
-  try {
-    return await fetchJson(WORKER_URL + "?url=" + encodeURIComponent(url), "Worker");
-  } catch (workerErr) {
-    // True fallback: hit ESPN directly if Cloudflare worker is down
-    try {
-      const directRes = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
-      if (!directRes.ok) throw new Error("ESPN direct HTTP " + directRes.status);
-      return await directRes.json();
-    } catch (directErr) {
-      throw new Error("proxyFetch failed: Worker=" + workerErr.message + " Direct=" + directErr.message);
-    }
-  }
-}
 
 
 
@@ -5571,7 +5411,6 @@ Any suggestion made here without proof is an audit error.
     function accordionOpen(id, keepMarketOpen = false) {
   [
     "leagueSection",
-    "espnSection",
     "marketSection",
     "teamASection",
     "teamBSection",
@@ -5587,7 +5426,6 @@ Any suggestion made here without proof is an audit error.
 
     function lockFrom(startId) {
   const order = [
-    "espnSection",
     "marketSection",
     "teamASection",
     "teamBSection",
@@ -7009,14 +6847,9 @@ function isTrackedPickVisibleOnPage(pick) {
 
 
 function getCurrentFixtureMeta() {
-  const fixtureSelect = document.getElementById("fixtureSelect");
   const selectedOpt =
-    fixtureSelect && fixtureSelect.selectedIndex >= 0
-      ? fixtureSelect.options[fixtureSelect.selectedIndex]
       : null;
 
-  const allOpts = fixtureSelect
-    ? [...fixtureSelect.options].filter(o => o && o.value)
     : [];
 
   const teamAName = document.getElementById("teamAName")?.value.trim() || "";
@@ -9057,7 +8890,6 @@ function settleTrackedPickFromCompetition(pick, competition, boxscore) {
           if (res.ok) data = await res.json();
           else throw new Error("Direct fetch failed");
         } catch (err) {
-          data = await proxyFetch(url, 4000).catch(() => null);
         }
         return [entry.eventId, data];
       }));
@@ -9816,7 +9648,6 @@ function updateIntelligencePack(leagueOverride = "", linesOverride = null, parse
 
   if (!league) {
     setFieldValues(fields, "");
-    setAutoTagVisible("intelAutoTag", false);
     return null;
   }
 
@@ -9844,7 +9675,6 @@ function updateIntelligencePack(leagueOverride = "", linesOverride = null, parse
   if (aHitIntel) aHitIntel.value = pack.teamA.hitProfile;
   if (bHitIntel) bHitIntel.value = pack.teamB.hitProfile;
 
-  setAutoTagVisible("intelAutoTag", !!pack.hasAnyData);
   return pack;
 }
 
@@ -9909,7 +9739,6 @@ const FIELD_GROUPS = {
 
   intelFields: ["aFormIntel", "bFormIntel", "aSpreadIntel", "bSpreadIntel", "aHitIntel", "bHitIntel"],
 
-  autoTags: ["aAutoTag", "bAutoTag", "h2hAutoTag", "intelAutoTag"],
 
   periodInputs: [
     "a1HScored","b1HScored",
@@ -9931,11 +9760,6 @@ function setDisplayValues(ids, displayValue) {
     const el = document.getElementById(id);
     if (el) el.style.display = displayValue;
   });
-}
-
-function setAutoTagVisible(id, visible) {
-  const el = document.getElementById(id);
-  if (el) el.style.display = visible ? "inline" : "none";
 }
 
 function hideInjuryBox(side) {
@@ -9960,8 +9784,6 @@ function hideInjuryBox(side) {
   });
 
   const tagIds = side === "A"
-    ? ["aAutoTag"]
-    : ["bAutoTag"];
 
   tagIds.forEach(id => {
     const el = document.getElementById(id);
@@ -9991,38 +9813,8 @@ function clearH2HFields() {
   });
 
   syncAllH2HCheckboxes(true);
-  const h2hTag = document.getElementById("h2hAutoTag");
   if (h2hTag) h2hTag.style.display = "none";
 }
-
-        function clearAutoFill(changedSide = null) {
-      // FIX: _fetchToken++ removed
-      unlockFetchBtn();
-      setStatusText("", "");
-      setFetchAuditIssues([]);
-      resetResultsTable();
-
-      if (changedSide === "A" || changedSide === "B") {
-        g_massacreFetchContext = defaultMassacreFetchContext();
-        selectedTeamIds[changedSide] = null;
-        g_lastFetchedTeams[changedSide] = "";
-        setManualSource(changedSide);
-        if (changedSide === "A") { g_injA = defaultInjuryMeta(); hideInjuryBox("A"); }
-        if (changedSide === "B") { g_injB = defaultInjuryMeta(); hideInjuryBox("B"); }
-        clearSideFields(changedSide);
-        clearH2HFields();
-      } else {
-        selectedTeamIds = { A: null, B: null };
-        g_lastFetchedTeams = { A: "", B: "" };
-        g_fetchMeta = defaultFetchMeta();
-        clearSideFields("A");
-        clearSideFields("B");
-        clearH2HFields();
-      }
-
-      validateFetchSection();
-      updateIntelligencePack();
-    }
 
 
 
@@ -10032,7 +9824,6 @@ function clearH2HFields() {
 
   if (!league) {
     [
-      "espnSection",
       "marketSection",
       "teamASection",
       "teamBSection",
@@ -10048,8 +9839,6 @@ function clearH2HFields() {
   unlockSection("h2hSection");
   unlockSection("intelSection");
 
-  if (isSupported) unlockSection("espnSection");
-  else lockSection("espnSection");
 }
 
     function getDateKeyLocal(dateObj) {
@@ -10135,42 +9924,6 @@ function getCurrentSeasonYear(league) {
   return year;
 }
 
-    async function fetchLeagueTeamCatalog(league) {
-      const base = getLeagueBase(league);
-      if (!base) return [];
-      if (_teamCatalogCache.has(league)) return _teamCatalogCache.get(league);
-
-      const promise = (async () => {
-        const data = await proxyFetch(base + "/teams?limit=500");
-        const leagues = data?.sports?.[0]?.leagues || [];
-        let teams = [];
-        for (const lg of leagues) teams = teams.concat(lg?.teams || []);
-        if (!teams.length) teams = data?.teams || [];
-
-        const seen = new Set();
-        const out = [];
-        for (const item of teams) {
-          const t = item.team || item;
-          const id = String(t?.id || "");
-          const name = t?.displayName || t?.shortDisplayName || t?.name || "";
-          if (!id || !name) continue;
-          const key = id + "::" + normalizeTeamName(name);
-          if (seen.has(key)) continue;
-          seen.add(key);
-          out.push({ id, name });
-        }
-        out.sort((a, b) => a.name.localeCompare(b.name));
-        return out;
-      })().catch(err => {
-        _teamCatalogCache.delete(league);
-        logDebug("fetchLeagueTeamCatalog failed", err);
-        return [];
-      });
-
-      cacheSet(_teamCatalogCache, league, promise);
-      return promise;
-    }
-
     function highlight(name, query) {
       const rawQ = String(query || "").trim();
       if (!rawQ) return safeText(name);
@@ -10223,7 +9976,6 @@ function cancelDropClose(dropId = null) {
   selectedTeamIds[side] = id || null;
   closeDrop(dropId);
   activeDropTeam = null;
-  validateFetchSection();
 updateIntelligencePack();
 }
 
@@ -10260,71 +10012,6 @@ updateIntelligencePack();
       if (!norm) return "";
       const mappedId = lookupTeamId(norm, league);
       return mappedId ? `${league}:${mappedId}` : `${league}:name:${norm}`;
-    }
-
-    async function onTeamInput(side) {
-      const inputId = side === "A" ? "teamAName" : "teamBName";
-      const dropId = side === "A" ? "dropA" : "dropB";
-      const input = document.getElementById(inputId);
-      const drop = document.getElementById(dropId);
-      const val = input.value.trim();
-      const league = document.getElementById("leagueSelect").value;
-      const normVal = normalizeTeamName(val);
-
-      if (normVal !== g_lastFetchedTeams[side]) {
-        if (g_lastFetchedTeams[side]) {
-          clearAutoFill(side);
-        } else {
-          setStatusText("", "");
-          setFetchAuditIssues([]);
-          resetResultsTable();
-        }
-      }
-      selectedTeamIds[side] = null;
-      validateFetchSection();
-
-      if (!val) { closeDrop(dropId); return; }
-      if (!league || league === "unknown") { closeDrop(dropId); return; }
-
-      // FIX: Use AbortController instead of legacy integer tokens
-      if (g_teamSearchControllers[side]) {
-        g_teamSearchControllers[side].abort();
-      }
-      g_teamSearchControllers[side] = new AbortController();
-      const currentSignal = g_teamSearchControllers[side].signal;
-
-      try {
-        const teams = await fetchLeagueTeamCatalog(league);
-        
-        // Bail out if a newer keystroke has aborted this specific cycle
-        if (currentSignal.aborted) return;
-
-        const matches = teams.filter(t => normalizeTeamName(t.name).includes(normVal)).slice(0, 20);
-        if (!matches.length) { closeDrop(dropId); return; }
-
-        drop.innerHTML = "";
-        const group = document.createElement("div");
-        group.className = "group-label";
-        group.textContent = league === "nba" ? "NBA" : "NCAA";
-        drop.appendChild(group);
-
-        matches.forEach(team => {
-          const div = document.createElement("div");
-          div.dataset.id = team.id;
-          div.dataset.name = team.name;
-          div.innerHTML = highlight(team.name, val);
-          div.addEventListener("mousedown", () => selectTeam(side, team.name, team.id));
-          drop.appendChild(div);
-        });
-
-        drop.style.display = "block";
-        activeDropTeam = side;
-        validateFetchSection();
-      } catch (err) {
-        if (!currentSignal.aborted) {
-          console.error("[BB Engine] Autocomplete fetch failed", err);
-        }
-      }
     }
 
 
@@ -10403,10 +10090,8 @@ updateIntelligencePack();
 
     async function searchTeamFromAPI(base, name, league) {
   const n = normalizeTeamName(name);
-  uiLog(`🔎 Resolving ID for: "${name}"...`);
 
   try {
-    const data = await proxyFetch(base + "/teams?limit=500");
     const leagues = data?.sports?.[0]?.leagues || [];
     let teams = [];
     for (const l of leagues) teams = teams.concat(l?.teams || []);
@@ -10421,7 +10106,6 @@ updateIntelligencePack();
       const shortName = normalizeTeamName(team.shortDisplayName || "");
 
       if (displayName === n || shortName === n) {
-        uiLog(`✅ Found exact match: ${team.displayName} (ID: ${team.id})`);
         return String(team.id);
       }
 
@@ -10431,17 +10115,13 @@ updateIntelligencePack();
       if (score > bestScore) { bestScore = score; best = String(team.id); }
     }
     if (best && bestScore >= 3) {
-      uiLog(`⚠️ Fuzzy match selected (ID: ${best})`);
       return best;
     }
-  } catch (e) { uiLog(`❌ Primary search failed`, true); }
 
   try {
-    const catalog = await fetchLeagueTeamCatalog(league);
     const catalogMap = new Map(catalog.map(t => [String(t.id), normalizeTeamName(t.name)]));
 
     // FIX: Removed &sport=basketball from this URL
-    const data = await proxyFetch(
       "https://site.api.espn.com/apis/common/v3/search?query=" +
       encodeURIComponent(name) + "&limit=10&type=team" 
     );
@@ -10457,102 +10137,10 @@ updateIntelligencePack();
       if (score > bestScore) { bestScore = score; bestId = id; }
     }
     if (bestId && bestScore >= 2) {
-      uiLog(`⚠️ Fallback match selected (ID: ${bestId})`);
       return bestId;
     }
-    uiLog(`❌ Could not resolve ID for "${name}".`, true);
     return null;
   } catch (e) { return null; }
-}
-
-
-
-    async function fetchInjuryMeta(base, teamId, teamAvgScored, league) {
-  const result = {
-    scoringMult: 1,
-    notes: [],
-    outCount: 0,
-    dtdCount: 0,
-    unknownImpactCount: 0,
-    hasUnknownImpact: false,
-    highUncertainty: false
-  };
-
-  try {
-    const data = await proxyFetch(`${base}/teams/${teamId}/injuries`).catch(() => null);
-    const items = data?.injuries || data?.items || [];
-    if (!items.length) return result;
-
-    const avgPPG = (isFinite(teamAvgScored) && teamAvgScored > 0) ? teamAvgScored : 80;
-    let totalReduction = 0;
-
-    for (const inj of items) {
-      const status = (inj?.status || inj?.type?.description || "").toLowerCase();
-      const isOut = status.includes("out") || status.includes("injured reserve") || status.includes("suspended");
-      const isDTD = status.includes("questionable") || status.includes("doubtful") || status.includes("day-to-day");
-      if (!isOut && !isDTD) continue;
-
-      const athlete = inj?.athlete || inj?.person || {};
-      const playerName = athlete?.displayName || athlete?.fullName || "Unknown";
-      const tag = isOut ? "OUT" : "DTD";
-
-      if (isOut) result.outCount++;
-      if (isDTD) result.dtdCount++;
-
-      let ppg = 0;
-
-      for (const cat of (athlete?.statistics?.splits?.categories || [])) {
-        for (const stat of (cat.stats || [])) {
-          if (stat.name === "avgPoints" || stat.abbreviation === "PPG") {
-            ppg = parseFloat(stat.value) || 0;
-          }
-        }
-      }
-
-      if (ppg <= 0) {
-        result.unknownImpactCount++;
-        // FIX: Apply a flat, conservative 2% offense penalty for unknown injuries
-        const unknownPenalty = isOut ? 0.02 : 0.01; 
-        totalReduction += unknownPenalty;
-        result.notes.push({
-          type: isOut ? "out" : "dtd",
-          text: `${playerName} — ${tag} (impact unknown) → -${(unknownPenalty * 100).toFixed(1)}%`
-        });
-        continue;
-      }
-
-      const share = ppg / avgPPG;
-      const impact = Math.min(isOut ? share * 0.65 : share * 0.30, 0.22);
-      totalReduction += impact;
-
-      result.notes.push({
-        type: isOut ? "out" : "dtd",
-        text: `${playerName} (${ppg.toFixed(1)} ppg) — ${tag} → -${(impact * 100).toFixed(1)}% offense`
-      });
-    }
-
-    const maxInjCap = league === "nba" ? 0.25 : 0.20;
-    result.scoringMult = 1 - Math.min(totalReduction, maxInjCap);
-    result.hasUnknownImpact = result.unknownImpactCount > 0;
-
-    result.highUncertainty =
-      result.dtdCount >= 2 ||
-      result.unknownImpactCount >= 2 ||
-      (result.dtdCount >= 1 && result.hasUnknownImpact) ||
-      result.outCount >= 3;
-
-    if (result.hasUnknownImpact) {
-      result.notes.push({ type: "meta", text: "Injury caution: some player scoring data unavailable" });
-    }
-
-    if (result.highUncertainty) {
-      result.notes.push({ type: "meta", text: "High injury uncertainty" });
-    }
-  } catch (e) {
-    logDebug("fetchInjuryMeta failed", e);
-  }
-
-  return result;
 }
 
 
@@ -10561,240 +10149,6 @@ updateIntelligencePack();
   // Cup games with Extra Time/Penalties might need deeper handling later, 
   // but for primary markets, we just pass the standard goals through.
   return [scoreA, scoreB];
-}
-
-    // V3 + V6 + V7: shared fetch core using LEAGUE_FETCH_RULES
-
-async function fetchScheduleCore(base, teamId, leagueKey, requiredVenue, allowFallback = true) {
-  const rules = LEAGUE_FETCH_RULES[leagueKey];
-  if (!rules) return null;
-
-  const tId = String(teamId);
-  const gameRefs = [];
-  const currentSeason = getCurrentSeasonYear(leagueKey);
-
-  for (let i = 0; i < rules.recentSeasons; i++) {
-    const season = String(currentSeason - i);
-
-    for (const stype of rules.scheduleTypes) {
-      try {
-        const key = `${base}:sched:${teamId}:${season}:${stype}`;
-        const r = await (_schedCache.has(key)
-          ? _schedCache.get(key)
-          : (() => {
-              const p = proxyFetch(`${base}/teams/${teamId}/schedule?season=${season}&seasontype=${stype}`).catch(err => {
-                _schedCache.delete(key);
-                throw err;
-              });
-              cacheSet(_schedCache, key, p);
-              return p;
-            })());
-
-        const events = r?.events || r?.team?.schedule?.events || [];
-        for (const ev of events) {
-          if (!ev?.id) continue;
-
-          const comp = ev?.competitions?.[0];
-          if (!comp) continue;
-
-          const done =
-            comp?.status?.type?.completed ||
-            comp?.status?.type?.name === "STATUS_FINAL" ||
-            comp?.status?.type?.state === "post";
-
-          if (!done || (comp?.competitors || []).length < 2) continue;
-
-          const competitors = comp.competitors;
-          const mine = competitors.find(x => matchesTeam(x, tId)) || competitors[0];
-          const opp = competitors.find(x => !matchesTeam(x, tId)) || competitors[1];
-          const ps = s => typeof s === "object" ? parseFloat(s.value ?? s.displayValue ?? 0) : parseFloat(s);
-
-          gameRefs.push({
-            id: String(ev.id),
-            date: ev.date || "",
-            rawS: ps(mine?.score),
-            rawA: ps(opp?.score),
-            venue: mine?.homeAway || ""
-          });
-        }
-      } catch (e) {
-        logDebug("fetchScheduleCore failed", e);
-      }
-    }
-  }
-
-  if (!gameRefs.length) return null;
-
-  const seen = new Set();
-  const unique = gameRefs
-    .filter(g => {
-      if (seen.has(g.id)) return false;
-      seen.add(g.id);
-      return true;
-    })
-    .sort((a, b) => {
-      const da = a.date ? new Date(a.date).getTime() : 0;
-      const db = b.date ? new Date(b.date).getTime() : 0;
-      return db - da;
-    });
-
-  const strictFiltered = requiredVenue ? unique.filter(g => g.venue === requiredVenue) : unique;
-  const venueReliable = strictFiltered.length >= 2;
-  const usedVenueFallback = !!requiredVenue && !venueReliable && unique.length >= 2 && allowFallback;
-  const chosen = venueReliable ? strictFiltered : (allowFallback ? unique : strictFiltered);
-
-  if (chosen.length < 2) return null;
-
-  const scored10 = [];
-  const allowed10 = [];
-  const h1Scored10 = [];
-  const h1Allowed10 = [];
-  const h2Scored10 = [];
-  const h2Allowed10 = [];
-
-    // Weaponized Concurrency Limiter: Process 3 requests at a time
-  const batchSize = 3;
-  const targetGames = chosen.slice(0, 10);
-  const summaries = [];
-
-  for (let i = 0; i < targetGames.length; i += batchSize) {
-    const chunk = targetGames.slice(i, i + batchSize);
-    const chunkResults = await Promise.all(chunk.map(async ref => {
-      let ms = ref.rawS;
-      let os = ref.rawA;
-      let h1m = 0;
-      let h1o = 0;
-      let h2m = 0;
-      let h2o = 0;
-      let gotLS = false;
-      let advanced = null;
-
-      try {
-        const key = `${base}:sum:${ref.id}`;
-        const data = await (_summaryCache.has(key)
-          ? _summaryCache.get(key)
-          : (() => {
-              const p = proxyFetch(`${base}/summary?event=${ref.id}`).catch(err => {
-                _summaryCache.delete(key);
-                throw err;
-              });
-              cacheSet(_summaryCache, key, p);
-              return p;
-            })());
-
-        const hc = data?.header?.competitions?.[0];
-        const boxscore = data?.boxscore;
-
-        if (hc) {
-          const competitors = hc?.competitors || [];
-          const mine = competitors.find(c => matchesTeam(c, tId));
-          const opp = competitors.find(c => !matchesTeam(c, tId));
-
-                    if (mine && opp) {
-            gotLS = true;
-            ms = parseFloat(mine.score) || ms;
-            os = parseFloat(opp.score) || os;
-
-            const lm = mine?.linescores || [];
-            const lo = opp?.linescores || [];
-
-            // Correct actual half-time goal mapping
-            if (lm.length >= 1 && lo.length >= 1) {
-              h1m = readVal(lm[0]) || 0;
-              h1o = readVal(lo[0]) || 0;
-            }
-            if (lm.length >= 2 && lo.length >= 2) {
-              h2m = readVal(lm[1]) || 0;
-              h2o = readVal(lo[1]) || 0;
-            }
-
-            // LEVEL 2: Pure Advanced Box Score Extraction
-            if (boxscore && boxscore.teams) {
-              const myBox = boxscore.teams.find(t => matchesTeam(t, tId));
-              const oppBox = boxscore.teams.find(t => !matchesTeam(t, tId));
-
-              if (myBox && myBox.statistics && oppBox && oppBox.statistics) {
-                const sMap = {}; myBox.statistics.forEach(s => { sMap[s.name] = s.displayValue; });
-                const oMap = {}; oppBox.statistics.forEach(s => { oMap[s.name] = s.displayValue; });
-
-                const advResult = calculateAdvancedMetrics(sMap, ms, os, 90);
-                const oppAdvResult = calculateAdvancedMetrics(oMap, os, ms, 90);
-
-                if (advResult) {
-                  advanced = advResult;
-                  advanced.drtg = oppAdvResult ? oppAdvResult.ortg : 0;
-                  trackerDebug(`Clean xG Extracted: ${ref.id}`, advanced);
-                }
-              }
-            }
-          }
-        }
-      } catch (e) {
-        logDebug("fetchScheduleCore summary failed", e);
-      }
-
-      if (isNaN(ms) || isNaN(os)) return null;
-
-      return {
-        ms: Math.round(ms),
-        os: Math.round(os),
-        h1m: gotLS && h1m > 0 ? Math.round(h1m) : null,
-        h1o: gotLS && h1o > 0 ? Math.round(h1o) : null,
-        h2m: gotLS && h2m > 0 ? Math.round(h2m) : null,
-        h2o: gotLS && h2o > 0 ? Math.round(h2o) : null,
-        advanced: advanced
-      };
-    })
-  );
-    summaries.push(...chunkResults.filter(Boolean));
-  }
-
-
-  summaries.filter(Boolean).forEach(game => {
-    scored10.push(game.ms);
-    allowed10.push(game.os);
-
-    if (game.h1m !== null && game.h1o !== null) {
-      h1Scored10.push(game.h1m);
-      h1Allowed10.push(game.h1o);
-    }
-
-    if (game.h2m !== null && game.h2o !== null) {
-      h2Scored10.push(game.h2m);
-      h2Allowed10.push(game.h2o);
-    }
-  });
-
-    return scored10.length >= 2
-    ? {
-        scored: scored10.slice(0, 5),
-        allowed: allowed10.slice(0, 5),
-        h1Scored: h1Scored10.slice(0, 5),
-        h1Allowed: h1Allowed10.slice(0, 5),
-        h2Scored: h2Scored10.slice(0, 5),
-        h2Allowed: h2Allowed10.slice(0, 5),
-        // LEVEL 2 MEMORY ARRAYS
-        ortg10: summaries.filter(s => s && s.advanced).map(s => s.advanced.ortg),
-        drtg10: summaries.filter(s => s && s.advanced).map(s => s.advanced.drtg),
-        pace10: summaries.filter(s => s && s.advanced).map(s => s.advanced.pace),
-        scored10,
-        allowed10,
-        h1Scored10,
-        h1Allowed10,
-        h2Scored10,
-        h2Allowed10,
-        lastGameDate: unique[0]?.date || null,
-        venueReliable,
-        usedVenueFallback,
-        h2VenueReliable: !!(
-          venueReliable &&
-          h2Scored10.length >= 2 &&
-          h2Allowed10.length >= 2
-        )
-      }
-    : null;
-
-
 }
 
 /*
@@ -10817,188 +10171,6 @@ async function fetchScheduleCore(base, teamId, leagueKey, requiredVenue, allowFa
   That causes false mismatches against this engine. This engine keeps NBA H2H clean.
 
   Do not change this unless the owner explicitly gives approval code.
-*/
-
-async function fetchH2HCore(base, teamAId, teamBId, leagueKey) {
-  const rules = LEAGUE_FETCH_RULES[leagueKey];
-  if (!rules) return [];
-
-  const tA = String(teamAId);
-  const tB = String(teamBId);
-  const currentSeason = getCurrentSeasonYear(leagueKey);
-
-  // FIX 4: Rolling Window Logic
-  // We look back 2 seasons from the current one to keep data fresh and fetches fast.
-  const lookbackYears = 2; 
-  const minSeason = currentSeason - lookbackYears;
-  // Generate timestamp for Jan 1st of the earliest lookback year
-  const minDateTs = new Date(minSeason, 0, 1).getTime();
-
-  const scheduleJobs = [];
-
-  // Scan ONLY Team A schedule from current season back to our dynamic minSeason
-  for (let season = currentSeason; season >= minSeason; season--) {
-    for (const stype of rules.h2hScheduleTypes) {
-      const key = `${base}:h2h-sched:${tA}:${season}:${stype}`;
-      const req = _schedCache.has(key)
-        ? _schedCache.get(key)
-        : (() => {
-            const p = proxyFetch(`${base}/teams/${teamAId}/schedule?season=${season}&seasontype=${stype}`).catch(err => {
-              _schedCache.delete(key);
-              throw err;
-            });
-            cacheSet(_schedCache, key, p);
-            return p;
-          })();
-
-      scheduleJobs.push(
-        req.catch(err => {
-          logDebug("fetchH2HCore schedule scan failed", err);
-          return null;
-        })
-      );
-    }
-  }
-
-
-  const schedulePayloads = await Promise.all(scheduleJobs);
-  const candidateMap = new Map();
-
-  schedulePayloads
-    .filter(Boolean)
-    .forEach(r => {
-      const events = [
-        ...(r?.events || []),
-        ...(r?.team?.schedule?.events || [])
-      ];
-
-      events.forEach(ev => {
-        const comp = ev?.competitions?.[0];
-        if (!ev?.id || !comp) return;
-
-        const done =
-          comp?.status?.type?.completed ||
-          comp?.status?.type?.name === "STATUS_FINAL" ||
-          comp?.status?.type?.state === "post";
-
-        if (!done) return;
-
-        const competitors = comp?.competitors || [];
-        if (competitors.length < 2) return;
-
-        const hasA = competitors.some(c => matchesTeam(c, tA));
-        const hasB = competitors.some(c => matchesTeam(c, tB));
-        if (!hasA || !hasB) return;
-
-        const rawDate = ev?.date || comp?.date || "";
-        const gameTs = rawDate ? Date.parse(rawDate) : NaN;
-        if (isFinite(gameTs) && gameTs < minDateTs) return;
-
-        candidateMap.set(String(ev.id), {
-          id: String(ev.id),
-          date: rawDate
-        });
-      });
-    });
-
-  if (!candidateMap.size) return [];
-
-  const refs = [...candidateMap.values()]
-    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
-    .slice(0, 10);
-
-  const summaries = await Promise.all(
-    refs.map(async ref => {
-      try {
-        const key = `${base}:sum:${ref.id}`;
-        const data = await (_summaryCache.has(key)
-          ? _summaryCache.get(key)
-          : (() => {
-              const p = proxyFetch(`${base}/summary?event=${ref.id}`).catch(err => {
-                _summaryCache.delete(key);
-                throw err;
-              });
-              cacheSet(_summaryCache, key, p);
-              return p;
-            })());
-
-        const hc = data?.header?.competitions?.[0];
-        if (!hc) return null;
-
-        const done =
-          hc?.status?.type?.completed ||
-          hc?.status?.type?.name === "STATUS_FINAL" ||
-          hc?.status?.type?.state === "post";
-
-        if (!done) return null;
-
-        const gameDate = hc?.date || ref.date || "";
-        const gameTs = gameDate ? Date.parse(gameDate) : NaN;
-        if (isFinite(gameTs) && gameTs < minDateTs) return null;
-
-        const competitors = hc?.competitors || [];
-        const cA = competitors.find(c => matchesTeam(c, tA));
-        const cB = competitors.find(c => matchesTeam(c, tB));
-        if (!cA || !cB) return null;
-
-        const lA = cA?.linescores || [];
-        const lB = cB?.linescores || [];
-
-        let sA = readVal(cA?.score);
-        let sB = readVal(cB?.score);
-
-        if ((!isFinite(sA) || sA <= 0) && lA.length) {
-          sA = lA.reduce((t, p) => t + readVal(p), 0);
-        }
-        if ((!isFinite(sB) || sB <= 0) && lB.length) {
-          sB = lB.reduce((t, p) => t + readVal(p), 0);
-        }
-
-        if (!isFinite(sA) || !isFinite(sB) || sA <= 0 || sB <= 0) return null;
-
-        let h1A = 0;
-        let h1B = 0;
-        let h2A = 0;
-        let h2B = 0;
-
-        if (lA.length && lB.length) {
-          if (rules.regulationPeriods >= 4) {
-            h1A = lA.length >= 2 ? readVal(lA[0]) + readVal(lA[1]) : 0;
-            h1B = lB.length >= 2 ? readVal(lB[0]) + readVal(lB[1]) : 0;
-            h2A = lA.length >= 4 ? readVal(lA[2]) + readVal(lA[3]) : 0;
-            h2B = lB.length >= 4 ? readVal(lB[2]) + readVal(lB[3]) : 0;
-          } else {
-            [h1A, h1B] = extractFirstHalf(lA, lB);
-            [h2A, h2B] = extractSecondHalf(lA, lB);
-          }
-
-          [sA, sB] = stripOTFromScores(sA, sB, lA, lB, rules.regulationPeriods);
-        }
-
-        return {
-          eventId: ref.id,
-          teamAId: tA,
-          teamBId: tB,
-          scoreA: Math.round(sA),
-          scoreB: Math.round(sB),
-          h1A: Math.round(h1A),
-          h1B: Math.round(h1B),
-          h2A: Math.round(h2A),
-          h2B: Math.round(h2B),
-          date: gameDate
-        };
-      } catch (e) {
-        logDebug("fetchH2HCore summary failed", e);
-        return null;
-      }
-    })
-  );
-
-  return summaries
-    .filter(Boolean)
-    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
-    .slice(0, 10);
-}
 
 
 
@@ -11036,28 +10208,12 @@ const cls =
     if (sel) { sel.innerHTML = `<option value="${slug}">${slug}</option>`; sel.value = slug; }
   }
 
-  pickFixture(homeName, homeId, awayName, awayId);
 }
 
     function onFixtureSelect() {
-      const select = document.getElementById("fixtureSelect");
       const opt = select.options[select.selectedIndex];
       if (!opt || !opt.value) return;
-      pickFixture(opt.dataset.home || "", opt.dataset.homeId || "", opt.dataset.away || "", opt.dataset.awayId || "");
     }
-
-    function pickFixture(homeName, homeId, awayName, awayId) {
-  closeDrop("dropA");
-  closeDrop("dropB");
-  document.getElementById("teamAName").value = homeName;
-  document.getElementById("teamBName").value = awayName;
-  selectedTeamIds.A = String(homeId || "");
-  selectedTeamIds.B = String(awayId || "");
-  validateFetchSection();
-  accordionOpen("espnSection");
-  setStatusHTML('<span class="spinner"></span>Match selected. Fetching stats...', "loading");
-  fetchESPN();
-}
 
 const SOCCER_TAXONOMY = [
   { cat: "Elite Europe", leagues: [
@@ -11128,187 +10284,6 @@ async function runMassacreMonteCarlo(projA, projB, line) {
     const overPct = overProb * 100;
     resolve({ overPct, underPct: 100 - overPct });
   });
-}
-
-// --- BATCH 1: UNIVERSAL FOOTBALL FETCHING & A-Z LEAGUES ---
-
-// --- LIVE UI LOGGER ---
-function uiLog(msg, isErr = false) {
-  const el = document.getElementById("liveEngineDebugger");
-  if(el) {
-    const color = isErr ? "#ff5c61" : "#49d45f";
-    el.innerHTML += `<div style="color:${color}; margin-top:4px;">&gt; ${safeText(msg)}</div>`;
-    el.scrollTop = el.scrollHeight;
-  }
-  console.log("[FETCH]", msg);
-}
-
-function clearUiLog() {
-  const el = document.getElementById("liveEngineDebugger");
-  if (el) el.innerHTML = "<div style='color:#aaa; font-weight:bold; margin-bottom:5px;'>[SYSTEM] Live Auto-Fetch Monitor Active...</div>";
-}
-
-
-async function fetchESPN() {
-  document.getElementById("liveEngineDebugger").innerHTML = "<div style='color:#aaa; font-weight:bold; margin-bottom:5px;'>[SYSTEM] Live Auto-Fetch Monitor Active...</div>";
-  const league = document.getElementById("leagueSelect").value;
-  const teamAName = document.getElementById("teamAName").value.trim();
-  const teamBName = document.getElementById("teamBName").value.trim();
-
-  uiLog(`🚀 Auto-Fetch triggered: ${teamAName} vs ${teamBName}`);
-
-  if (!teamAName || !teamBName || !league || league === "unknown") {
-    setStatusText("&#x274C; Select a league and match from the list.", "err");
-    return;
-  }
-
-  const btn = document.getElementById("fetchBtn");
-  if (btn) btn.disabled = true;
-  setStatusHTML('<span class="spinner"></span> &#x26BD; Fetching Pitch Intelligence...', "loading");
-
-  try {
-    const espnBase = getLeagueBase(league);
-
-    let tA = selectedTeamIds.A;
-    if (tA) uiLog(`✅ Using cached Team A ID: ${tA}`);
-    else tA = await searchTeamFromAPI(espnBase, teamAName, league);
-
-    let tB = selectedTeamIds.B;
-    if (tB) uiLog(`✅ Using cached Team B ID: ${tB}`);
-    else tB = await searchTeamFromAPI(espnBase, teamBName, league);
-
-    if (!tA || !tB) throw new Error("Could not resolve team IDs.");
-
-    uiLog(`📡 Pulling 10-game history...`);
-    const [aStats, bStats] = await Promise.all([
-      fetchScheduleCore(espnBase, tA, league, null, true),
-      fetchScheduleCore(espnBase, tB, league, null, true)
-    ]);
-
-    if (!aStats || !bStats) throw new Error("League data unavailable for these teams.");
-    uiLog(`✅ Match history successfully extracted.`);
-
-    document.getElementById("aFTScored").value = aStats.scored.join(",");
-    document.getElementById("aFTAllowed").value = aStats.allowed.join(",");
-    document.getElementById("bFTScored").value = bStats.scored.join(",");
-    document.getElementById("bFTAllowed").value = bStats.allowed.join(",");
-
-    if (aStats.ortg10?.length) document.getElementById("a1HScored").value = aStats.ortg10.slice(0,5).map(v => v.toFixed(2)).join(",");
-    if (bStats.ortg10?.length) document.getElementById("b1HScored").value = bStats.ortg10.slice(0,5).map(v => v.toFixed(2)).join(",");
-
-    setAutoTagVisible("aAutoTag", true);
-    setAutoTagVisible("bAutoTag", true);
-
-    uiLog(`📡 Scanning H2H database...`);
-    const h2h = await fetchH2HCore(espnBase, tA, tB, league);
-    if (h2h?.length >= 2) {
-      uiLog(`✅ Found ${h2h.length} recent H2H matchups.`);
-      document.getElementById("aFTH2H").value = h2h.map(g => normalizeId(g.teamAId) == tA ? g.scoreA : g.scoreB).join(",");
-      document.getElementById("bFTH2H").value = h2h.map(g => normalizeId(g.teamAId) == tA ? g.scoreB : g.scoreA).join(",");
-      document.getElementById("useFTH2H").checked = true;
-      setAutoTagVisible("h2hAutoTag", true);
-    } else {
-      uiLog(`⚠️ H2H skipped: Found less than 2 recent matchups.`);
-    }
-
-    setStatusHTML("&#x2705; Tactical Data Synchronized.", "ok");
-    uiLog(`🎉 Auto-fetch cycle complete!`);
-    updateSectionLocks();
-    updateIntelligencePack();
-  } catch (e) {
-    uiLog(`❌ FATAL: ${e.message}`, true);
-    setStatusText("&#x274C; Fetch Error: " + e.message, "err");
-  } finally { if (btn) btn.disabled = false; }
-}
-
-
-
-async function loadFixtures(timeFilter = 'all') {
-  const myToken = ++_fixtureLoadToken;
-  const league = document.getElementById("leagueSelect")?.value || "";
-  const list = document.getElementById("proMatchList");
-  if (!list) return;
-
-  list.innerHTML = '<div style="padding:20px; text-align:center;"><span class="spinner"></span> &#x1F6E1;&#xFE0F; Connecting to ESPN...</div>';
-
-  const getFmt = (o) => { const d = new Date(); d.setDate(d.getDate()+o); return d.toISOString().split('T')[0].replace(/-/g,''); };
-  const isDateKey = (s) => /^\d{8}$/.test(s);
-
-  let dParam;
-  if (timeFilter === 'today')         dParam = getFmt(0);
-  else if (timeFilter === 'tomorrow') dParam = getFmt(1);
-  else if (timeFilter === 'weekend') {
-    const sat = [0,1,2,3,4,5,6].find(i => { const d=new Date(); d.setDate(d.getDate()+i); return d.getDay()===6; });
-    dParam = `${getFmt(sat)}-${getFmt(sat+1)}`;
-  } else if (isDateKey(timeFilter)) {
-    dParam = timeFilter;
-  } else {
-    dParam = `${getFmt(0)}-${getFmt(7)}`;
-  }
-
-  try {
-    let allEvents = [];
-
-    if (!league || league === "all" || league === "unknown") {
-      // ALL LEAGUES MODE: batch-fetch all leagues in groups of 4
-      const slugs = SOCCER_TAXONOMY.flatMap(cat => cat.leagues.map(l => l.slug));
-      const batchSize = 4;
-      for (let i = 0; i < slugs.length; i += batchSize) {
-        if (myToken !== _fixtureLoadToken) return;
-        const chunk = slugs.slice(i, i + batchSize);
-        const results = await Promise.all(chunk.map(async sl => {
-          try {
-            const base = getLeagueBase(sl);
-            const d = await proxyFetch(`${base}/scoreboard?dates=${dParam}&limit=200`);
-            return (d?.events || []).filter(ev => ev.status?.type?.state === "pre").map(ev => ({...ev, _slug: sl}));
-          } catch(e) { return []; }
-        }));
-        results.forEach(r => allEvents.push(...r));
-      }
-      allEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
-    } else {
-      // SINGLE LEAGUE MODE
-      const base = getLeagueBase(league);
-      const data = await proxyFetch(`${base}/scoreboard?dates=${dParam}&limit=800`);
-      if (myToken !== _fixtureLoadToken) return;
-      allEvents = (data?.events || []).filter(ev => ev.status?.type?.state === "pre").map(ev => ({...ev, _slug: league}));
-    }
-
-    // Track which leagues actually have matches — used by dynamic league picker
-    uiState.activeLeagueSlugs = new Set(allEvents.map(ev => ev._slug).filter(Boolean));
-    if (uiState.activeCategoryIdx >= 0) {
-      // If current category has no matches, reset to -1 (All)
-      const cat = SOCCER_TAXONOMY[uiState.activeCategoryIdx];
-      if (cat && !cat.leagues.some(l => uiState.activeLeagueSlugs.has(l.slug))) {
-        uiState.activeCategoryIdx = -1;
-      }
-    }
-    if (!allEvents.length) {
-      list.innerHTML = '<div style="padding:20px; text-align:center;">No upcoming matches found.</div>';
-      return;
-    }
-
-    list.innerHTML = allEvents.map(ev => {
-      const c = ev.competitions[0];
-      const h = c.competitors.find(x=>x.homeAway==="home") || c.competitors[0];
-      const a = c.competitors.find(x=>x.homeAway==="away") || c.competitors[1];
-      const evSlug = ev._slug || league;
-      const d = new Date(ev.date);
-      const timeStr = d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
-      const dateStr = d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
-      // Use data-* attrs — avoids apostrophe/quote issues in onclick
-      return `<div class="pro-match-item"
-        data-home="${h.team.displayName}"
-        data-home-id="${h.team.id}"
-        data-away="${a.team.displayName}"
-        data-away-id="${a.team.id}"
-        data-slug="${evSlug}"
-        onclick="handleProMatchClick(this)">
-        <div class="pro-match-time"><div>${timeStr}</div><div class="pro-match-id">${dateStr}</div></div>
-        <div class="pro-match-teams"><div class="pro-match-team">${h.team.displayName}</div><div class="pro-match-team">${a.team.displayName}</div></div>
-      </div>`;
-    }).join("");
-  } catch (e) { list.innerHTML = '<div style="padding:20px; text-align:center; color:red;">Connection Shield Error</div>'; }
 }
 
 // ==========================================
@@ -11392,7 +10367,6 @@ function selectAllLeagues(el) {
   const sel = document.getElementById("leagueSelect");
   if (sel) { sel.innerHTML = `<option value="all">All Leagues</option>`; sel.value = "all"; }
   closeProModal();
-  loadFixtures(uiState.selectedDateOffset || "all");
 }
 
 function selectLeagueCategory(idx, el) {
@@ -11439,7 +10413,6 @@ function stageLeague(slug, el) {
   badge.textContent = "&#x2713;";
   el.appendChild(badge);
 
-  // Sync leagueSelect so fetchESPN can read it
   const sel = document.getElementById("leagueSelect");
   if (sel) {
     sel.innerHTML = `<option value="${slug}">${slug}</option>`;
@@ -11449,7 +10422,6 @@ function stageLeague(slug, el) {
 
   // Close modal and load fixtures immediately
   closeProModal();
-  loadFixtures(uiState.selectedDateOffset || "all");
 }
 
 function renderDateList() {
@@ -11494,7 +10466,6 @@ function applyDateFilter(value, el) {
     const child = btn.firstChild || btn;
     if (child.nodeType === 3) child.textContent = label; else btn.textContent = label;
   }
-  loadFixtures(value);
   closeProModal();
 }
 
@@ -11549,7 +10520,6 @@ function clearAll() {
   resetResultsTable();
   setStatusText("", "");
   g_massacreFetchContext = defaultMassacreFetchContext();
-  g_fetchMeta = defaultFetchMeta();
   selectedTeamIds = { A: null, B: null };
   g_lastFetchedTeams = { A: "", B: "" };
   g_injA = defaultInjuryMeta();
@@ -11557,7 +10527,6 @@ function clearAll() {
   setFetchInputErrors([]);
   setFetchAuditIssues([]);
   updateIntelligencePack();
-  validateFetchSection();
 }
 
 
@@ -11763,8 +10732,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("uiSortBtn")?.addEventListener("click", () => openProModal("sort"));
   document.getElementById("runBtn")?.addEventListener("click", runEngine);
   document.getElementById("clearBtn")?.addEventListener("click", clearAll);
-  document.getElementById("teamAName")?.addEventListener("input", () => onTeamInput("A"));
-  document.getElementById("teamBName")?.addEventListener("input", () => onTeamInput("B"));
   document.getElementById("teamAName")?.addEventListener("blur", () => scheduleDropClose("dropA"));
   document.getElementById("teamBName")?.addEventListener("blur", () => scheduleDropClose("dropB"));
   document.getElementById("dropA")?.addEventListener("mouseenter", () => cancelDropClose("dropA"));
@@ -11777,7 +10744,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       sel.innerHTML = `<option value="${uiState.appliedLeagueSlug}">${uiState.appliedLeagueSlug}</option>`;
       sel.value = uiState.appliedLeagueSlug;
       updateSectionLocks();
-      loadFixtures(uiState.selectedDateOffset || "all");
     }
     closeProModal();
   });
