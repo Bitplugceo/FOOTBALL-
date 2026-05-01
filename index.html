@@ -2600,14 +2600,13 @@ body.dark-mode .tracker-analytics-section-head {
   <span class="brand-right">
 <button class="theme-toggle" type="button" id="themeToggleBtn" title="Toggle dark/light mode">⚽</button>
     <button class="theme-toggle" type="button" id="trackerToggleBtn" title="Open tracked picks">📊</button>
+    <button class="theme-toggle" type="button" id="afdbBtn" title="Auto-Fetch Debugger" onclick="AFDB.open()">🔬</button>
     PREDICTIONS
   </span>
 </header>
 
     <div class="wrapper">
-      <div id="liveEngineDebugger" style="background:#050505; color:#49d45f; padding:10px; font-family: ui-monospace, monospace; font-size:11px; margin-bottom:10px; border:1px solid #333; border-left: 4px solid #49d45f; max-height:250px; overflow-y:auto; word-break:break-word;">
-         <div style="color:#aaa; font-weight:bold; margin-bottom:5px;">[SYSTEM] Live Auto-Fetch Monitor Active...</div>
-      </div>
+      <div id="liveEngineDebugger" style="display:none;"></div>
 
 
         <div class="section" id="leagueSection">
@@ -11911,5 +11910,335 @@ document.addEventListener("DOMContentLoaded", async () => {
     }, 500); 
   })();
 </script>
+<!-- ═══════════════════════════════════════════════════
+     🔬 AFDB — AUTO-FETCH DEBUG BRAIN
+     Full diagnostic overlay for auto-fetch & auto-fill
+     ═══════════════════════════════════════════════════ -->
+
+<!-- AFDB OVERLAY -->
+<div id="afdbOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,0.96);flex-direction:column;font-family:ui-monospace,Consolas,monospace;">
+  <div id="afdbPanel" style="width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// 🔬 AFDB — AUTO-FETCH DEBUG BRAIN v1.0
+// ═══════════════════════════════════════════════════
+const AFDB = (function() {
+  const LOG_LIMIT = 600;
+  let _log = [];
+  let _isOpen = false;
+
+  const LEVELS = {
+    BOOT:    { color:'#7aa6ff' }, NET:     { color:'#4ea9ff' },
+    FETCH:   { color:'#49d45f' }, FILL:    { color:'#2aff9e' },
+    PICK:    { color:'#d4af37' }, H2H:     { color:'#c678dd' },
+    SUCCESS: { color:'#49d45f' }, WARN:    { color:'#ffcf73' },
+    ERROR:   { color:'#ff5c61' }, INFO:    { color:'#aaa'    }
+  };
+
+  const ICONS = {
+    BOOT:'⚙️', NET:'🌐', FETCH:'📡', FILL:'✏️',
+    PICK:'📌', H2H:'🔄', SUCCESS:'✅', WARN:'⚠️', ERROR:'❌', INFO:'ℹ️'
+  };
+
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function log(level, section, msg, data) {
+    const entry = {
+      ts: new Date().toLocaleTimeString([],{hour12:false}),
+      level, section: section||'CORE', msg,
+      data: data !== undefined ? data : null
+    };
+    _log.unshift(entry);
+    if (_log.length > LOG_LIMIT) _log = _log.slice(0, LOG_LIMIT);
+    if (_isOpen) _render();
+  }
+
+  function clear() { _log = []; _render(); }
+
+  function copy() {
+    const text = _log.slice().reverse().map(e => {
+      let line = `[${e.ts}] [${e.level}] [${e.section}] ${e.msg}`;
+      if (e.data !== null) {
+        try { line += '\n  ' + JSON.stringify(e.data, null, 2); }
+        catch(x) { line += '\n  ' + String(e.data); }
+      }
+      return line;
+    }).join('\n\n');
+    try {
+      navigator.clipboard.writeText(text);
+      log('SUCCESS','AFDB','📋 Full log copied to clipboard!');
+    } catch(e) {
+      console.log('[AFDB FULL LOG]\n\n'+text);
+      log('WARN','AFDB','Clipboard blocked — log printed to console');
+    }
+  }
+
+  function snapDOM() {
+    const ids = [
+      'leagueSelect','teamAName','teamBName',
+      'aFTScored','aFTAllowed','a1HScored','a1HAllowed',
+      'bFTScored','bFTAllowed','b1HScored','b1HAllowed',
+      'aFTH2H','bFTH2H','a1HH2H','b1HH2H',
+      'ftMarket','h1Market','h2Market','teamAMarket','teamBMarket'
+    ];
+    const snap = {};
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      snap[id] = el ? (el.value||'(empty)') : '⛔ NOT FOUND';
+    });
+    if (typeof selectedTeamIds !== 'undefined') snap['_teamIds'] = JSON.stringify(selectedTeamIds);
+    if (typeof uiState !== 'undefined') snap['_league'] = uiState.appliedLeagueSlug||'(none)';
+    return snap;
+  }
+
+  function snap() {
+    const s = snapDOM();
+    log('INFO','AFDB','📸 DOM Snapshot', s);
+  }
+
+  function _render() {
+    const panel = document.getElementById('afdbPanel');
+    if (!panel) return;
+
+    const s = snapDOM();
+    const snapRows = Object.entries(s).map(([k,v]) => {
+      const empty = v==='(empty)' || v.startsWith('⛔');
+      return `<div style="display:flex;gap:6px;padding:2px 0;border-bottom:1px solid #111;">
+        <span style="color:#444;font-size:9px;min-width:120px;flex-shrink:0;">${esc(k)}</span>
+        <span style="color:${empty?'#ff5c61':'#49d45f'};font-size:9px;word-break:break-all;">${esc(v)}</span>
+      </div>`;
+    }).join('');
+
+    const logRows = _log.map(e => {
+      const def = LEVELS[e.level]||LEVELS.INFO;
+      const icon = ICONS[e.level]||'•';
+      let dataHtml = '';
+      if (e.data !== null) {
+        let ds;
+        try { ds = typeof e.data==='object' ? JSON.stringify(e.data,null,2) : String(e.data); }
+        catch(x) { ds = String(e.data); }
+        dataHtml = `<pre style="color:#888;font-size:8px;margin:3px 0 0 0;padding:4px 6px;background:#070707;border-left:2px solid #222;white-space:pre-wrap;word-break:break-all;overflow:hidden;">${esc(ds)}</pre>`;
+      }
+      return `<div style="padding:5px 8px;border-bottom:1px solid #111;">
+        <div style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap;">
+          <span style="color:#444;font-size:8px;min-width:58px;flex-shrink:0;">${esc(e.ts)}</span>
+          <span style="color:${def.color};font-size:8px;font-weight:900;min-width:68px;flex-shrink:0;">${icon} ${esc(e.level)}</span>
+          <span style="color:#555;font-size:8px;min-width:64px;flex-shrink:0;">[${esc(e.section)}]</span>
+          <span style="color:${def.color};font-size:9px;font-weight:700;flex:1;">${esc(e.msg)}</span>
+        </div>
+        ${dataHtml}
+      </div>`;
+    }).join('');
+
+    const headerBtns = `
+      <button onclick="AFDB.snap()" style="background:#111;border:1px solid #333;color:#4ea9ff;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">📸 Snap DOM</button>
+      <button onclick="AFDB.copy()" style="background:#111;border:1px solid #333;color:#49d45f;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">📋 Copy Log</button>
+      <button onclick="AFDB.clear()" style="background:#111;border:1px solid #333;color:#ff5c61;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">🗑️ Clear</button>
+      <button onclick="AFDB.runTestFetch()" style="background:#111;border:1px solid #d4af37;color:#d4af37;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">🚀 Re-Run Fetch</button>
+      <button onclick="AFDB.close()" style="background:#3b0000;border:1px solid #ff5c61;color:#ff5c61;padding:4px 8px;font-size:10px;font-weight:900;cursor:pointer;font-family:inherit;">✕ Close</button>
+    `;
+
+    panel.innerHTML = `
+      <div style="background:#080808;border-bottom:1px solid #1a1a1a;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;flex-shrink:0;">
+        <div style="color:#d4af37;font-size:12px;font-weight:900;letter-spacing:0.5px;">🔬 AUTO-FETCH DEBUG BRAIN &nbsp;<span style="color:#555;font-size:9px;font-weight:400;">${_log.length} entries</span></div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">${headerBtns}</div>
+      </div>
+      <div style="display:flex;flex:1;overflow:hidden;">
+        <div style="width:200px;flex-shrink:0;border-right:1px solid #1a1a1a;overflow-y:auto;background:#060606;">
+          <div style="padding:5px 8px;background:#0d0d0d;border-bottom:1px solid #1a1a1a;color:#d4af37;font-size:8.5px;font-weight:900;text-transform:uppercase;position:sticky;top:0;">📋 DOM FIELD STATE</div>
+          <div style="padding:6px 8px;">${snapRows}</div>
+        </div>
+        <div style="flex:1;overflow-y:auto;background:#080808;">
+          <div style="padding:5px 8px;background:#0d0d0d;border-bottom:1px solid #1a1a1a;color:#d4af37;font-size:8.5px;font-weight:900;text-transform:uppercase;position:sticky;top:0;">📡 FETCH & FILL LOG</div>
+          ${logRows||'<div style="color:#555;font-size:10px;text-align:center;padding:30px;">No log entries yet.<br>Select a match to begin.</div>'}
+        </div>
+      </div>
+    `;
+  }
+
+  function open() {
+    _isOpen = true;
+    const ov = document.getElementById('afdbOverlay');
+    if (ov) { ov.style.display='flex'; _render(); }
+    log('BOOT','AFDB','🔬 Debug Brain opened — watching all fetch & fill ops', { logEntries: _log.length });
+  }
+
+  function close() {
+    _isOpen = false;
+    const ov = document.getElementById('afdbOverlay');
+    if (ov) ov.style.display='none';
+  }
+
+  function runTestFetch() {
+    log('PICK','AFDB','🚀 Manual re-run of fetchESPN() triggered from AFDB');
+    if (typeof fetchESPN === 'function') {
+      fetchESPN().catch(e => log('ERROR','AFDB','fetchESPN threw: '+e.message, {stack: e.stack}));
+    } else {
+      log('ERROR','AFDB','fetchESPN is not defined!');
+    }
+  }
+
+  return { log, clear, copy, snap, snapDOM, open, close, runTestFetch,
+           get isOpen() { return _isOpen; } };
+})();
+
+// ── Patch proxyFetch ────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    if (typeof proxyFetch === 'function' && !proxyFetch._afdbPatched) {
+      const _orig = proxyFetch;
+      window.proxyFetch = async function(url, timeout) {
+        const short = String(url||'').replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\/soccer\//,'⚽/').replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\//,'ESPN/');
+        AFDB.log('NET','PROXY','→ REQUEST: '+short);
+        const t0 = performance.now();
+        try {
+          const res = await _orig.apply(this, arguments);
+          const ms = (performance.now()-t0).toFixed(0);
+          const keys = res ? Object.keys(res) : [];
+          const evCount = res?.events?.length;
+          AFDB.log(
+            (res && keys.length) ? 'SUCCESS' : 'WARN',
+            'PROXY',
+            `← RESPONSE (${ms}ms): `+short,
+            { keys, eventsCount: evCount, hasTeam: !!res?.team, hasAthletes: !!res?.athletes }
+          );
+          return res;
+        } catch(err) {
+          const ms = (performance.now()-t0).toFixed(0);
+          AFDB.log('ERROR','PROXY',`✗ FAILED (${ms}ms): `+short, { error: err.message });
+          throw err;
+        }
+      };
+      window.proxyFetch._afdbPatched = true;
+      AFDB.log('BOOT','AFDB','✅ proxyFetch hooked');
+    } else if (!window.proxyFetch) {
+      AFDB.log('ERROR','AFDB','⛔ proxyFetch not found — network calls untraced!');
+    }
+
+    if (typeof fetchESPN === 'function' && !fetchESPN._afdbPatched) {
+      const _origFetch = fetchESPN;
+      window.fetchESPN = async function() {
+        AFDB.log('FETCH','fetchESPN','═══════ fetchESPN START ═══════');
+        const league   = document.getElementById('leagueSelect')?.value || '(none)';
+        const teamAVal = document.getElementById('teamAName')?.value?.trim() || '(empty)';
+        const teamBVal = document.getElementById('teamBName')?.value?.trim() || '(empty)';
+        const tAid     = typeof selectedTeamIds !== 'undefined' ? selectedTeamIds.A : 'N/A';
+        const tBid     = typeof selectedTeamIds !== 'undefined' ? selectedTeamIds.B : 'N/A';
+        AFDB.log('PICK','fetchESPN','PRE-STATE snapshot', { league, teamAName: teamAVal, teamBName: teamBVal, teamAId: tAid, teamBId: tBid });
+        if (!league || league==='unknown') AFDB.log('ERROR','fetchESPN','⛔ BLOCKED: league is empty or unknown.');
+        if (!teamAVal || !teamBVal) AFDB.log('ERROR','fetchESPN','⛔ BLOCKED: team name(s) are empty.');
+        const t0 = performance.now();
+        try {
+          const result = await _origFetch.apply(this, arguments);
+          const ms = (performance.now()-t0).toFixed(0);
+          AFDB.log('SUCCESS','fetchESPN',`═══════ fetchESPN COMPLETE (${ms}ms) ═══════`);
+          AFDB.log('FILL','fetchESPN','POST-FILL field state', {
+            aFTScored:  document.getElementById('aFTScored')?.value||'(empty)',
+            aFTAllowed: document.getElementById('aFTAllowed')?.value||'(empty)',
+            bFTScored:  document.getElementById('bFTScored')?.value||'(empty)',
+            bFTAllowed: document.getElementById('bFTAllowed')?.value||'(empty)',
+            a1HScored:  document.getElementById('a1HScored')?.value||'(empty)',
+            b1HScored:  document.getElementById('b1HScored')?.value||'(empty)',
+            aFTH2H:     document.getElementById('aFTH2H')?.value||'(empty)',
+            bFTH2H:     document.getElementById('bFTH2H')?.value||'(empty)',
+          });
+          return result;
+        } catch(err) {
+          const ms = (performance.now()-t0).toFixed(0);
+          AFDB.log('ERROR','fetchESPN',`═══════ fetchESPN THREW after ${ms}ms: ${err.message}`, { stack: err.stack });
+          throw err;
+        }
+      };
+      window.fetchESPN._afdbPatched = true;
+      AFDB.log('BOOT','AFDB','✅ fetchESPN hooked');
+    }
+
+    if (typeof fetchScheduleCore === 'function' && !fetchScheduleCore._afdbPatched) {
+      const _origSched = fetchScheduleCore;
+      window.fetchScheduleCore = async function(base, teamId, league) {
+        AFDB.log('FETCH','scheduleCore',`Fetching schedule: teamId=${teamId} league=${league}`);
+        const t0 = performance.now();
+        try {
+          const res = await _origSched.apply(this, arguments);
+          const ms = (performance.now()-t0).toFixed(0);
+          if (!res) {
+            AFDB.log('ERROR','scheduleCore',`⛔ NULL RESULT for teamId=${teamId} (${ms}ms) — this blocks auto-fill!`);
+          } else {
+            AFDB.log('SUCCESS','scheduleCore',`Got data for teamId=${teamId} (${ms}ms)`, {
+              scored: res.scored?.length||0, allowed: res.allowed?.length||0,
+              h1Scored: res.h1Scored?.length||0, ortg10: res.ortg10?.length||0,
+              venueReliable: res.venueReliable, lastGameDate: res.lastGameDate
+            });
+          }
+          return res;
+        } catch(err) {
+          const ms = (performance.now()-t0).toFixed(0);
+          AFDB.log('ERROR','scheduleCore',`✗ THREW for teamId=${teamId} (${ms}ms): ${err.message}`, {stack: err.stack});
+          throw err;
+        }
+      };
+      window.fetchScheduleCore._afdbPatched = true;
+      AFDB.log('BOOT','AFDB','✅ fetchScheduleCore hooked');
+    }
+
+    if (typeof fetchH2HCore === 'function' && !fetchH2HCore._afdbPatched) {
+      const _origH2H = fetchH2HCore;
+      window.fetchH2HCore = async function(base, teamAId, teamBId, leagueKey) {
+        AFDB.log('H2H','h2hCore',`H2H scan: A=${teamAId} vs B=${teamBId} league=${leagueKey}`);
+        const t0 = performance.now();
+        try {
+          const res = await _origH2H.apply(this, arguments);
+          const ms = (performance.now()-t0).toFixed(0);
+          if (!res || !res.length) {
+            AFDB.log('WARN','h2hCore',`⚠️ H2H returned 0 games for A=${teamAId} vs B=${teamBId} (${ms}ms)`);
+          } else {
+            AFDB.log('SUCCESS','h2hCore',`H2H: ${res.length} game(s) found (${ms}ms)`, {
+              games: res.slice(0,3).map(g => ({ date: g.date, A: g.scoreA, B: g.scoreB }))
+            });
+          }
+          return res;
+        } catch(err) {
+          const ms = (performance.now()-t0).toFixed(0);
+          AFDB.log('ERROR','h2hCore',`✗ H2H THREW (${ms}ms): ${err.message}`, {stack: err.stack});
+          throw err;
+        }
+      };
+      window.fetchH2HCore._afdbPatched = true;
+      AFDB.log('BOOT','AFDB','✅ fetchH2HCore hooked');
+    }
+
+    if (typeof searchTeamFromAPI === 'function' && !searchTeamFromAPI._afdbPatched) {
+      const _origSearch = searchTeamFromAPI;
+      window.searchTeamFromAPI = async function(base, name, league) {
+        AFDB.log('FETCH','searchTeam',`Searching ESPN for: "${name}" in ${league}`);
+        const t0 = performance.now();
+        try {
+          const res = await _origSearch.apply(this, arguments);
+          const ms = (performance.now()-t0).toFixed(0);
+          if (!res) {
+            AFDB.log('ERROR','searchTeam',`⛔ Team ID NOT FOUND for "${name}" in ${league} (${ms}ms) — THIS BLOCKS FETCH!`);
+          } else {
+            AFDB.log('SUCCESS','searchTeam',`Team resolved: "${name}" → ID: ${res} (${ms}ms)`);
+          }
+          return res;
+        } catch(err) {
+          const ms = (performance.now()-t0).toFixed(0);
+          AFDB.log('ERROR','searchTeam',`✗ searchTeamFromAPI threw for "${name}" (${ms}ms): ${err.message}`);
+          throw err;
+        }
+      };
+      window.searchTeamFromAPI._afdbPatched = true;
+      AFDB.log('BOOT','AFDB','✅ searchTeamFromAPI hooked');
+    }
+
+    AFDB.log('BOOT','AFDB','🔬 All hooks installed. Select a match to start tracing.');
+  }, 0);
+});
+</script>
+
 </body>
 </html>
