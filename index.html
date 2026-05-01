@@ -11779,15 +11779,11 @@ const AFDB = (function() {
     const text = visibleLogs.slice().reverse().map(e => {
       let line = `[${e.ts}] [${e.level}] [${e.section}] ${e.msg}`;
       if (e.data !== null) {
-        try { line += '
-  ' + JSON.stringify(e.data, null, 2); }
-        catch(x) { line += '
-  ' + String(e.data); }
+        try { line += '\n  ' + JSON.stringify(e.data, null, 2); }
+        catch(x) { line += '\n  ' + String(e.data); }
       }
       return line;
-    }).join('
-
-');
+    }).join('\n\n');
 
     try {
       navigator.clipboard.writeText(text);
@@ -11799,6 +11795,24 @@ const AFDB = (function() {
     } catch(e) {
       log('WARN','AFDB','Clipboard blocked — printed to console');
     }
+  }
+
+  function snapDOM() {
+    const ids = [
+      'leagueSelect','teamAName','teamBName',
+      'aFTScored','aFTAllowed','a1HScored','a1HAllowed',
+      'bFTScored','bFTAllowed','b1HScored','b1HAllowed',
+      'aFTH2H','bFTH2H','a1HH2H','b1HH2H',
+      'ftMarket','h1Market','h2Market','teamAMarket','teamBMarket'
+    ];
+    const snap = {};
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      snap[id] = el ? (el.value||'(empty)') : '⛔ NOT FOUND';
+    });
+    if (typeof selectedTeamIds !== 'undefined') snap['_teamIds'] = JSON.stringify(selectedTeamIds);
+    if (typeof uiState !== 'undefined') snap['_league'] = uiState.appliedLeagueSlug||'(none)';
+    return snap;
   }
 
   function _render() {
@@ -11861,6 +11875,7 @@ const AFDB = (function() {
     _isOpen = true;
     const ov = document.getElementById('afdbOverlay');
     if (ov) { ov.style.display='flex'; _render(); }
+    log('BOOT','AFDB','🔬 Debug Brain opened — watching all fetch & fill ops', { logEntries: _log.length });
   }
 
   function close() {
@@ -11869,7 +11884,11 @@ const AFDB = (function() {
     if (ov) ov.style.display='none';
   }
 
+  // 🛡️ THE MILITARY POLICE: Sweeps A-Z silently, only reporting errors or a clean bill of health.
   async function runTestFetch() {
+    log('WARN','POLICE RAID','🚨 INITIATING RAID: Full A-Z sweep of Logic, UI, and Caches. Arresting all errors...');
+
+    // 1. Wipe caches silently
     if (typeof _schedCache !== 'undefined') _schedCache.clear();
     if (typeof _summaryCache !== 'undefined') _summaryCache.clear();
     if (typeof _fixtureCache !== 'undefined') _fixtureCache.clear();
@@ -11897,11 +11916,12 @@ const AFDB = (function() {
         await fetchESPN();
         const postErrorCount = _log.filter(e => e.level === 'ERROR').length;
 
+        // If the error count didn't go up, the sweep was 100% clean.
         if (postErrorCount === preErrorCount) {
           log('SUCCESS','POLICE RAID','✅ NO ERRORS FOUND. Sweep complete and clean.');
         }
       } catch(e) {
-        log('ERROR','POLICE RAID',`💥 SWEEP FAILED: ${e.message}`);
+        log('ERROR','POLICE RAID',`💥 SWEEP FAILED: ${e.message}`, { stack: e.stack });
       }
     } else {
       log('ERROR','POLICE RAID','fetchESPN function not found!');
@@ -11911,6 +11931,7 @@ const AFDB = (function() {
   return { log, clear, copy, toggleFilter, open, close, runTestFetch, get isOpen() { return _isOpen; } };
 })();
 
+// ── Patch proxyFetch ────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(function() {
     if (typeof proxyFetch === 'function' && !proxyFetch._afdbPatched) {
