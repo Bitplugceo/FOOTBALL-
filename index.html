@@ -11743,6 +11743,7 @@ const AFDB = (function() {
   const LOG_LIMIT = 600;
   let _log = [];
   let _isOpen = false;
+  let _showOnlyErrors = true; // Clean mode by default
 
   const LEVELS = {
     BOOT:    { color:'#7aa6ff' }, NET:     { color:'#4ea9ff' },
@@ -11774,8 +11775,16 @@ const AFDB = (function() {
 
   function clear() { _log = []; _render(); }
 
+  function toggleFilter() {
+    _showOnlyErrors = !_showOnlyErrors;
+    _render();
+  }
+
   function copy() {
-    const text = _log.slice().reverse().map(e => {
+    // Only copy what is currently visible on the screen
+    const visibleLogs = _showOnlyErrors ? _log.filter(e => e.level === 'ERROR' || e.level === 'WARN') : _log;
+    
+    const text = visibleLogs.slice().reverse().map(e => {
       let line = `[${e.ts}] [${e.level}] [${e.section}] ${e.msg}`;
       if (e.data !== null) {
         try { line += '\n  ' + JSON.stringify(e.data, null, 2); }
@@ -11783,11 +11792,12 @@ const AFDB = (function() {
       }
       return line;
     }).join('\n\n');
+    
     try {
       navigator.clipboard.writeText(text);
-      log('SUCCESS','AFDB','📋 Full log copied to clipboard!');
+      log('SUCCESS','AFDB','📋 Copied!');
     } catch(e) {
-      log('WARN','AFDB','Clipboard blocked — log printed to console');
+      log('WARN','AFDB','Clipboard blocked — printed to console');
     }
   }
 
@@ -11822,7 +11832,9 @@ const AFDB = (function() {
       </div>`;
     }).join('');
 
-    const logRows = _log.map(e => {
+    const visibleLogs = _showOnlyErrors ? _log.filter(e => e.level === 'ERROR' || e.level === 'WARN') : _log;
+
+    const logRows = visibleLogs.map(e => {
       const def = LEVELS[e.level]||LEVELS.INFO;
       const icon = ICONS[e.level]||'•';
       let dataHtml = '';
@@ -11846,11 +11858,10 @@ const AFDB = (function() {
     const headerBtns = `
       <button onclick="AFDB.copy()" style="background:#111;border:1px solid #333;color:#49d45f;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">📋 Copy Log</button>
       <button onclick="AFDB.clear()" style="background:#111;border:1px solid #333;color:#ff5c61;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">🗑️ Clear</button>
-      <button onclick="AFDB.runTestFetch()" style="background:#2a0608;border:1px solid #d91f26;color:#fff;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;box-shadow:0 0 8px rgba(217,31,38,0.4);">🚨 MILITARY RAID (FORCE FETCH)</button>
+      <button onclick="AFDB.runTestFetch()" style="background:#2a0608;border:1px solid #d91f26;color:#fff;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;box-shadow:0 0 8px rgba(217,31,38,0.4);">🚨 MILITARY RAID (SWEEP A-Z)</button>
       <button onclick="AFDB.close()" style="background:#111;border:1px solid #555;color:#ccc;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;">✕ Close</button>
     `;
 
-    // 🛡️ Layout changed: Stacked top-to-bottom instead of side-by-side
     panel.innerHTML = `
       <div style="background:#080808;border-bottom:1px solid #222;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;flex-shrink:0;">
         <div style="color:#d4af37;font-size:14px;font-weight:900;letter-spacing:1px;">🔬 AUTO-FETCH DEBUG BRAIN</div>
@@ -11859,9 +11870,14 @@ const AFDB = (function() {
       
       <div style="display:flex;flex-direction:column;flex:1;overflow-y:auto;background:#0a0a0a;">
         <div style="flex:none; border-bottom: 2px solid #222;">
-          <div style="padding:10px 12px;background:#111;color:#d4af37;font-size:11px;font-weight:900;text-transform:uppercase;position:sticky;top:0;z-index:10;border-bottom:1px solid #222;">📡 FETCH & FILL LOGS</div>
+          <div style="padding:10px 12px;background:#111;color:#d4af37;font-size:11px;font-weight:900;text-transform:uppercase;position:sticky;top:0;z-index:10;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;">
+            <span>📡 FETCH & FILL LOGS</span>
+            <button onclick="AFDB.toggleFilter()" style="background:none;border:none;color:#4ea9ff;font-size:14px;font-weight:bold;cursor:pointer;" title="Toggle filter">
+              ${_showOnlyErrors ? '👁️ SHOW ALL' : '🎯 ERRORS ONLY'}
+            </button>
+          </div>
           <div style="padding-bottom:15px;">
-            ${logRows||'<div style="color:#555;font-size:12px;text-align:center;padding:30px;font-weight:bold;">No log entries yet. Run a fetch to track data.</div>'}
+            ${logRows||`<div style="color:#555;font-size:12px;text-align:center;padding:30px;font-weight:bold;">${_showOnlyErrors ? 'No suspects arrested. The code is clean.' : 'No log entries yet. Run a fetch.'}</div>`}
           </div>
         </div>
 
@@ -11888,16 +11904,15 @@ const AFDB = (function() {
     if (ov) ov.style.display='none';
   }
 
-  // 🛡️ THE MILITARY POLICE: Arrests bad caches, wipes data, forces a clean raid
+  // 🛡️ THE MILITARY POLICE: Sweeps A-Z without erasing previous rap sheets (logs)
   async function runTestFetch() {
-    log('WARN','POLICE RAID','🚨 INITIATING RAID: Arresting corrupted caches and rogue inputs...');
+    log('WARN','POLICE RAID','🚨 INITIATING RAID: Full A-Z sweep of Logic, UI, and Caches. Arresting all errors...');
 
     // 1. Wipe caches ruthlessly
     if (typeof _schedCache !== 'undefined') _schedCache.clear();
     if (typeof _summaryCache !== 'undefined') _summaryCache.clear();
     if (typeof _fixtureCache !== 'undefined') _fixtureCache.clear();
     if (typeof _teamCatalogCache !== 'undefined') _teamCatalogCache.clear();
-    log('SUCCESS','POLICE RAID','🧹 Caches wiped clean. All ghosts eliminated.');
 
     // 2. Target acquisition
     const league = document.getElementById('leagueSelect')?.value;
@@ -11905,7 +11920,7 @@ const AFDB = (function() {
     const tB = document.getElementById('teamBName')?.value;
 
     if (!league || league === 'unknown' || !tA || !tB) {
-      log('ERROR','POLICE RAID','🛑 TARGETS MISSING: Select a League, Team A, and Team B before raiding.');
+      log('ERROR','POLICE RAID','🛑 TARGETS MISSING: Select a League, Team A, and Team B before sweeping.');
       return;
     }
 
@@ -11914,24 +11929,23 @@ const AFDB = (function() {
        clearSideFields('A');
        clearSideFields('B');
        clearH2HFields();
-       log('INFO','POLICE RAID','🗑️ Old inputs wiped. Slate is clean.');
     }
 
-    // 4. Execute Fetch
-    log('FETCH','POLICE RAID',`⚡ FORCING HARD FETCH: ${tA} vs ${tB} [${league}]`);
+    // 4. Execute Fetch Sweep
+    log('FETCH','POLICE RAID',`⚡ SWEEPING: ${tA} vs ${tB} [${league}]`);
     if (typeof fetchESPN === 'function') {
       try {
         await fetchESPN();
-        log('SUCCESS','POLICE RAID','🎯 RAID COMPLETE: Clean, accurate data secured.');
+        log('SUCCESS','POLICE RAID','🎯 SWEEP COMPLETE: All guilty data arrested and replaced with clean intel.');
       } catch(e) {
-        log('ERROR','POLICE RAID',`💥 RAID FAILED: Target resisted. ${e.message}`, { stack: e.stack });
+        log('ERROR','POLICE RAID',`💥 SWEEP FAILED: Target resisted. ${e.message}`, { stack: e.stack });
       }
     } else {
       log('ERROR','POLICE RAID','fetchESPN function not found!');
     }
   }
 
-  return { log, clear, copy, snapDOM, open, close, runTestFetch,
+  return { log, clear, copy, toggleFilter, snapDOM, open, close, runTestFetch,
            get isOpen() { return _isOpen; } };
 })();
 
@@ -12040,10 +12054,32 @@ document.addEventListener('DOMContentLoaded', function() {
       window.fetchH2HCore._afdbPatched = true;
     }
 
+    if (typeof searchTeamFromAPI === 'function' && !searchTeamFromAPI._afdbPatched) {
+      const _origSearch = searchTeamFromAPI;
+      window.searchTeamFromAPI = async function(base, name, league) {
+        AFDB.log('FETCH','searchTeam',`Searching ESPN for: "${name}" in ${league}`);
+        const t0 = performance.now();
+        try {
+          const res = await _origSearch.apply(this, arguments);
+          const ms = (performance.now()-t0).toFixed(0);
+          if (!res) {
+            AFDB.log('ERROR','searchTeam',`⛔ Team ID NOT FOUND for "${name}" in ${league} (${ms}ms) — THIS BLOCKS FETCH!`);
+          } else {
+            AFDB.log('SUCCESS','searchTeam',`Team resolved: "${name}" → ID: ${res} (${ms}ms)`);
+          }
+          return res;
+        } catch(err) {
+          const ms = (performance.now()-t0).toFixed(0);
+          AFDB.log('ERROR','searchTeam',`✗ searchTeamFromAPI threw for "${name}" (${ms}ms): ${err.message}`);
+          throw err;
+        }
+      };
+      window.searchTeamFromAPI._afdbPatched = true;
+    }
+
     AFDB.log('BOOT','AFDB','🔬 All hooks installed. Select a match to start tracing.');
   }, 0);
 });
 </script>
-
 </body>
 </html>
