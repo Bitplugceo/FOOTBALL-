@@ -11710,6 +11710,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 </script>
 
+
 <div class="pro-modal-overlay" id="proModalOverlay">
   <div class="pro-modal-content">
     <div class="pro-modal-header"><span id="proModalTitle">Select</span><span class="pro-modal-close" onclick="closeProModal()">&#x2715;</span></div>
@@ -11719,186 +11720,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   </div>
 </div>
 
-
-
-
-
- style="position: fixed; inset: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); border: 6px solid #ff5c61; z-index: 999999; font-family: ui-monospace, monospace; font-size: 13px; display: none; flex-direction: column; box-sizing: border-box;">
-
-  <div style="background: #ff5c61; color: #000; padding: 15px 20px; font-weight: 900; display: flex; justify-content: space-between; align-items: center; text-transform: uppercase;">
-    <span style="font-size: 18px;">🛑 Brutal Debug - Core System Logs</span>
-    <div style="display: flex; gap: 15px;">
-        <button onclick="document.getElementById('mainDebugLogs').innerHTML = '';" style="background: #000; color: #fff; border: 1px solid #000; padding: 8px 15px; cursor: pointer; font-weight: bold; border-radius: 4px;">CLEAR LOGS</button>
-        <button onclick="document.getElementById('mainPageDebugger').style.display = 'none';" style="background: #000; color: #ff5c61; border: 1px solid #000; padding: 8px 15px; cursor: pointer; font-weight: bold; border-radius: 4px;">CLOSE PANEL</button>
-    </div>
-  </div>
-
-  <div id="mainDebugLogs" style="flex: 1; overflow-y: auto; padding: 20px; color: #fff; line-height: 1.5;">
-    <div style="color: #aaa; margin-bottom: 5px;">> Full Page Debugger Active.</div>
-    <div style="color: #aaa; margin-bottom: 5px;">> Listening for ALL internal and external errors...</div>
-  </div>
-</div>
-
-<script>
-  window.printToBrutalDebug = function(msg, color) {
-    const mainDebugLogs = document.getElementById("mainDebugLogs");
-    if (!mainDebugLogs) return;
-    mainDebugLogs.innerHTML += `<div style="color: ${color}; margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 8px; word-break: break-word;">> ${msg}</div>`;
-    mainDebugLogs.scrollTop = mainDebugLogs.scrollHeight;
-  };
-
-  (function() {
-    // 1. Catch Window Crashes
-    window.addEventListener("error", function(e) {
-      window.printToBrutalDebug(`CRASH: ${e.message} (Line ${e.lineno})`, "#ff5c61");
-    });
-
-    // 2. Catch Promise Rejections
-    window.addEventListener("unhandledrejection", function(e) {
-      window.printToBrutalDebug(`PROMISE REJECTED: ${e.reason}`, "#ffcf73");
-    });
-
-    // 3. Hijack Console Errors
-    const originalConsoleError = console.error;
-    console.error = function(...args) {
-      window.printToBrutalDebug(`ERROR: ${args.join(" ")}`, "#ff5c61");
-      originalConsoleError.apply(console, args);
-    };
-
-    // 4. HIJACK INTERNAL ENGINE LOGS (This catches your HTTP 400!)
-    setTimeout(() => {
-      const origEngineDebug = window.engineDebug;
-      window.engineDebug = function(msg, extra) {
-        const text = String(msg).toLowerCase();
-        const isErr = text.includes("error") || text.includes("fail") || text.includes("critical") || text.includes("blocked");
-        const color = isErr ? "#ff5c61" : "#49d45f"; // Red for errors, Green for normal
-
-        let extraStr = "";
-        if (extra) {
-            try { extraStr = typeof extra === 'object' ? JSON.stringify(extra) : String(extra); } 
-            catch(e) { extraStr = " [Object]"; }
-        }
-
-        window.printToBrutalDebug(`[ENGINE] ${msg} ${extraStr}`, color);
-        if (origEngineDebug) origEngineDebug(msg, extra);
-      };
-    }, 500); 
-  })();
-</script>
-
-
-  <div style="background: #ff5c61; color: #000; padding: 15px 20px; font-weight: 900; display: flex; justify-content: space-between; align-items: center; text-transform: uppercase;">
-    <span style="font-size: 18px;">🛑 Brutal Debug - Core System Logs</span>
-    <div style="display: flex; gap: 15px;">
-        <button onclick="document.getElementById('mainDebugLogs').innerHTML = '';" style="background: #000; color: #fff; border: 1px solid #000; padding: 8px 15px; cursor: pointer; font-weight: bold; border-radius: 4px;">CLEAR LOGS</button>
-        <button onclick="document.getElementById('mainPageDebugger').style.display = 'none';" style="background: #000; color: #ff5c61; border: 1px solid #000; padding: 8px 15px; cursor: pointer; font-weight: bold; border-radius: 4px;">CLOSE PANEL</button>
-    </div>
-  </div>
-
-  <div id="mainDebugLogs" style="flex: 1; overflow-y: auto; padding: 20px; color: #fff; line-height: 1.5;">
-    <div style="color: #aaa; margin-bottom: 5px;">> Full Page Debugger Active.</div>
-    <div style="color: #aaa; margin-bottom: 5px;">> Listening for API fetches, JSON parsing, and script errors...</div>
-  </div>
-</div>
-
-<script>
-  // Global function so the rest of your app can talk to it
-  window.printToBrutalDebug = function(msg, color) {
-    const debuggerUI = document.getElementById("mainPageDebugger");
-    const mainDebugLogs = document.getElementById("mainDebugLogs");
-
-    // Auto-open the full screen if a FATAL error or CRASH happens
-    if (color === "#ff5c61" && (msg.includes("FATAL") || msg.includes("CRASH"))) {
-       debuggerUI.style.display = "flex";
-    }
-
-    mainDebugLogs.innerHTML += `<div style="color: ${color}; margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 8px; word-break: break-word;">> ${msg}</div>`;
-    mainDebugLogs.scrollTop = mainDebugLogs.scrollHeight;
-  };
-
-  (function() {
-    window.addEventListener("error", function(e) {
-      window.printToBrutalDebug(`CRASH: ${e.message} (Line ${e.lineno})`, "#ff5c61");
-    });
-    window.addEventListener("unhandledrejection", function(e) {
-      window.printToBrutalDebug(`PROMISE REJECTED: ${e.reason}`, "#ffcf73");
-    });
-    const originalConsoleError = console.error;
-    console.error = function(...args) {
-      window.printToBrutalDebug(`ERROR: ${args.join(" ")}`, "#ff5c61");
-      originalConsoleError.apply(console, args);
-    };
-  })();
-</script>
-
-<div id="mainPageDebugger" style="position: fixed; inset: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); border: 6px solid #ff5c61; z-index: 999999; font-family: ui-monospace, monospace; font-size: 13px; display: none; flex-direction: column; box-sizing: border-box;">
-
-  <div style="background: #ff5c61; color: #000; padding: 15px 20px; font-weight: 900; display: flex; justify-content: space-between; align-items: center; text-transform: uppercase;">
-    <span style="font-size: 18px;">🛑 Brutal Debug - Core System Logs</span>
-    <div style="display: flex; gap: 15px;">
-        <button onclick="document.getElementById('mainDebugLogs').innerHTML = '';" style="background: #000; color: #fff; border: 1px solid #000; padding: 8px 15px; cursor: pointer; font-weight: bold; border-radius: 4px;">CLEAR LOGS</button>
-        <button onclick="document.getElementById('mainPageDebugger').style.display = 'none';" style="background: #000; color: #ff5c61; border: 1px solid #000; padding: 8px 15px; cursor: pointer; font-weight: bold; border-radius: 4px;">CLOSE PANEL</button>
-    </div>
-  </div>
-
-  <div id="mainDebugLogs" style="flex: 1; overflow-y: auto; padding: 20px; color: #fff; line-height: 1.5;">
-    <div style="color: #aaa; margin-bottom: 5px;">> Full Page Debugger Active.</div>
-    <div style="color: #aaa; margin-bottom: 5px;">> Listening for ALL internal and external errors...</div>
-  </div>
-</div>
-
-<script>
-  window.printToBrutalDebug = function(msg, color) {
-    const mainDebugLogs = document.getElementById("mainDebugLogs");
-    if (!mainDebugLogs) return;
-    mainDebugLogs.innerHTML += `<div style="color: ${color}; margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 8px; word-break: break-word;">> ${msg}</div>`;
-    mainDebugLogs.scrollTop = mainDebugLogs.scrollHeight;
-  };
-
-  (function() {
-    // 1. Catch Window Crashes
-    window.addEventListener("error", function(e) {
-      window.printToBrutalDebug(`CRASH: ${e.message} (Line ${e.lineno})`, "#ff5c61");
-    });
-
-    // 2. Catch Promise Rejections
-    window.addEventListener("unhandledrejection", function(e) {
-      window.printToBrutalDebug(`PROMISE REJECTED: ${e.reason}`, "#ffcf73");
-    });
-
-    // 3. Hijack Console Errors
-    const originalConsoleError = console.error;
-    console.error = function(...args) {
-      window.printToBrutalDebug(`ERROR: ${args.join(" ")}`, "#ff5c61");
-      originalConsoleError.apply(console, args);
-    };
-
-    // 4. HIJACK INTERNAL ENGINE LOGS (This catches your HTTP 400!)
-    setTimeout(() => {
-      const origEngineDebug = window.engineDebug;
-      window.engineDebug = function(msg, extra) {
-        const text = String(msg).toLowerCase();
-        const isErr = text.includes("error") || text.includes("fail") || text.includes("critical") || text.includes("blocked");
-        const color = isErr ? "#ff5c61" : "#49d45f"; // Red for errors, Green for normal
-
-        let extraStr = "";
-        if (extra) {
-            try { extraStr = typeof extra === 'object' ? JSON.stringify(extra) : String(extra); } 
-            catch(e) { extraStr = " [Object]"; }
-        }
-
-        window.printToBrutalDebug(`[ENGINE] ${msg} ${extraStr}`, color);
-        if (origEngineDebug) origEngineDebug(msg, extra);
-      };
-    }, 500); 
-  })();
-</script>
-<!-- ═══════════════════════════════════════════════════
-     🔬 AFDB — AUTO-FETCH DEBUG BRAIN
-     Full diagnostic overlay for auto-fetch & auto-fill
-     ═══════════════════════════════════════════════════ -->
-
-<!-- AFDB OVERLAY -->
 <div id="afdbOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,0.96);flex-direction:column;font-family:ui-monospace,Consolas,monospace;">
   <div id="afdbPanel" style="width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;"></div>
 </div>
@@ -12098,8 +11919,6 @@ document.addEventListener('DOMContentLoaded', function() {
       };
       window.proxyFetch._afdbPatched = true;
       AFDB.log('BOOT','AFDB','✅ proxyFetch hooked');
-    } else if (!window.proxyFetch) {
-      AFDB.log('ERROR','AFDB','⛔ proxyFetch not found — network calls untraced!');
     }
 
     if (typeof fetchESPN === 'function' && !fetchESPN._afdbPatched) {
@@ -12222,6 +12041,4 @@ document.addEventListener('DOMContentLoaded', function() {
   }, 0);
 });
 </script>
-
-</body>
-</html>
+</body></html>
