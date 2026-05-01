@@ -11191,8 +11191,12 @@ async function loadFixtures(timeFilter = 'all') {
       }
       allEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
       
-      // 🛡️ DYNAMIC LEAGUE FIX: Save exactly which leagues actually have matches today
-      window.g_activeLeagues = new Set(allEvents.map(ev => ev._slug));
+      // 🛡️ COUNT FIX: Save the match counts for the SportyBet UI
+      window.g_leagueCounts = {};
+      allEvents.forEach(ev => {
+        window.g_leagueCounts[ev._slug] = (window.g_leagueCounts[ev._slug] || 0) + 1;
+      });
+      window.g_activeLeagues = new Set(Object.keys(window.g_leagueCounts));
       
     } else {
       const base = getLeagueBase(league);
@@ -11229,74 +11233,27 @@ async function loadFixtures(timeFilter = 'all') {
   } catch (e) { list.innerHTML = '<div style="padding:20px; text-align:center; color:red;">Connection Shield Error</div>'; }
 }
 
-
-
-
-// ==========================================
-// BATCH 1.5: UI RESTORATION & HELPERS
-// ==========================================
-
-// 1. UI State & Modal Logic (Restored)
-const uiState = {
-  stagedLeagueSlug: null,
-  appliedLeagueSlug: null,
-  selectedDateOffset: "all",
-  currentModalType: null,
-  activeCategoryIdx: 0
-};
-
-function openProModal(type) {
-  uiState.currentModalType = type;
-  const overlay = document.getElementById("proModalOverlay");
-  const dualPane = document.getElementById("proDualPane");
-  const simpleList = document.getElementById("proSimpleList");
-  const actions = document.getElementById("proModalActions");
-  const title = document.getElementById("proModalTitle");
-  if (!overlay) return;
-  overlay.classList.add("open");
-
-  if (type === "league") {
-    title.textContent = "Select League";
-    dualPane.style.display = "flex"; simpleList.style.display = "none"; actions.style.display = "flex";
-    renderLeaguePaneLeft();
-    renderLeaguePaneRight(uiState.activeCategoryIdx);
-  } else if (type === "date") {
-    title.textContent = "Filter by Date";
-    dualPane.style.display = "none"; simpleList.style.display = "block"; actions.style.display = "none";
-    renderDateList();
-  } else if (type === "sort") {
-    title.textContent = "Sort Matches";
-    dualPane.style.display = "none"; simpleList.style.display = "block"; actions.style.display = "none";
-    renderSortList();
-  }
-}
-
-function closeProModal() {
-  const overlay = document.getElementById("proModalOverlay");
-  if (overlay) overlay.classList.remove("open");
-  uiState.currentModalType = null;
-}
-
 function renderLeaguePaneLeft() {
   const left = document.getElementById("proPaneLeft");
   if (!left) return;
   const activeSlugs = window.g_activeLeagues || new Set();
   
-  const allItem = `<div class="pane-item ${uiState.activeCategoryIdx === -1 ? "active" : ""}"
-       onclick="selectAllLeagues(this)">
-    <span>&#x1F310; All Active Leagues</span><span>&#x203A;</span>
+  // SportyBet Style: Gray background for the inactive side
+  left.style.background = "#f2f3f5";
+  left.style.borderRight = "1px solid #dfe2e7";
+  
+  const allItem = `<div class="pane-item" style="border-bottom: 1px solid #dfe2e7; padding: 14px 12px; cursor: pointer; ${uiState.activeCategoryIdx === -1 ? 'background: #fff; border-left: 3px solid #2f8f4a; color: #2f8f4a; font-weight: 800;' : 'color: #555;'}" onclick="selectAllLeagues(this)">
+    <span>All Active Leagues</span>
   </div>`;
   
-  // Only show categories that have at least one active league
   const activeCats = SOCCER_TAXONOMY.map((cat, idx) => {
     const hasActive = cat.leagues.some(l => activeSlugs.has(l.slug));
     return hasActive ? { cat: cat.cat, idx } : null;
   }).filter(Boolean);
 
   const catItems = activeCats.map(c => `
-    <div class="pane-item ${c.idx === uiState.activeCategoryIdx ? "active" : ""}"
-         onclick="selectLeagueCategory(${c.idx}, this)">
-      <span>${safeText(c.cat)}</span><span>&#x203A;</span>
+    <div class="pane-item" style="border-bottom: 1px solid #dfe2e7; padding: 14px 12px; cursor: pointer; ${c.idx === uiState.activeCategoryIdx ? 'background: #fff; border-left: 3px solid #2f8f4a; color: #2f8f4a; font-weight: 800;' : 'color: #555;'}" onclick="selectLeagueCategory(${c.idx}, this)">
+      <span>${safeText(c.cat)}</span>
     </div>`).join("");
     
   left.innerHTML = allItem + catItems;
@@ -11306,10 +11263,9 @@ function selectAllLeagues(el) {
   uiState.activeCategoryIdx = -1;
   uiState.stagedLeagueSlug = "all";
   uiState.appliedLeagueSlug = "all";
-  document.querySelectorAll("#proPaneLeft .pane-item").forEach(i => i.classList.remove("active"));
-  el.classList.add("active");
+  renderLeaguePaneLeft(); // Re-render to update the green border
   const right = document.getElementById("proPaneRight");
-  if (right) right.innerHTML = '<div class="pane-item" style="color:#aaa; font-style:italic; pointer-events:none;">All active leagues selected &#x2713;</div>';
+  if (right) right.innerHTML = '<div class="pane-item" style="color:#aaa; font-style:italic; pointer-events:none; padding: 14px;">All active leagues selected &#x2713;</div>';
   const sel = document.getElementById("leagueSelect");
   if (sel) { sel.innerHTML = `<option value="all">All Leagues</option>`; sel.value = "all"; }
   closeProModal();
@@ -11318,8 +11274,7 @@ function selectAllLeagues(el) {
 
 function selectLeagueCategory(idx, el) {
   uiState.activeCategoryIdx = idx;
-  document.querySelectorAll("#proPaneLeft .pane-item").forEach(i => i.classList.remove("active"));
-  el.classList.add("active");
+  renderLeaguePaneLeft(); // Re-render to update the green border
   renderLeaguePaneRight(idx);
 }
 
@@ -11328,24 +11283,36 @@ function renderLeaguePaneRight(catIdx = 0) {
   if (!right) return;
   const cat = SOCCER_TAXONOMY[catIdx];
   const activeSlugs = window.g_activeLeagues || new Set();
+  const counts = window.g_leagueCounts || {};
   
   if (!cat) { right.innerHTML = ""; return; }
   
-  // Only show the specific leagues inside this category that have matches
   const activeLeagues = cat.leagues.filter(lg => activeSlugs.has(lg.slug));
   
   if (activeLeagues.length === 0) {
-     right.innerHTML = '<div class="pane-item" style="color:#aaa; font-style:italic; pointer-events:none;">No active matches found</div>';
+     right.innerHTML = '<div class="pane-item" style="color:#aaa; font-style:italic; pointer-events:none; padding: 14px;">No active matches found</div>';
      return;
   }
 
-  right.innerHTML = activeLeagues.map(lg => `
-    <div class="pane-item ${uiState.stagedLeagueSlug === lg.slug ? "active" : ""}"
-         onclick="stageLeague('${lg.slug}', this)">
-      <span>${safeText(lg.name)}</span>
-      ${uiState.stagedLeagueSlug === lg.slug ? '<span class="item-badge">&#x2713;</span>' : ""}
-    </div>`).join("");
+  // SportyBet Style checkboxes and counts
+  right.innerHTML = activeLeagues.map(lg => {
+    const count = counts[lg.slug] || 0;
+    const isActive = uiState.stagedLeagueSlug === lg.slug;
+    const checkIcon = isActive 
+      ? '<div style="width:16px;height:16px;background:#2f8f4a;border-radius:2px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:bold;">✓</div>' 
+      : '<div style="width:16px;height:16px;border:1px solid #ccc;border-radius:2px;"></div>';
+
+    return `
+    <div class="pane-item" style="display:flex; justify-content:space-between; padding: 14px 12px; border-bottom: 1px solid #f2f3f5; cursor: pointer;" onclick="stageLeague('${lg.slug}', this)">
+      <div style="display:flex; align-items:center; gap:10px;">
+        ${checkIcon}
+        <span style="font-size:12px; font-weight:600; color:#333;">${safeText(lg.name)}</span>
+      </div>
+      <span style="font-size:12px; font-weight:700; color:#888;">${count}</span>
+    </div>`;
+  }).join("");
 }
+
 
 
 function stageLeague(slug, el) {
@@ -11899,9 +11866,9 @@ const AFDB = (function() {
     if (ov) ov.style.display='none';
   }
 
+    // 🛡️ THE MILITARY POLICE: Sweeps A-Z silently, only reporting errors or a clean bill of health.
   async function runTestFetch() {
-    log('WARN','POLICE RAID','🚨 INITIATING RAID: Full A-Z sweep of Logic, UI, and Caches. Arresting all errors...');
-
+    // 1. Wipe caches silently
     if (typeof _schedCache !== 'undefined') _schedCache.clear();
     if (typeof _summaryCache !== 'undefined') _summaryCache.clear();
     if (typeof _fixtureCache !== 'undefined') _fixtureCache.clear();
@@ -11922,13 +11889,19 @@ const AFDB = (function() {
        clearH2HFields();
     }
 
-    log('FETCH','POLICE RAID',`⚡ SWEEPING: ${tA} vs ${tB} [${league}]`);
+    const preErrorCount = _log.filter(e => e.level === 'ERROR').length;
+
     if (typeof fetchESPN === 'function') {
       try {
         await fetchESPN();
-        log('SUCCESS','POLICE RAID','🎯 SWEEP COMPLETE: All guilty data arrested and replaced with clean intel.');
+        const postErrorCount = _log.filter(e => e.level === 'ERROR').length;
+        
+        // If the error count didn't go up, the sweep was 100% clean.
+        if (postErrorCount === preErrorCount) {
+          log('SUCCESS','POLICE RAID','✅ NO ERRORS FOUND. Sweep complete and clean.');
+        }
       } catch(e) {
-        log('ERROR','POLICE RAID',`💥 SWEEP FAILED: Target resisted. ${e.message}`, { stack: e.stack });
+        log('ERROR','POLICE RAID',`💥 SWEEP FAILED: ${e.message}`, { stack: e.stack });
       }
     } else {
       log('ERROR','POLICE RAID','fetchESPN function not found!');
