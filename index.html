@@ -2598,8 +2598,7 @@ body.dark-mode .tracker-analytics-section-head {
   <button class="header-error-btn" type="button" id="headerErrorBtn" title="Show fetch/input issues">⚠️</button>
 
   <span class="brand-right">
-    <button class="theme-toggle" type="button" id="brutalDebugBtn" style="color: #ff5c61 !important; text-shadow: 0 0 10px rgba(255,92,97,0.8); font-size: 16px !important; margin-right: 5px !important;" title="BRUTAL DEBUG">🐞</button>
-    <button class="theme-toggle" type="button" id="themeToggleBtn" title="Toggle dark/light mode">⚽</button>
+<button class="theme-toggle" type="button" id="themeToggleBtn" title="Toggle dark/light mode">⚽</button>
     <button class="theme-toggle" type="button" id="trackerToggleBtn" title="Open tracked picks">📊</button>
     PREDICTIONS
   </span>
@@ -11739,47 +11738,55 @@ document.addEventListener("DOMContentLoaded", async () => {
 </div>
 
 
-<div id="mainPageDebugger" style="position: fixed; bottom: 0; right: 0; width: 350px; background: #000; border: 2px solid #ff5c61; z-index: 999999; font-family: ui-monospace, monospace; font-size: 11px; display: flex; flex-direction: column; box-shadow: -5px -5px 15px rgba(255, 92, 97, 0.2);">
-  <div style="background: #ff5c61; color: #000; padding: 8px 10px; font-weight: 900; display: flex; justify-content: space-between; cursor: pointer; text-transform: uppercase;" onclick="const logs = document.getElementById('mainDebugLogs'); logs.style.display = logs.style.display === 'none' ? 'block' : 'none';">
-    <span>🛑 Brutal Debug</span>
-    <span>[ TOGGLE ]</span>
+
+<div id="brutalToggleBtn" onclick="document.getElementById('mainPageDebugger').style.display = 'flex';" style="position: fixed; bottom: 0; left: 0; width: 100%; background: #ff5c61; color: #000; padding: 12px; text-align: center; font-weight: 900; cursor: pointer; z-index: 999998; text-transform: uppercase; border-top: 2px solid #fff; box-shadow: 0 -4px 10px rgba(255,0,0,0.3);">
+  🚨 OPEN FULL-PAGE DEBUGGER
+</div>
+
+<div id="mainPageDebugger" style="position: fixed; inset: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); border: 6px solid #ff5c61; z-index: 999999; font-family: ui-monospace, monospace; font-size: 13px; display: none; flex-direction: column; box-sizing: border-box;">
+
+  <div style="background: #ff5c61; color: #000; padding: 15px 20px; font-weight: 900; display: flex; justify-content: space-between; align-items: center; text-transform: uppercase;">
+    <span style="font-size: 18px;">🛑 Brutal Debug - Core System Logs</span>
+    <div style="display: flex; gap: 15px;">
+        <button onclick="document.getElementById('mainDebugLogs').innerHTML = '';" style="background: #000; color: #fff; border: 1px solid #000; padding: 8px 15px; cursor: pointer; font-weight: bold; border-radius: 4px;">CLEAR LOGS</button>
+        <button onclick="document.getElementById('mainPageDebugger').style.display = 'none';" style="background: #000; color: #ff5c61; border: 1px solid #000; padding: 8px 15px; cursor: pointer; font-weight: bold; border-radius: 4px;">CLOSE PANEL</button>
+    </div>
   </div>
 
-  <div id="mainDebugLogs" style="height: 300px; overflow-y: auto; padding: 10px; display: none;">
-    <div style="color: #aaa; margin-bottom: 5px;">> Standalone Debugger Active.</div>
-    <div style="color: #aaa; margin-bottom: 5px;">> Listening for raw UI and script errors...</div>
+  <div id="mainDebugLogs" style="flex: 1; overflow-y: auto; padding: 20px; color: #fff; line-height: 1.5;">
+    <div style="color: #aaa; margin-bottom: 5px;">> Full Page Debugger Active.</div>
+    <div style="color: #aaa; margin-bottom: 5px;">> Listening for API fetches, JSON parsing, and script errors...</div>
   </div>
 </div>
 
 <script>
-  (function() {
+  // Global function so the rest of your app can talk to it
+  window.printToBrutalDebug = function(msg, color) {
+    const debuggerUI = document.getElementById("mainPageDebugger");
     const mainDebugLogs = document.getElementById("mainDebugLogs");
 
-    // Helper to print to our new panel
-    function printToBrutalDebug(msg, color) {
-      mainDebugLogs.style.display = "block"; // Auto-open when it catches something
-      mainDebugLogs.innerHTML += `<div style="color: ${color}; margin-bottom: 6px; border-bottom: 1px solid #222; padding-bottom: 4px;">> ${msg}</div>`;
-      mainDebugLogs.scrollTop = mainDebugLogs.scrollHeight;
+    // Auto-open the full screen if a FATAL error or CRASH happens
+    if (color === "#ff5c61" && (msg.includes("FATAL") || msg.includes("CRASH"))) {
+       debuggerUI.style.display = "flex";
     }
 
-    // 1. Catch Global Crashes
+    mainDebugLogs.innerHTML += `<div style="color: ${color}; margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 8px; word-break: break-word;">> ${msg}</div>`;
+    mainDebugLogs.scrollTop = mainDebugLogs.scrollHeight;
+  };
+
+  (function() {
     window.addEventListener("error", function(e) {
-      printToBrutalDebug(`CRASH: ${e.message} (Line ${e.lineno})`, "#ff5c61");
+      window.printToBrutalDebug(`CRASH: ${e.message} (Line ${e.lineno})`, "#ff5c61");
     });
-
-    // 2. Catch Unhandled Promises (like failed network fetches)
     window.addEventListener("unhandledrejection", function(e) {
-      printToBrutalDebug(`PROMISE REJECTED: ${e.reason}`, "#ffcf73");
+      window.printToBrutalDebug(`PROMISE REJECTED: ${e.reason}`, "#ffcf73");
     });
-
-    // 3. Hijack console.error so we see it on-screen instantly
     const originalConsoleError = console.error;
     console.error = function(...args) {
-      printToBrutalDebug(`ERROR: ${args.join(" ")}`, "#ff5c61");
+      window.printToBrutalDebug(`ERROR: ${args.join(" ")}`, "#ff5c61");
       originalConsoleError.apply(console, args);
     };
   })();
 </script>
-
 </body>
 </html>
