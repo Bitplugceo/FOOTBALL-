@@ -12552,7 +12552,8 @@ const AFDB = (function() {
   };
 
   function esc(s) {
-    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return String(s||'')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
   function log(level, section, msg, data) {
@@ -12579,11 +12580,11 @@ const AFDB = (function() {
     const text = visibleLogs.slice().reverse().map(e => {
       let line = `[${e.ts}] [${e.level}] [${e.section}] ${e.msg}`;
       if (e.data !== null) {
-        try { line += '\n  ' + JSON.stringify(e.data, null, 2); }
-        catch(x) { line += '\n  ' + String(e.data); }
+        try { line += "\n  " + JSON.stringify(e.data, null, 2); }
+        catch(x) { line += "\n  " + String(e.data); }
       }
       return line;
-    }).join('\n\n');
+    }).join("\n\n");
 
     try {
       navigator.clipboard.writeText(text);
@@ -12595,6 +12596,24 @@ const AFDB = (function() {
     } catch(e) {
       log('WARN','AFDB','Clipboard blocked — printed to console');
     }
+  }
+
+  function snapDOM() {
+    const ids = [
+      'leagueSelect','teamAName','teamBName',
+      'aFTScored','aFTAllowed','a1HScored','a1HAllowed',
+      'bFTScored','bFTAllowed','b1HScored','b1HAllowed',
+      'aFTH2H','bFTH2H','a1HH2H','b1HH2H',
+      'ftMarket','h1Market','h2Market','teamAMarket','teamBMarket'
+    ];
+    const snap = {};
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      snap[id] = el ? (el.value||'(empty)') : '⛔ NOT FOUND';
+    });
+    if (typeof selectedTeamIds !== 'undefined') snap['_teamIds'] = JSON.stringify(selectedTeamIds);
+    if (typeof uiState !== 'undefined') snap['_league'] = uiState.appliedLeagueSlug||'(none)';
+    return snap;
   }
 
   function _render() {
@@ -12666,8 +12685,6 @@ const AFDB = (function() {
   }
 
   async function runTestFetch() {
-    log('WARN','POLICE RAID','🚨 INITIATING RAID: Full A-Z sweep of Logic, UI, and Caches...');
-
     if (typeof _schedCache !== 'undefined') _schedCache.clear();
     if (typeof _summaryCache !== 'undefined') _summaryCache.clear();
     if (typeof _fixtureCache !== 'undefined') _fixtureCache.clear();
@@ -12714,7 +12731,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof proxyFetch === 'function' && !proxyFetch._afdbPatched) {
       const _orig = proxyFetch;
       window.proxyFetch = async function(url, timeout) {
-        const short = String(url||'').replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\/soccer\//,'⚽/').replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\//,'ESPN/');
+        const short = String(url||'')
+          .replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\/soccer\//,'⚽/')
+          .replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\//,'ESPN/');
         const t0 = performance.now();
         try {
           const res = await _orig.apply(this, arguments);
