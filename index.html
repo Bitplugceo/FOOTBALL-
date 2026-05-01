@@ -4520,30 +4520,8 @@ const ENGINE_DEBUG_LIMIT = 180;
 let g_engineDebugLog = [];
 
 function engineDebug(message, extra = null) {
-  try {
-    const stamp = new Date().toLocaleTimeString([], { hour12: false });
-    let detail = "";
-    if (extra !== null && extra !== undefined) {
-      if (typeof extra === "string") { detail = extra; }
-      else if (extra instanceof Error) { detail = `${extra.message} | Stack: ${extra.stack}`; }
-      else {
-        const copy = Array.isArray(extra) ? [...extra] : { ...extra };
-        for (const k in copy) { if (copy[k] instanceof Error) copy[k] = `${copy[k].message} | Stack: ${copy[k].stack}`; }
-        try { detail = JSON.stringify(copy); } catch (err) { detail = String(extra); }
-      }
-    }
-    const line = detail ? `[${stamp}] ${message} | ${detail}` : `[${stamp}] ${message}`;
-    g_engineDebugLog.unshift(line);
-    if (g_engineDebugLog.length > ENGINE_DEBUG_LIMIT) g_engineDebugLog = g_engineDebugLog.slice(0, ENGINE_DEBUG_LIMIT);
-    
-    if (getDebugSeverity(line) === "error") {
-      triggerGlobalEngineAlert(line);
-    }
-    renderEngineDebugPanel();
-    updateTrackerInsightsButton();
-  } catch (err) {
-    console.error("[BB Engine] engineDebug failed", err);
-  }
+  // SILENCED — AFDB is active
+  try { console.log("[BB Engine SILENT]", message, extra); } catch(e) {}
 }
 
 
@@ -10339,6 +10317,7 @@ updateIntelligencePack();
     }
 
     async function searchTeamFromAPI(base, name, league) {
+  AFDB.log("INFO", "searchTeamFromAPI", "Called");
   const n = normalizeTeamName(name);
   uiLog(`🔎 Resolving ID for: "${name}"...`);
 
@@ -10503,6 +10482,7 @@ updateIntelligencePack();
     // V3 + V6 + V7: shared fetch core using LEAGUE_FETCH_RULES
 
 async function fetchScheduleCore(base, teamId, leagueKey, requiredVenue, allowFallback = true) {
+  AFDB.log("INFO", "fetchScheduleCore", "Called");
   const rules = LEAGUE_FETCH_RULES[leagueKey];
   if (!rules) return null;
 
@@ -10757,6 +10737,7 @@ async function fetchScheduleCore(base, teamId, leagueKey, requiredVenue, allowFa
 */
 
 async function fetchH2HCore(base, teamAId, teamBId, leagueKey) {
+  AFDB.log("INFO", "fetchH2HCore", "Called");
   const rules = LEAGUE_FETCH_RULES[leagueKey];
   if (!rules) return [];
 
@@ -10984,6 +10965,7 @@ const cls =
     }
 
     function pickFixture(homeName, homeId, awayName, awayId) {
+  AFDB.log("INFO", "pickFixture", "Called");
   closeDrop("dropA");
   closeDrop("dropB");
   document.getElementById("teamAName").value = homeName;
@@ -11082,7 +11064,8 @@ function clearUiLog() {
 
 
 async function fetchESPN() {
-  document.getElementById("liveEngineDebugger").innerHTML = "<div style='color:#aaa; font-weight:bold; margin-bottom:5px;'>[SYSTEM] Live Auto-Fetch Monitor Active...</div>";
+  AFDB.log("INFO", "fetchESPN", "Called");
+  // document.getElementById("liveEngineDebugger").innerHTML = "<div style='color:#aaa; font-weight:bold; margin-bottom:5px;'>[SYSTEM] Live Auto-Fetch Monitor Active...</div>";
   const league = document.getElementById("leagueSelect").value;
   const teamAName = document.getElementById("teamAName").value.trim();
   const teamBName = document.getElementById("teamBName").value.trim();
