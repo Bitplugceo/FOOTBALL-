@@ -3280,12 +3280,16 @@ const LEAGUE_FETCH_RULES = new Proxy({}, {
     if (typeof leagueKey !== "string" || !leagueKey || leagueKey === "unknown") return null;
     return {
       recentSeasons: 2,
-      scheduleTypes: ["2"], // Soccer regular season only
-      h2hScheduleTypes: ["2"],
+      // 🛡️ MILITARY POLICE FIX: Broadened the search warrant.
+      // ESPN hides soccer matches across types 1 (Regular), 2 (Groups), 3 (Knockout), and 4 (Playoffs).
+      // We now sweep ALL of them so no matches can escape the auto-fetch.
+      scheduleTypes: ["1", "2", "3", "4"], 
+      h2hScheduleTypes: ["1", "2", "3", "4"],
       regulationPeriods: 2 
     };
   }
 });
+
 
         // Basketball hardcoded maps wiped out. 
     // Engine will now dynamically search ESPN's soccer databases for team IDs.
