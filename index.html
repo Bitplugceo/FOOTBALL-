@@ -2842,91 +2842,40 @@ body.dark-mode .tracker-analytics-section-head {
 
 <script>
 /**
- * 🛡️ BET-CEO UNKILLABLE GOD-MODE WATCHDOG
- * Detects: Syntax Errors, Typos (!!!), CORS Blocks, and Boot Failures.
+ * 🛡️ BET-CEO SILENT WATCHDOG
+ * Fatal UI removed. Errors are routed to the console and AFDB.
  */
 (function () {
   if (window.__BETCEO_WATCHDOG_LOADED) return;
   window.__BETCEO_WATCHDOG_LOADED = true;
   window.__BETCEO_ENGINE_BOOT_SEEN = false;
 
-  // 1. FATAL TERMINAL UI (Hijacks screen on crash)
-  function spawnFatalTerminal(msg, file, line, col, stack) {
-    if (document.getElementById("fatalGodModeTerminal")) return;
-    const t = document.createElement("div");
-    t.id = "fatalGodModeTerminal";
-    t.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.98); z-index:1000000; padding:20px; box-sizing:border-box; overflow-y:auto; font-family: ui-monospace, Consolas, monospace; color: #0f0;";
-    
-       t.innerHTML = `
-      <div style="border:2px solid #ff5c61; background:#111; max-width:900px; margin:20px auto; box-shadow: 0 0 50px rgba(255, 0, 0, 0.3);">
-        <div style="background:#3b0000; color:#ff5c61; padding:15px; font-size:16px; font-weight:900; border-bottom:2px solid #ff5c61; display:flex; justify-content:space-between; text-transform:uppercase;">
-          <span>🚨 FATAL ENGINE CRASH</span>
-          <span>[SYSTEM LOCK]</span>
-        </div>
-        <div style="padding:25px;">
-          <div style="color:#ffcf73; margin-bottom:20px; font-size:14px; border-left: 3px solid #ffcf73; padding-left: 15px; font-weight:800;">
-            CATASTROPHIC ERROR: The engine parser died. The UI is disabled to protect your data.
-          </div>
-          <div style="display:grid; gap:12px; margin-bottom:25px;">
-            <div><strong style="color:#fff; text-transform:uppercase; font-size:11px;">Error Message:</strong><br><span style="color:#ff5c61; font-size:15px; font-weight:bold;">${msg}</span></div>
-            <div style="display:flex; gap:30px;">
-                <div><strong style="color:#fff; text-transform:uppercase; font-size:11px;">Line:</strong><br><span style="color:#0f0; font-size:18px; font-weight:900;">${line}</span></div>
-                <div><strong style="color:#fff; text-transform:uppercase; font-size:11px;">Column:</strong><br><span style="color:#0f0; font-size:18px; font-weight:900;">${col}</span></div>
-                <div><strong style="color:#fff; text-transform:uppercase; font-size:11px;">Source:</strong><br><span style="color:#aaa; font-size:13px;">${file}</span></div>
-            </div>
-          </div>
-          <strong style="color:#777; text-transform:uppercase; font-size:11px;">Debug Stack Trace:</strong>
-          <div style="background:#000; border: 1px solid #222; padding:15px; color:#555; margin-top:8px; white-space:pre-wrap; overflow-x:auto; font-size:11px; line-height:1.4;">${stack || 'Syntax Error: No trace available for parser death.'}</div>
-          <button onclick="location.reload()" style="margin-top:25px; background:#ff5c61; color:#fff; border:none; padding:12px 24px; font-weight:900; cursor:pointer; font-family:inherit; text-transform:uppercase;">Try Reboot</button>
-        </div>
-      </div>
-    `;
-
-    document.body ? document.body.appendChild(t) : document.documentElement.appendChild(t);
-  }
-
-  // 2. CATCH GLOBAL RUNTIME ERRORS
   window.addEventListener("error", function (e) {
-    spawnFatalTerminal(e.message, e.filename, e.lineno, e.colno, e.error?.stack);
+    if (typeof AFDB !== "undefined" && AFDB.log) {
+      AFDB.log("ERROR", "SYSTEM", e.message);
+    } else {
+      console.error(e.message);
+    }
   });
 
-  // 3. NETWORK & PROMISE INTERCEPTOR
   window.addEventListener("unhandledrejection", function (e) {
     const reason = e.reason?.message || String(e.reason);
-    if (typeof window.engineDebug === "function") {
-        window.engineDebug("NETWORK/PROMISE ERROR", { detail: reason });
-    }
-    if (reason.includes("fetch") || reason.includes("Load failed")) {
-        if (typeof window.triggerGlobalEngineAlert === "function") {
-            window.triggerGlobalEngineAlert("Watchdog: Network connection to Cloudflare was blocked.");
-        }
+    if (typeof AFDB !== "undefined" && AFDB.log) {
+      AFDB.log("ERROR", "PROMISE", reason);
     }
   });
 
-  // 4. GOD-MODE FETCH PROXY
   const originalFetch = window.fetch;
   window.fetch = async function(...args) {
     try {
-      const response = await originalFetch.apply(this, args);
-      if (!response.ok && typeof window.engineDebug === "function") {
-        window.engineDebug(`API ERROR: HTTP ${response.status}`, { url: args[0] });
-      }
-      return response;
+      return await originalFetch.apply(this, args);
     } catch (err) {
-      if (typeof window.engineDebug === "function") {
-        window.engineDebug("CRITICAL NETWORK BLOCK", { url: args[0], error: err.message });
-      }
       throw err;
     }
   };
 
-  // 5. ENGINE BOOT PROTECTION
   window.addEventListener("load", function () {
-    setTimeout(function () {
-      if (!window.__BETCEO_ENGINE_BOOT_SEEN) {
-        spawnFatalTerminal("Initialization Failure", "Core Logic", "Check Syntax", "N/A", "The script stopped running immediately after load. Check for missing '}' or illegal characters like '!!!' in the code.");
-      }
-    }, 5000);
+    setTimeout(function () { window.__BETCEO_ENGINE_BOOT_SEEN = true; }, 5000);
   });
 })();
 </script>
@@ -11732,6 +11681,203 @@ document.addEventListener("DOMContentLoaded", async () => {
 </div>
 
 <script>
+// ==========================================
+// BATCH 1.5: UI RESTORATION & HELPERS
+// ==========================================
+const uiState = {
+  stagedLeagueSlug: null,
+  appliedLeagueSlug: null,
+  selectedDateOffset: "all",
+  currentModalType: null,
+  activeCategoryIdx: 0
+};
+
+function openProModal(type) {
+  uiState.currentModalType = type;
+  const overlay = document.getElementById("proModalOverlay");
+  const dualPane = document.getElementById("proDualPane");
+  const simpleList = document.getElementById("proSimpleList");
+  const actions = document.getElementById("proModalActions");
+  const title = document.getElementById("proModalTitle");
+  if (!overlay) return;
+  overlay.classList.add("open");
+
+  if (type === "league") {
+    title.textContent = "Select League";
+    dualPane.style.display = "flex"; simpleList.style.display = "none"; actions.style.display = "flex";
+    renderLeaguePaneLeft();
+    renderLeaguePaneRight(uiState.activeCategoryIdx);
+  } else if (type === "date") {
+    title.textContent = "Filter by Date";
+    dualPane.style.display = "none"; simpleList.style.display = "block"; actions.style.display = "none";
+    renderDateList();
+  } else if (type === "sort") {
+    title.textContent = "Sort Matches";
+    dualPane.style.display = "none"; simpleList.style.display = "block"; actions.style.display = "none";
+    renderSortList();
+  }
+}
+
+function closeProModal() {
+  const overlay = document.getElementById("proModalOverlay");
+  if (overlay) overlay.classList.remove("open");
+  uiState.currentModalType = null;
+}
+
+function renderLeaguePaneLeft() {
+  const left = document.getElementById("proPaneLeft");
+  if (!left) return;
+  const activeSlugs = window.g_activeLeagues || new Set();
+
+  left.style.background = "#f2f3f5";
+  left.style.borderRight = "1px solid #dfe2e7";
+
+  const allItem = `<div class="pane-item" style="border-bottom: 1px solid #dfe2e7; padding: 14px 12px; cursor: pointer; ${uiState.activeCategoryIdx === -1 ? 'background: #fff; border-left: 3px solid #2f8f4a; color: #2f8f4a; font-weight: 800;' : 'color: #555;'}" onclick="selectAllLeagues(this)">
+    <span>All Active Leagues</span>
+  </div>`;
+
+  const activeCats = SOCCER_TAXONOMY.map((cat, idx) => {
+    const hasActive = cat.leagues.some(l => activeSlugs.has(l.slug));
+    return hasActive ? { cat: cat.cat, idx } : null;
+  }).filter(Boolean);
+
+  const catItems = activeCats.map(c => `
+    <div class="pane-item" style="border-bottom: 1px solid #dfe2e7; padding: 14px 12px; cursor: pointer; ${c.idx === uiState.activeCategoryIdx ? 'background: #fff; border-left: 3px solid #2f8f4a; color: #2f8f4a; font-weight: 800;' : 'color: #555;'}" onclick="selectLeagueCategory(${c.idx}, this)">
+      <span>${safeText(c.cat)}</span>
+    </div>`).join("");
+
+  left.innerHTML = allItem + catItems;
+}
+
+function selectAllLeagues(el) {
+  uiState.activeCategoryIdx = -1;
+  uiState.stagedLeagueSlug = "all";
+  uiState.appliedLeagueSlug = "all";
+  renderLeaguePaneLeft(); 
+  renderLeaguePaneRight(-1); 
+
+  const sel = document.getElementById("leagueSelect");
+  if (sel) { sel.innerHTML = `<option value="all">All Leagues</option>`; sel.value = "all"; }
+  closeProModal();
+  loadFixtures(uiState.selectedDateOffset || "all");
+}
+
+function selectLeagueCategory(idx, el) {
+  uiState.activeCategoryIdx = idx;
+  renderLeaguePaneLeft(); 
+  renderLeaguePaneRight(idx);
+}
+
+function renderLeaguePaneRight(catIdx = 0) {
+  const right = document.getElementById("proPaneRight");
+  if (!right) return;
+  const activeSlugs = window.g_activeLeagues || new Set();
+  const counts = window.g_leagueCounts || {};
+
+  let targetLeagues = [];
+
+  if (catIdx === -1) {
+    SOCCER_TAXONOMY.forEach(cat => {
+      targetLeagues.push(...cat.leagues.filter(lg => activeSlugs.has(lg.slug)));
+    });
+  } else {
+    const cat = SOCCER_TAXONOMY[catIdx];
+    if (cat) targetLeagues = cat.leagues.filter(lg => activeSlugs.has(lg.slug));
+  }
+
+  if (targetLeagues.length === 0) {
+     right.innerHTML = '<div class="pane-item" style="color:#aaa; font-style:italic; pointer-events:none; padding: 14px;">No active matches found</div>';
+     return;
+  }
+
+  right.innerHTML = targetLeagues.map(lg => {
+    const count = counts[lg.slug] || 0;
+    const isActive = (catIdx === -1) || (uiState.stagedLeagueSlug === lg.slug);
+    const checkIcon = isActive 
+      ? '<div style="width:16px;height:16px;background:#2f8f4a;border-radius:2px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:bold;">&#x2713;</div>' 
+      : '<div style="width:16px;height:16px;border:1px solid #ccc;border-radius:2px;"></div>';
+
+    return `
+    <div class="pane-item" style="display:flex; justify-content:space-between; padding: 14px 12px; border-bottom: 1px solid #f2f3f5; cursor: pointer;" onclick="stageLeague('${lg.slug}', this)">
+      <div style="display:flex; align-items:center; gap:10px;">
+        ${checkIcon}
+        <span style="font-size:12px; font-weight:600; color:#333;">${safeText(lg.name)}</span>
+      </div>
+      <span style="font-size:12px; font-weight:700; color:#888;">${count}</span>
+    </div>`;
+  }).join("");
+}
+
+function stageLeague(slug, el) {
+  uiState.stagedLeagueSlug = slug;
+  uiState.appliedLeagueSlug = slug;
+
+  const sel = document.getElementById("leagueSelect");
+  if (sel) {
+    sel.innerHTML = `<option value="${slug}">${slug}</option>`;
+    sel.value = slug;
+  }
+  if (typeof updateSectionLocks === "function") updateSectionLocks();
+
+  closeProModal();
+  loadFixtures(uiState.selectedDateOffset || "all");
+}
+
+function renderDateList() {
+  const list = document.getElementById("proSimpleList");
+  if (!list) return;
+  const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const opts = [
+    { label: "All", value: "all" },
+    { label: "Today", value: "today" },
+    { label: "Tomorrow", value: "tomorrow" }
+  ];
+  for (let i = 2; i <= 5; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    const key = d.toISOString().split('T')[0].replace(/-/g, '');
+    opts.push({ label: dayNames[d.getDay()], value: key });
+  }
+  opts.push({ label: "Weekend", value: "weekend" });
+
+  list.innerHTML = opts.map(o => `
+    <div class="pane-item ${uiState.selectedDateOffset === o.value ? "active" : ""}"
+         onclick="applyDateFilter('${o.value}', this)">
+      <span>${o.label}</span>
+      ${uiState.selectedDateOffset === o.value ? '<span style="color:#2f8f4a;font-weight:900;">&#x2713;</span>' : ""}
+    </div>`).join("");
+}
+
+function applyDateFilter(value, el) {
+  uiState.selectedDateOffset = value;
+  document.querySelectorAll("#proSimpleList .pane-item").forEach(i => i.classList.remove("active"));
+  el.classList.add("active");
+  const btn = document.getElementById("uiDateBtn");
+  if (btn) {
+    const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const fixed = { all:"All", today:"Today", tomorrow:"Tomorrow", weekend:"Weekend" };
+    let label = fixed[value];
+    if (!label) {
+      const y = value.slice(0,4), m = value.slice(4,6), d = value.slice(6,8);
+      label = dayNames[new Date(`${y}-${m}-${d}`).getDay()] || value;
+    }
+    const child = btn.firstChild || btn;
+    if (child.nodeType === 3) child.textContent = label; else btn.textContent = label;
+  }
+  loadFixtures(value);
+  closeProModal();
+}
+
+function renderSortList() {
+  const list = document.getElementById("proSimpleList");
+  if (!list) return;
+  list.innerHTML = [
+    { label: "By time (default)", value: "time" },
+    { label: "By league", value: "league" }
+  ].map(o => `
+    <div class="pane-item" onclick="closeProModal()"><span>${o.label}</span></div>`).join("");
+}
+
 const AFDB = (function() {
   const LOG_LIMIT = 600;
   let _log = [];
@@ -11875,807 +12021,6 @@ const AFDB = (function() {
     _isOpen = true;
     const ov = document.getElementById('afdbOverlay');
     if (ov) { ov.style.display='flex'; _render(); }
-    log('BOOT','AFDB','🔬 Debug Brain opened — watching all fetch & fill ops', { logEntries: _log.length });
-  }
-
-  function close() {
-    _isOpen = false;
-    const ov = document.getElementById('afdbOverlay');
-    if (ov) ov.style.display='none';
-  }
-
-  // 🛡️ THE MILITARY POLICE: Sweeps A-Z silently, only reporting errors or a clean bill of health.
-  async function runTestFetch() {
-    log('WARN','POLICE RAID','🚨 INITIATING RAID: Full A-Z sweep of Logic, UI, and Caches. Arresting all errors...');
-
-    // 1. Wipe caches silently
-    if (typeof _schedCache !== 'undefined') _schedCache.clear();
-    if (typeof _summaryCache !== 'undefined') _summaryCache.clear();
-    if (typeof _fixtureCache !== 'undefined') _fixtureCache.clear();
-    if (typeof _teamCatalogCache !== 'undefined') _teamCatalogCache.clear();
-
-    const league = document.getElementById('leagueSelect')?.value;
-    const tA = document.getElementById('teamAName')?.value;
-    const tB = document.getElementById('teamBName')?.value;
-
-    if (!league || league === 'unknown' || !tA || !tB) {
-      log('ERROR','POLICE RAID','🛑 TARGETS MISSING: Select a League, Team A, and Team B before sweeping.');
-      return;
-    }
-
-    if (typeof clearSideFields === 'function') {
-       clearSideFields('A');
-       clearSideFields('B');
-       clearH2HFields();
-    }
-
-    const preErrorCount = _log.filter(e => e.level === 'ERROR').length;
-
-    if (typeof fetchESPN === 'function') {
-      try {
-        await fetchESPN();
-        const postErrorCount = _log.filter(e => e.level === 'ERROR').length;
-
-        // If the error count didn't go up, the sweep was 100% clean.
-        if (postErrorCount === preErrorCount) {
-          log('SUCCESS','POLICE RAID','✅ NO ERRORS FOUND. Sweep complete and clean.');
-        }
-      } catch(e) {
-        log('ERROR','POLICE RAID',`💥 SWEEP FAILED: ${e.message}`, { stack: e.stack });
-      }
-    } else {
-      log('ERROR','POLICE RAID','fetchESPN function not found!');
-    }
-  }
-
-  return { log, clear, copy, toggleFilter, open, close, runTestFetch, get isOpen() { return _isOpen; } };
-})();
-
-// ── Patch proxyFetch ────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(function() {
-    if (typeof proxyFetch === 'function' && !proxyFetch._afdbPatched) {
-      const _orig = proxyFetch;
-      window.proxyFetch = async function(url, timeout) {
-        const short = String(url||'').replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\/soccer\//,'⚽/').replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\//,'ESPN/');
-        const t0 = performance.now();
-        try {
-          const res = await _orig.apply(this, arguments);
-          return res;
-        } catch(err) {
-          AFDB.log('ERROR','PROXY',`✗ FAILED: `+short, { error: err.message });
-          throw err;
-        }
-      };
-      window.proxyFetch._afdbPatched = true;
-    }
-
-    if (typeof fetchESPN === 'function' && !fetchESPN._afdbPatched) {
-      const _origFetch = fetchESPN;
-      window.fetchESPN = async function() {
-        const league   = document.getElementById('leagueSelect')?.value || '(none)';
-        const teamAVal = document.getElementById('teamAName')?.value?.trim() || '(empty)';
-        const teamBVal = document.getElementById('teamBName')?.value?.trim() || '(empty)';
-        if (!league || league==='unknown') { AFDB.log('ERROR','fetchESPN','⛔ BLOCKED: league is empty or unknown.'); return; }
-        if (!teamAVal || !teamBVal) { AFDB.log('ERROR','fetchESPN','⛔ BLOCKED: team name(s) are empty.'); return; }
-        try {
-          const result = await _origFetch.apply(this, arguments);
-          return result;
-        } catch(err) {
-          AFDB.log('ERROR','fetchESPN',`═══════ fetchESPN THREW: ${err.message}`);
-          throw err;
-        }
-      };
-      window.fetchESPN._afdbPatched = true;
-    }
-
-    if (typeof fetchScheduleCore === 'function' && !fetchScheduleCore._afdbPatched) {
-      const _origSched = fetchScheduleCore;
-      window.fetchScheduleCore = async function(base, teamId, league) {
-        try {
-          const res = await _origSched.apply(this, arguments);
-          if (!res) AFDB.log('ERROR','scheduleCore',`⛔ NULL RESULT for teamId=${teamId} — this blocks auto-fill!`);
-          return res;
-        } catch(err) {
-          AFDB.log('ERROR','scheduleCore',`✗ THREW for teamId=${teamId}: ${err.message}`);
-          throw err;
-        }
-      };
-      window.fetchScheduleCore._afdbPatched = true;
-    }
-
-    if (typeof fetchH2HCore === 'function' && !fetchH2HCore._afdbPatched) {
-      const _origH2H = fetchH2HCore;
-      window.fetchH2HCore = async function(base, teamAId, teamBId, leagueKey) {
-        try {
-          const res = await _origH2H.apply(this, arguments);
-          return res;
-        } catch(err) {
-          AFDB.log('ERROR','h2hCore',`✗ H2H THREW: ${err.message}`);
-          throw err;
-        }
-      };
-      window.fetchH2HCore._afdbPatched = true;
-    }
-
-    if (typeof searchTeamFromAPI === 'function' && !searchTeamFromAPI._afdbPatched) {
-      const _origSearch = searchTeamFromAPI;
-      window.searchTeamFromAPI = async function(base, name, league) {
-        try {
-          const res = await _origSearch.apply(this, arguments);
-          if (!res) AFDB.log('ERROR','searchTeam',`⛔ Team ID NOT FOUND for "${name}" in ${league} — THIS BLOCKS FETCH!`);
-          return res;
-        } catch(err) {
-          AFDB.log('ERROR','searchTeam',`✗ searchTeamFromAPI threw for "${name}": ${err.message}`);
-          throw err;
-        }
-      };
-      window.searchTeamFromAPI._afdbPatched = true;
-    }
-  }, 0);
-});
-</script>
-</body>
-</html>// ==========================================
-// BATCH 1.5: UI RESTORATION & HELPERS
-// ==========================================
-
-const uiState = {
-  stagedLeagueSlug: null,
-  appliedLeagueSlug: null,
-  selectedDateOffset: "all",
-  currentModalType: null,
-  activeCategoryIdx: 0
-};
-
-function openProModal(type) {
-  uiState.currentModalType = type;
-  const overlay = document.getElementById("proModalOverlay");
-  const dualPane = document.getElementById("proDualPane");
-  const simpleList = document.getElementById("proSimpleList");
-  const actions = document.getElementById("proModalActions");
-  const title = document.getElementById("proModalTitle");
-  if (!overlay) return;
-  overlay.classList.add("open");
-
-  if (type === "league") {
-    title.textContent = "Select League";
-    dualPane.style.display = "flex"; simpleList.style.display = "none"; actions.style.display = "flex";
-    renderLeaguePaneLeft();
-    renderLeaguePaneRight(uiState.activeCategoryIdx);
-  } else if (type === "date") {
-    title.textContent = "Filter by Date";
-    dualPane.style.display = "none"; simpleList.style.display = "block"; actions.style.display = "none";
-    renderDateList();
-  } else if (type === "sort") {
-    title.textContent = "Sort Matches";
-    dualPane.style.display = "none"; simpleList.style.display = "block"; actions.style.display = "none";
-    renderSortList();
-  }
-}
-
-function closeProModal() {
-  const overlay = document.getElementById("proModalOverlay");
-  if (overlay) overlay.classList.remove("open");
-  uiState.currentModalType = null;
-}
-
-function renderLeaguePaneLeft() {
-  const left = document.getElementById("proPaneLeft");
-  if (!left) return;
-  const activeSlugs = window.g_activeLeagues || new Set();
-
-  left.style.background = "#f2f3f5";
-  left.style.borderRight = "1px solid #dfe2e7";
-
-  const allItem = `<div class="pane-item" style="border-bottom: 1px solid #dfe2e7; padding: 14px 12px; cursor: pointer; ${uiState.activeCategoryIdx === -1 ? 'background: #fff; border-left: 3px solid #2f8f4a; color: #2f8f4a; font-weight: 800;' : 'color: #555;'}" onclick="selectAllLeagues(this)">
-    <span>All Active Leagues</span>
-  </div>`;
-
-  const activeCats = SOCCER_TAXONOMY.map((cat, idx) => {
-    const hasActive = cat.leagues.some(l => activeSlugs.has(l.slug));
-    return hasActive ? { cat: cat.cat, idx } : null;
-  }).filter(Boolean);
-
-  const catItems = activeCats.map(c => `
-    <div class="pane-item" style="border-bottom: 1px solid #dfe2e7; padding: 14px 12px; cursor: pointer; ${c.idx === uiState.activeCategoryIdx ? 'background: #fff; border-left: 3px solid #2f8f4a; color: #2f8f4a; font-weight: 800;' : 'color: #555;'}" onclick="selectLeagueCategory(${c.idx}, this)">
-      <span>${safeText(c.cat)}</span>
-    </div>`).join("");
-
-  left.innerHTML = allItem + catItems;
-}
-
-function selectAllLeagues(el) {
-  uiState.activeCategoryIdx = -1;
-  uiState.stagedLeagueSlug = "all";
-  uiState.appliedLeagueSlug = "all";
-  renderLeaguePaneLeft(); 
-  renderLeaguePaneRight(-1); 
-
-  const sel = document.getElementById("leagueSelect");
-  if (sel) { sel.innerHTML = `<option value="all">All Leagues</option>`; sel.value = "all"; }
-  closeProModal();
-  loadFixtures(uiState.selectedDateOffset || "all");
-}
-
-function selectLeagueCategory(idx, el) {
-  uiState.activeCategoryIdx = idx;
-  renderLeaguePaneLeft(); 
-  renderLeaguePaneRight(idx);
-}
-
-function renderLeaguePaneRight(catIdx = 0) {
-  const right = document.getElementById("proPaneRight");
-  if (!right) return;
-  const activeSlugs = window.g_activeLeagues || new Set();
-  const counts = window.g_leagueCounts || {};
-
-  let targetLeagues = [];
-
-  if (catIdx === -1) {
-    SOCCER_TAXONOMY.forEach(cat => {
-      targetLeagues.push(...cat.leagues.filter(lg => activeSlugs.has(lg.slug)));
-    });
-  } else {
-    const cat = SOCCER_TAXONOMY[catIdx];
-    if (cat) targetLeagues = cat.leagues.filter(lg => activeSlugs.has(lg.slug));
-  }
-
-  if (targetLeagues.length === 0) {
-     right.innerHTML = '<div class="pane-item" style="color:#aaa; font-style:italic; pointer-events:none; padding: 14px;">No active matches found</div>';
-     return;
-  }
-
-  right.innerHTML = targetLeagues.map(lg => {
-    const count = counts[lg.slug] || 0;
-    const isActive = (catIdx === -1) || (uiState.stagedLeagueSlug === lg.slug);
-    const checkIcon = isActive 
-      ? '<div style="width:16px;height:16px;background:#2f8f4a;border-radius:2px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:bold;">✓</div>' 
-      : '<div style="width:16px;height:16px;border:1px solid #ccc;border-radius:2px;"></div>';
-
-    return `
-    <div class="pane-item" style="display:flex; justify-content:space-between; padding: 14px 12px; border-bottom: 1px solid #f2f3f5; cursor: pointer;" onclick="stageLeague('${lg.slug}', this)">
-      <div style="display:flex; align-items:center; gap:10px;">
-        ${checkIcon}
-        <span style="font-size:12px; font-weight:600; color:#333;">${safeText(lg.name)}</span>
-      </div>
-      <span style="font-size:12px; font-weight:700; color:#888;">${count}</span>
-    </div>`;
-  }).join("");
-}
-
-function stageLeague(slug, el) {
-  uiState.stagedLeagueSlug = slug;
-  uiState.appliedLeagueSlug = slug;
-
-  const sel = document.getElementById("leagueSelect");
-  if (sel) {
-    sel.innerHTML = `<option value="${slug}">${slug}</option>`;
-    sel.value = slug;
-  }
-  if (typeof updateSectionLocks === "function") updateSectionLocks();
-
-  closeProModal();
-  loadFixtures(uiState.selectedDateOffset || "all");
-}
-
-function renderDateList() {
-  const list = document.getElementById("proSimpleList");
-  if (!list) return;
-  const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-  const opts = [
-    { label: "All", value: "all" },
-    { label: "Today", value: "today" },
-    { label: "Tomorrow", value: "tomorrow" }
-  ];
-  for (let i = 2; i <= 5; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
-    const key = d.toISOString().split('T')[0].replace(/-/g, '');
-    opts.push({ label: dayNames[d.getDay()], value: key });
-  }
-  opts.push({ label: "Weekend", value: "weekend" });
-
-  list.innerHTML = opts.map(o => `
-    <div class="pane-item ${uiState.selectedDateOffset === o.value ? "active" : ""}"
-         onclick="applyDateFilter('${o.value}', this)">
-      <span>${o.label}</span>
-      ${uiState.selectedDateOffset === o.value ? '<span style="color:#2f8f4a;font-weight:900;">&#x2713;</span>' : ""}
-    </div>`).join("");
-}
-
-function applyDateFilter(value, el) {
-  uiState.selectedDateOffset = value;
-  document.querySelectorAll("#proSimpleList .pane-item").forEach(i => i.classList.remove("active"));
-  el.classList.add("active");
-  const btn = document.getElementById("uiDateBtn");
-  if (btn) {
-    const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-    const fixed = { all:"All", today:"Today", tomorrow:"Tomorrow", weekend:"Weekend" };
-    let label = fixed[value];
-    if (!label) {
-      const y = value.slice(0,4), m = value.slice(4,6), d = value.slice(6,8);
-      label = dayNames[new Date(`${y}-${m}-${d}`).getDay()] || value;
-    }
-    const child = btn.firstChild || btn;
-    if (child.nodeType === 3) child.textContent = label; else btn.textContent = label;
-  }
-  loadFixtures(value);
-  closeProModal();
-}
-
-function renderSortList() {
-  const list = document.getElementById("proSimpleList");
-  if (!list) return;
-  list.innerHTML = [
-    { label: "By time (default)", value: "time" },
-    { label: "By league", value: "league" }
-  ].map(o => `
-    <div class="pane-item" onclick="closeProModal()"><span>${o.label}</span></div>`).join("");
-}
-
-function getConfidenceClass(grade) {
-  const g = String(grade || "").toUpperCase();
-  if (g === "A") return "conf-a";
-  if (g === "B") return "conf-b";
-  if (g === "C") return "conf-c";
-  if (g === "D") return "conf-d";
-  return "conf-none";
-}
-
-function getPhase2ActivationState() {
-  const settled = Number(g_trackerState?.stats?.settled || 0);
-  const trackerMin = Number(TRACKER_POLICY?.reviewCheckpointSettled || 20);
-  const trackerReady = settled >= trackerMin;
-  return {
-    phase2Mode: trackerReady ? "live" : "building",
-    trackerReady,
-    trackerFeedbackLive: trackerReady && !TRACKER_POLICY.advisoryOnly,
-    teamMemoryLive: trackerReady && !TRACKER_POLICY.advisoryOnly,
-    settled,
-    reviewCheckpointSettled: trackerMin,
-    trackerReasons: trackerReady
-      ? [`Tracker feedback active: ${settled} settled picks`]
-      : [`Building: ${settled}/${trackerMin} settled picks needed`]
-  };
-}
-
-function clearAll() {
-  clearSideFields("A");
-  clearSideFields("B");
-  clearH2HFields();
-
-  ["ftMarket","h1Market","h2Market","teamAMarket","teamBMarket", "teamAName", "teamBName"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = "";
-  });
-
-  resetResultsTable();
-  setStatusText("", "");
-  g_massacreFetchContext = defaultMassacreFetchContext();
-  g_fetchMeta = defaultFetchMeta();
-  selectedTeamIds = { A: null, B: null };
-  g_lastFetchedTeams = { A: "", B: "" };
-  g_injA = defaultInjuryMeta();
-  g_injB = defaultInjuryMeta();
-  setFetchInputErrors([]);
-  setFetchAuditIssues([]);
-  updateIntelligencePack();
-  validateFetchSection();
-
-  const matchList = document.getElementById("proMatchList");
-  if (matchList) matchList.innerHTML = "";
-
-  const dateBtn = document.getElementById("uiDateBtn");
-  if (dateBtn) dateBtn.textContent = "All";
-
-  accordionOpen("leagueSection");
-}
-
-function runEngine() {
-  const league = document.getElementById("leagueSelect")?.value || "";
-  if (!league || league === "unknown") { alert("Select a league first."); return; }
-
-  const teamAName = document.getElementById("teamAName")?.value.trim() || "";
-  const teamBName = document.getElementById("teamBName")?.value.trim() || "";
-  if (!teamAName || !teamBName) { engineDebug("Run blocked: missing team names"); return; }
-  if (normalizeTeamName(teamAName) === normalizeTeamName(teamBName)) {
-    engineDebug("Run blocked: duplicate teams"); return;
-  }
-
-  const ftLine  = parseMarketLine(document.getElementById("ftMarket")?.value || "");
-  const h1Line  = parseMarketLine(document.getElementById("h1Market")?.value || "");
-  const aLine   = parseMarketLine(document.getElementById("teamAMarket")?.value || "");
-  const bLine   = parseMarketLine(document.getElementById("teamBMarket")?.value || "");
-
-  const aFTScored  = safeArr(parseGames("aFTScored"));
-  const bFTScored  = safeArr(parseGames("bFTScored"));
-  if (!aFTScored || !bFTScored) { alert("Enter goal scored data for both teams."); return; }
-
-  const aFTAllowed = safeArr(parseGames("aFTAllowed")) || [];
-  const bFTAllowed = safeArr(parseGames("bFTAllowed")) || [];
-  const a1HScored  = safeArr(parseGames("a1HScored")) || [];
-  const b1HScored  = safeArr(parseGames("b1HScored")) || [];
-
-  const sampleTier = getSampleTier(aFTScored, bFTScored);
-  const aVol = stdDev(aFTScored);
-  const bVol = stdDev(bFTScored);
-  const volLimit = LEAGUE_VOL_LIMITS[league] || 1.4;
-  const dynW = getDynamicWeights(sampleTier, Math.max(aVol, bVol), league);
-  const leagueBase = LEAGUE_BASES[league] || 1.35;
-
-  let rawProjA = robustRecentAverage(aFTScored);
-  let rawProjB = robustRecentAverage(bFTScored);
-
-  if (aFTAllowed.length && bFTAllowed.length) {
-    const aAllowedAvg = robustRecentAverage(aFTAllowed);
-    const bAllowedAvg = robustRecentAverage(bFTAllowed);
-    rawProjA = (rawProjA * dynW.teamWeight) + (bAllowedAvg * dynW.oppWeight) * (rawProjA / leagueBase);
-    rawProjB = (rawProjB * dynW.teamWeight) + (aAllowedAvg * dynW.oppWeight) * (rawProjB / leagueBase);
-  }
-
-  const intPack = updateIntelligencePack(league, { ftLine, h1Line, aLine, bLine });
-  let projA = rawProjA;
-  let projB = rawProjB;
-
-  if (intPack && isFinite(intPack.teamA.offense) && isFinite(intPack.teamB.defense)) {
-    projA = (rawProjA * 0.60) + ((leagueBase + intPack.teamA.offense + intPack.teamB.defense) * 0.40);
-  }
-  if (intPack && isFinite(intPack.teamB.offense) && isFinite(intPack.teamA.defense)) {
-    projB = (rawProjB * 0.60) + ((leagueBase + intPack.teamB.offense + intPack.teamA.defense) * 0.40);
-  }
-
-  projA *= (g_injA.scoringMult || 1);
-  projB *= (g_injB.scoringMult || 1);
-
-  let ftProj = projA + projB;
-
-  const aH2H = safeArr(parseGames("aFTH2H")) || [];
-  const bH2H = safeArr(parseGames("bFTH2H")) || [];
-  let ftHasH2H = false;
-  if (maybeReadH2HEnabled("ft") && aH2H.length >= 2 && bH2H.length >= 2) {
-    const h2hAvg = robustRecentAverage(aH2H.map((s, i) => s + (bH2H[i] || 0)));
-    if (isFinite(h2hAvg)) {
-      const w = getH2HWeight(aH2H.length, bH2H.length, "ft", sampleTier, h2hAvg - ftProj);
-      ftProj = ftProj * (1 - w) + h2hAvg * w;
-      ftHasH2H = true;
-    }
-  }
-
-  if (ftLine) ftProj = anchorProjection(ftProj, ftLine, league, "ft");
-
-  let h1Proj = NaN;
-  if (h1Line) {
-    if (a1HScored.length >= 2 && b1HScored.length >= 2) {
-      h1Proj = robustRecentAverage(a1HScored) + robustRecentAverage(b1HScored);
-    } else if (isFinite(ftProj)) {
-      h1Proj = ftProj * 0.42;
-    }
-    if (isFinite(h1Proj)) h1Proj = anchorProjection(h1Proj, h1Line, league, "h1");
-  }
-
-  const picks = [];
-  const addPick = (name, mKey, mType, proj, line, vol, h2h) => {
-    if (!line || !isFinite(proj)) return;
-    const edge = calculateEdge(proj, line);
-    if (!isFinite(edge)) return;
-    const pick = getPick(edge, line, league, mType, {});
-    const trap = detectTrap(edge, line, pick, league, mType, vol);
-    const confidence = getConfidenceGrade({
-      pick, note: null, line, edge, sampleTier, projectionOnly: false,
-      fullModel: sampleTier === "full", trap, hasH2H: h2h,
-      volatility: vol, volLimit, marketKey: mKey
-    });
-    const smartPick = applySmartLineToPick({ pick, proj, line, edge, confidence, name }, line, league);
-    picks.push({
-      name, marketKey: mKey, marketType: mType, proj, line, edge,
-      pick: smartPick.displayPick || pick, confidence,
-      fullModel: sampleTier === "full", sampleTier,
-      hasH2H: h2h, volatility: vol, trap, league,
-      side: getPickSideFromText(pick),
-      edgePct: line ? (edge / line) * 100 : NaN,
-      _idx: picks.length
-    });
-  };
-
-  addPick("FT Total",     "ft",     "ft",   ftProj, ftLine, Math.max(aVol, bVol), ftHasH2H);
-  addPick("1H Total",     "h1",     "h1",   h1Proj, h1Line, Math.max(aVol, bVol) * 0.7, false);
-  let h2Proj = NaN;
-  const h2Line = parseMarketLine(document.getElementById("h2Market")?.value);
-  if (h2Line) {
-    const a2HScored_raw = safeArr(parseGames("a2HScored"));
-    const b2HScored_raw = safeArr(parseGames("b2HScored"));
-    if (a2HScored_raw && b2HScored_raw && a2HScored_raw.length >= 2 && b2HScored_raw.length >= 2) {
-      h2Proj = robustRecentAverage(a2HScored_raw) + robustRecentAverage(b2HScored_raw);
-    } else if (isFinite(ftProj) && isFinite(h1Proj)) {
-      h2Proj = ftProj - h1Proj; 
-    }
-    if (isFinite(h2Proj)) h2Proj = anchorProjection(h2Proj, h2Line, league, "h2");
-  }
-  addPick("2H Total", "h2", "h2", h2Proj, h2Line, Math.max(aVol, bVol) * 0.8, false);
-  addPick("Team A Total", "team_a", "team", projA,  aLine,  aVol,  false);
-  addPick("Team B Total", "team_b", "team", projB,  bLine,  bVol,  false);
-
-  if (!picks.length) { alert("Enter at least one market line."); return; }
-
-  const fixtureMeta = getCurrentFixtureMeta();
-  if (intPack) applyIntelligenceLayerToPicks(picks, intPack, league);
-  applyTrackerFeedbackToPickRows(picks);
-  applySoftTrackerInfluenceToPicks(picks, fixtureMeta);
-
-  const lockIdx = selectLock(picks);
-  if (lockIdx >= 0 && picks[lockIdx]) picks[lockIdx].isLock = true;
-
-  persistLineMemoryFromFinalPicks(picks, fixtureMeta, league);
-
-  const table = document.getElementById("results");
-  if (table) {
-    table.style.display = "";
-    table.innerHTML = `<tr><th>Pick</th><th>Projection</th><th>Edge</th><th>Model Grade</th><th>Prediction</th></tr>` +
-      picks.map(p => {
-        const gClass = getConfidenceClass(p.confidence);
-        const pClass = p.pick === "NO PLAY" ? "pred-noplay" : p.pick.startsWith("OVER") ? "pred-over" : "pred-under";
-        const edgeTxt = isFinite(p.edgePct) ? (p.edgePct > 0 ? "+" : "") + p.edgePct.toFixed(2) + "%" : "&#x2014;";
-        const lock = p.isLock ? ' <span class="lock">&#x1F512;</span>' : "";
-        return `<tr>
-          <td>${safeText(p.name)}</td>
-          <td>${safeText(displayLine(p.proj))}</td>
-          <td>${safeText(edgeTxt)}</td>
-          <td class="${gClass}">${safeText(p.confidence || "&#x2014;")}</td>
-          <td class="${pClass}">${safeText(p.pick)}${lock}</td>
-        </tr>`;
-      }).join("");
-  }
-
-  const trackerPicks = picks
-    .filter(p => p.pick && p.pick !== "NO PLAY" && !p.note)
-    .map(p => ensureTrackedPickKeys({
-      eventId: fixtureMeta.eventId || "",
-      eventDate: fixtureMeta.eventDate || "",
-      league,
-      homeTeam: fixtureMeta.homeTeam || teamAName,
-      awayTeam: fixtureMeta.awayTeam || teamBName,
-      homeId: fixtureMeta.homeId || String(selectedTeamIds.A || ""),
-      awayId: fixtureMeta.awayId || String(selectedTeamIds.B || ""),
-      marketKey: p.marketKey, marketName: p.name,
-      predictionText: p.pick, line: p.line, lineAtPick: p.line,
-      proj: p.proj, projection: p.proj, edge: p.edge, edgePct: p.edgePct,
-      side: p.side, confidence: p.confidence, confidenceGrade: p.confidence,
-      isLock: !!p.isLock, sampleTier: p.sampleTier,
-      inputSource: "manual", modelVersion: ENGINE_MODEL_VERSION,
-      resultStatus: "pending", createdAt: new Date().toISOString()
-    }));
-
-  if (trackerPicks.length) addTrackedPicks(trackerPicks);
-  engineDebug("Run complete", { picks: picks.length, league });
-}
-
-function toggleTheme() {
-  const isDark = document.body.classList.toggle("dark-mode");
-  try { localStorage.setItem("bb_theme", isDark ? "dark" : "light"); } catch(e) {}
-}
-
-document.addEventListener("DOMContentLoaded", async () => {
-  if (typeof ensureFreshBuild === "function" && ensureFreshBuild()) return;
-
-  try {
-    if (localStorage.getItem("bb_theme") === "dark") document.body.classList.add("dark-mode");
-  } catch(e) {}
-
-  try {
-    const report = ENGINE_INTEGRITY_SHIELD.audit();
-    if (report.length) {
-      report.forEach(err => engineDebug("WATCHDOG CRITICAL ERROR: " + err));
-    } else {
-      engineDebug("WATCHDOG SUCCESS: System integrity 100% verified.");
-    }
-  } catch(e) { console.error("Watchdog failed", e); }
-
-  document.getElementById("themeToggleBtn")?.addEventListener("click", toggleTheme);
-  document.getElementById("trackerToggleBtn")?.addEventListener("click", openTrackerModal);
-  document.getElementById("trackerCloseBtn")?.addEventListener("click", closeTrackerModal);
-  document.getElementById("trackerInsightsBtn")?.addEventListener("click", toggleTrackerInsights);
-  document.getElementById("trackerDebugBtn")?.addEventListener("click", toggleTrackerDebugView);
-  document.getElementById("headerErrorBtn")?.addEventListener("click", showFetchInputErrors);
-  document.getElementById("uiDateBtn")?.addEventListener("click", () => openProModal("date"));
-  document.getElementById("uiLeagueBtn")?.addEventListener("click", () => openProModal("league"));
-  document.getElementById("uiSortBtn")?.addEventListener("click", () => openProModal("sort"));
-  document.getElementById("runBtn")?.addEventListener("click", runEngine);
-  document.getElementById("clearBtn")?.addEventListener("click", clearAll);
-  document.getElementById("teamAName")?.addEventListener("input", () => onTeamInput("A"));
-  document.getElementById("teamBName")?.addEventListener("input", () => onTeamInput("B"));
-  document.getElementById("teamAName")?.addEventListener("blur", () => scheduleDropClose("dropA"));
-  document.getElementById("teamBName")?.addEventListener("blur", () => scheduleDropClose("dropB"));
-  document.getElementById("dropA")?.addEventListener("mouseenter", () => cancelDropClose("dropA"));
-  document.getElementById("dropB")?.addEventListener("mouseenter", () => cancelDropClose("dropB"));
-
-  document.getElementById("proBtnApply")?.addEventListener("click", () => {
-    if (uiState.stagedLeagueSlug) {
-      uiState.appliedLeagueSlug = uiState.stagedLeagueSlug;
-      const sel = document.getElementById("leagueSelect");
-      sel.innerHTML = `<option value="${uiState.appliedLeagueSlug}">${uiState.appliedLeagueSlug}</option>`;
-      sel.value = uiState.appliedLeagueSlug;
-      updateSectionLocks();
-      loadFixtures(uiState.selectedDateOffset || "all");
-    }
-    closeProModal();
-  });
-
-  document.getElementById("trackedPicksBody")?.addEventListener("click", handleTrackedPicksActionClick);
-
-  ["useFTH2H","use1HH2H","use2HH2H"].forEach(id => {
-    const cb = document.getElementById(id);
-    if (!cb) return;
-    const kind = id === "useFTH2H" ? "ft" : id === "use1HH2H" ? "h1" : "h2";
-    cb.addEventListener("change", () => { g_h2hManualPreference[kind] = cb.checked ? true : false; });
-  });
-
-  openSection("leagueSection");
-  makeSectionsCollapsible();
-
-  await primeTrackerStateForRun();
-  await refreshTrackerInBackground(true);
-});
-</script>
-
-<div class="pro-modal-overlay" id="proModalOverlay">
-  <div class="pro-modal-content">
-    <div class="pro-modal-header"><span id="proModalTitle">Select</span><span class="pro-modal-close" onclick="closeProModal()">&#x2715;</span></div>
-    <div class="dual-pane-body" id="proDualPane" style="display:none;"><div class="pane-left" id="proPaneLeft"></div><div class="pane-right" id="proPaneRight"></div></div>
-    <div class="simple-list-body" id="proSimpleList" style="display:none;"></div>
-    <div class="pro-modal-actions" id="proModalActions" style="display:none;"><button class="pro-btn-reset" onclick="uiState.stagedLeagueSlug=null;renderLeaguePaneRight();">Reset</button><button class="pro-btn-apply" id="proBtnApply">Apply</button></div>
-  </div>
-</div>
-
-<div id="afdbOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,0.96);flex-direction:column;font-family:ui-monospace,Consolas,monospace;">
-  <div id="afdbPanel" style="width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;"></div>
-</div>
-
-<script>
-const AFDB = (function() {
-  const LOG_LIMIT = 600;
-  let _log = [];
-  let _isOpen = false;
-  let _showOnlyErrors = true; 
-
-  const LEVELS = {
-    BOOT:    { color:'#7aa6ff' }, NET:     { color:'#4ea9ff' },
-    FETCH:   { color:'#49d45f' }, FILL:    { color:'#2aff9e' },
-    PICK:    { color:'#d4af37' }, H2H:     { color:'#c678dd' },
-    SUCCESS: { color:'#49d45f' }, WARN:    { color:'#ffcf73' },
-    ERROR:   { color:'#ff5c61' }, INFO:    { color:'#aaa'    }
-  };
-
-  const ICONS = {
-    BOOT:'⚙️', NET:'🌐', FETCH:'📡', FILL:'✏️',
-    PICK:'📌', H2H:'🔄', SUCCESS:'✅', WARN:'⚠️', ERROR:'❌', INFO:'ℹ️'
-  };
-
-  function esc(s) {
-    return String(s||'')
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
-  function log(level, section, msg, data) {
-    const entry = {
-      ts: new Date().toLocaleTimeString([],{hour12:false}),
-      level, section: section||'CORE', msg,
-      data: data !== undefined ? data : null
-    };
-    _log.unshift(entry);
-    if (_log.length > LOG_LIMIT) _log = _log.slice(0, LOG_LIMIT);
-    if (_isOpen) _render();
-  }
-
-  function clear() { _log = []; _render(); }
-
-  function toggleFilter() {
-    _showOnlyErrors = !_showOnlyErrors;
-    _render();
-  }
-
-  function copy(btnEl) {
-    const visibleLogs = _showOnlyErrors ? _log.filter(e => e.level === 'ERROR' || e.level === 'WARN') : _log;
-
-    const text = visibleLogs.slice().reverse().map(e => {
-      let line = `[${e.ts}] [${e.level}] [${e.section}] ${e.msg}`;
-      if (e.data !== null) {
-        try { line += "\n  " + JSON.stringify(e.data, null, 2); }
-        catch(x) { line += "\n  " + String(e.data); }
-      }
-      return line;
-    }).join("\n\n");
-
-    try {
-      navigator.clipboard.writeText(text);
-      if (btnEl) {
-        const origText = btnEl.innerHTML;
-        btnEl.innerHTML = "✅ COPIED!";
-        setTimeout(() => { btnEl.innerHTML = origText; }, 1500);
-      }
-    } catch(e) {
-      log('WARN','AFDB','Clipboard blocked — printed to console');
-    }
-  }
-
-  function snapDOM() {
-    const ids = [
-      'leagueSelect','teamAName','teamBName',
-      'aFTScored','aFTAllowed','a1HScored','a1HAllowed',
-      'bFTScored','bFTAllowed','b1HScored','b1HAllowed',
-      'aFTH2H','bFTH2H','a1HH2H','b1HH2H',
-      'ftMarket','h1Market','h2Market','teamAMarket','teamBMarket'
-    ];
-    const snap = {};
-    ids.forEach(id => {
-      const el = document.getElementById(id);
-      snap[id] = el ? (el.value||'(empty)') : '⛔ NOT FOUND';
-    });
-    if (typeof selectedTeamIds !== 'undefined') snap['_teamIds'] = JSON.stringify(selectedTeamIds);
-    if (typeof uiState !== 'undefined') snap['_league'] = uiState.appliedLeagueSlug||'(none)';
-    return snap;
-  }
-
-  function _render() {
-    const panel = document.getElementById('afdbPanel');
-    if (!panel) return;
-
-    const visibleLogs = _showOnlyErrors ? _log.filter(e => e.level === 'ERROR' || e.level === 'WARN') : _log;
-
-    const logRows = visibleLogs.map(e => {
-      const def = LEVELS[e.level]||LEVELS.INFO;
-      const icon = ICONS[e.level]||'•';
-      let dataHtml = '';
-      if (e.data !== null) {
-        let ds;
-        try { ds = typeof e.data==='object' ? JSON.stringify(e.data,null,2) : String(e.data); }
-        catch(x) { ds = String(e.data); }
-        dataHtml = `<pre style="color:#888;font-size:9px;margin:4px 0 0 0;padding:6px;background:#070707;border-left:2px solid #222;white-space:pre-wrap;word-break:break-all;">${esc(ds)}</pre>`;
-      }
-      return `<div style="padding:8px;border-bottom:1px solid #151515;">
-        <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;">
-          <span style="color:#555;font-size:9px;min-width:65px;flex-shrink:0;">${esc(e.ts)}</span>
-          <span style="color:${def.color};font-size:10px;font-weight:900;min-width:75px;flex-shrink:0;">${icon} ${esc(e.level)}</span>
-          <span style="color:#777;font-size:9px;min-width:80px;flex-shrink:0;">[${esc(e.section)}]</span>
-          <span style="color:${def.color};font-size:11px;font-weight:700;flex:1;">${esc(e.msg)}</span>
-        </div>
-        ${dataHtml}
-      </div>`;
-    }).join('');
-
-    const headerBtns = `
-      <button onclick="AFDB.copy(this)" style="background:#111;border:1px solid #333;color:#49d45f;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;transition:0.2s;">📋 Copy Log</button>
-      <button onclick="AFDB.clear()" style="background:#111;border:1px solid #333;color:#ff5c61;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">🗑️ Clear</button>
-      <button onclick="AFDB.runTestFetch()" style="background:#2a0608;border:1px solid #d91f26;color:#fff;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;box-shadow:0 0 8px rgba(217,31,38,0.4);">🚨 MILITARY RAID</button>
-      <button onclick="AFDB.close()" style="background:#111;border:1px solid #555;color:#ccc;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;">✕ Close</button>
-    `;
-
-    panel.innerHTML = `
-      <div style="background:#080808;border-bottom:1px solid #222;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;flex-shrink:0;">
-        <div style="color:#d4af37;font-size:14px;font-weight:900;letter-spacing:1px;">🔬 AUTO-FETCH DEBUG BRAIN</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">${headerBtns}</div>
-      </div>
-
-      <div style="display:flex;flex-direction:column;flex:1;overflow-y:auto;background:#0a0a0a;">
-        <div style="flex:1;">
-          <div style="padding:10px 12px;background:#111;color:#d4af37;font-size:11px;font-weight:900;text-transform:uppercase;position:sticky;top:0;z-index:10;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;">
-            <span>📡 FETCH & FILL LOGS</span>
-            <button onclick="AFDB.toggleFilter()" style="background:none;border:none;color:#4ea9ff;font-size:14px;font-weight:bold;cursor:pointer;" title="Toggle filter">
-              ${_showOnlyErrors ? '👁️ SHOW ALL' : '🎯 ERRORS ONLY'}
-            </button>
-          </div>
-          <div style="padding-bottom:15px;">
-            ${logRows||`<div style="color:#555;font-size:12px;text-align:center;padding:30px;font-weight:bold;">${_showOnlyErrors ? 'No suspects arrested. The code is clean.' : 'No log entries yet. Run a fetch.'}</div>`}
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  function open() {
-    _isOpen = true;
-    const ov = document.getElementById('afdbOverlay');
-    if (ov) { ov.style.display='flex'; _render(); }
   }
 
   function close() {
@@ -12685,6 +12030,8 @@ const AFDB = (function() {
   }
 
   async function runTestFetch() {
+    log('WARN','POLICE RAID','🚨 INITIATING RAID: Full A-Z sweep of Logic, UI, and Caches...');
+
     if (typeof _schedCache !== 'undefined') _schedCache.clear();
     if (typeof _summaryCache !== 'undefined') _summaryCache.clear();
     if (typeof _fixtureCache !== 'undefined') _fixtureCache.clear();
@@ -12731,9 +12078,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof proxyFetch === 'function' && !proxyFetch._afdbPatched) {
       const _orig = proxyFetch;
       window.proxyFetch = async function(url, timeout) {
-        const short = String(url||'')
-          .replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\/soccer\//,'⚽/')
-          .replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\//,'ESPN/');
+        const short = String(url||'').replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\/soccer\//,'⚽/').replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\//,'ESPN/');
         const t0 = performance.now();
         try {
           const res = await _orig.apply(this, arguments);
