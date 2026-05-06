@@ -2409,8 +2409,186 @@ body.dark-mode .tracker-analytics-section-head {
 
 
 
+#intelSection {
+  display: none !important;
+}
 
-  </style>
+  
+/* === PRO UI: TOOLBAR & MODALS === */
+.pro-toolbar {
+  display: flex;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow);
+  margin: 10px auto;
+}
+.pro-toolbar-btn {
+  flex: 1;
+  background: transparent !important;
+  color: var(--text) !important;
+  border: none !important;
+  border-right: 1px solid var(--table-border) !important;
+  padding: 12px 5px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0 !important;
+  box-shadow: none !important;
+}
+.pro-toolbar-btn:last-child { border-right: none !important; }
+.pro-toolbar-btn.active-text { color: #2f8f4a !important; }
+.pro-toolbar-btn::after { content: '▾'; font-size: 10px; opacity: 0.6; }
+
+.pro-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 10000;
+  display: none;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.pro-modal-overlay.open { display: flex; }
+
+.pro-modal-content {
+  background: var(--panel);
+  height: 75vh;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.pro-modal-header {
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: center;
+  border-bottom: 1px solid var(--table-border);
+  background: var(--tracker-head-bg);
+  color: var(--tracker-head-text);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.pro-modal-close { font-size: 20px; cursor: pointer; padding: 0 10px; }
+
+.dual-pane-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.pane-left {
+  width: 40%;
+  background: var(--panel-soft);
+  border-right: 1px solid var(--table-border);
+  overflow-y: auto;
+}
+.pane-right {
+  width: 60%;
+  background: var(--panel);
+  overflow-y: auto;
+}
+.pane-item {
+  padding: 14px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  border-bottom: 1px solid var(--table-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+.pane-left .pane-item.active {
+  background: var(--panel);
+  color: #c91920;
+  border-left: 3px solid #c91920;
+}
+.pane-right .pane-item {
+  justify-content: flex-start;
+  gap: 10px;
+}
+.item-badge {
+  background: var(--table-head);
+  color: #fff;
+  padding: 2px 6px;
+  font-size: 9px;
+  border-radius: 4px;
+}
+.pro-checkbox {
+  width: 18px !important; height: 18px !important;
+  margin: 0 !important;
+  pointer-events: none;
+}
+
+.simple-list-body { flex: 1; overflow-y: auto; }
+.simple-list-body .pane-item { justify-content: space-between; }
+.simple-list-body .pane-item.active { color: #2f8f4a; }
+
+.pro-modal-actions {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--table-border);
+  background: var(--panel-soft);
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+.pro-btn-reset, .pro-btn-apply {
+  flex: 1;
+  padding: 12px !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  border-radius: 4px !important;
+  margin: 0 !important;
+}
+.pro-btn-reset { background: var(--panel) !important; color: var(--text) !important; border: 1px solid var(--table-border) !important; }
+.pro-btn-apply { background: #49a443 !important; color: #fff !important; }
+/* === SPORTYBET MATCH LIST STYLE === */
+.pro-match-list {
+  max-height: 400px;
+  overflow-y: auto;
+  background: var(--panel);
+  border-bottom: 1px solid var(--panel-border);
+}
+.pro-match-item {
+  display: flex;
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--table-border);
+  cursor: pointer;
+  align-items: flex-start;
+  gap: 12px;
+  transition: background 0.2s ease;
+}
+.pro-match-item:hover { background: var(--panel-soft); }
+.pro-match-item.active { background: rgba(73, 164, 67, 0.1); border-left: 3px solid #49a443; }
+.pro-match-time {
+  font-size: 10px;
+  color: var(--tracker-strong);
+  font-weight: 800;
+  min-width: 65px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pro-match-id { color: var(--muted); font-size: 9px; font-weight: 700; text-transform: uppercase; }
+.pro-match-teams {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pro-match-team {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+</style>
 
 </head>
 <body>
@@ -2421,19 +2599,13 @@ body.dark-mode .tracker-analytics-section-head {
 
   <span class="brand-right">
     <button class="theme-toggle" type="button" id="themeToggleBtn" title="Toggle dark/light mode">⚽</button>
-    <button class="theme-toggle" type="button" id="trackerToggleBtn" title="Open tracked picks">📊</button>
-    <button class="theme-toggle" type="button" id="afdbBtn" title="Auto-Fetch Debugger" onclick="AFDB.open()">🔬</button>
+    <button class="theme-toggle" type="button" id="trackerToggleBtn" title="Open tracked picks">📊</button>\n    <button class="theme-toggle" type="button" id="afdbBtn" title="Auto-Fetch Debugger" onclick="AFDB.open()">🔬</button>
     PREDICTIONS
   </span>
 </header>
 
     <div class="wrapper">
-      <div id="liveEngineDebugger" style="background:#050505; color:#49d45f; padding:10px; font-family: ui-monospace, monospace; font-size:11px; margin-bottom:10px; border:1px solid #333; border-left: 4px solid #49d45f; max-height:250px; overflow-y:auto; word-break:break-word;">
-         <div style="color:#aaa; font-weight:bold; margin-bottom:5px;">[SYSTEM] Live Auto-Fetch Monitor Active...</div>
-      </div>
-
-
-        <div class="section" id="leagueSection">
+      <div class="section" id="leagueSection">
       <h3>League &amp; Match Selection</h3>
       <div class="section-body" style="padding: 0;">
         <select id="leagueSelect" style="display:none;"></select>
@@ -2627,9 +2799,9 @@ body.dark-mode .tracker-analytics-section-head {
     <div class="tracker-panel">
       <div class="tracker-head">
         <span id="trackerHeadTitle">Tracked Picks</span>
-                       <div class="tracker-head-actions">
-<button type="button" id="trackerCopyDataBtn" class="tracker-insights-btn" title="Copy tracker data to clipboard">📑</button>
-
+        <div class="tracker-head-actions">
+          <button type="button" id="trackerInsightsBtn" class="tracker-insights-btn state-idle" title="Open report" aria-label="Open report">📊 Report</button>
+          <button type="button" id="trackerDebugBtn" class="tracker-insights-btn state-idle" title="Open debug" aria-label="Open debug" style="display:none;">🐞</button>
           <button type="button" id="trackerCloseBtn" class="tracker-close">✕</button>
         </div>
       </div>
@@ -2661,7 +2833,6 @@ body.dark-mode .tracker-analytics-section-head {
 </table>
   </div>
 </div>
-</div>>
 </div>
 </div>
 
@@ -7499,13 +7670,12 @@ function renderTrackerAnalytics() {
     return { label: "Advisory", note: "Lean only" };
   }
 
-      function buildRecord(items = []) {
+  function buildRecord(items = []) {
     const base = { settled: 0, wins: 0, losses: 0, pushes: 0, winPct: NaN };
     items.forEach(pick => {
-      const status = String(pick?.engineResultStatus || pick?.resultStatus || "").toLowerCase();
+      const status = String(pick?.resultStatus || "").toLowerCase();
       if (!["win", "loss", "push"].includes(status)) return;
       base.settled++;
-
       if (status === "win") base.wins++;
       else if (status === "loss") base.losses++;
       else if (status === "push") base.pushes++;
@@ -8069,10 +8239,9 @@ function renderTrackerAnalytics() {
                   <th>Engine Context at Lock</th>
                 </tr>
               </thead>
-                          <tbody>
+              <tbody>
                 ${fallbackSettledPicks.length ? [...fallbackSettledPicks].sort((a,b) => getTrackedPickTimeMs(b) - getTrackedPickTimeMs(a)).slice(0, 40).map(p => {
-                  const engineStatus = String(p.engineResultStatus || p.resultStatus || "pending").toLowerCase();
-                  const statusClass = engineStatus === 'win' ? 'color: #3a9c35;' : engineStatus === 'loss' ? 'color: #c91920;' : 'color: #888;';
+                  const statusClass = p.resultStatus === 'win' ? 'color: #3a9c35;' : p.resultStatus === 'loss' ? 'color: #c91920;' : 'color: #888;';
                   const diag = p.diagnostics || p.godsEyeMemory || {};
                   const pace = diag.pace ? diag.pace.toFixed(1) : "—";
                   const aVol = diag.aVol ? diag.aVol.toFixed(1) : "—";
@@ -8089,7 +8258,7 @@ function renderTrackerAnalytics() {
                       </td>
                       <td style="font-weight:bold; white-space: nowrap;">${safeText(p.predictionText)}</td>
                       <td style="font-weight:900; text-transform:uppercase; ${statusClass}">
-                        ${safeText(engineStatus)}
+                        ${safeText(p.resultStatus)}
                         ${p.actualScore ? `<br><span style="font-size:9px; color:var(--muted);">Score: ${p.actualScore}</span>` : ''}
                       </td>
                       <td style="font-size: 9px; color: var(--muted); line-height: 1.4;">
@@ -8120,6 +8289,53 @@ function renderTrackerAnalytics() {
         ${reportBodyHtml}
       </div>
     `;
+  } else if (currentView === "debug") {
+    const godFatherDebugHtml = buildGodFatherDebugHtml();
+    
+    // We pass our live logs into the newly standardized Report cards
+    const engineErrorsHtml = buildReportDebugCard("Important Engine Errors", importantEngineLines, 6, "No active engine errors. The watchdog is quiet.");
+    const trackerErrorsHtml = buildReportDebugCard("Important Tracker Errors", importantTrackerLines, 6, "No active tracker errors. Nothing urgent needs review.");
+
+    panel.innerHTML = `
+      <style>
+        #godfatherGrid { display: flex; flex-direction: column; gap: 12px; padding: 12px; padding-bottom: 30px; }
+        .godfather-box { order: 5; transition: box-shadow 0.2s ease, border-color 0.2s ease; }
+        /* The Auto-Sort Magic: Any box with an error instantly moves to order 1 (top of page) */
+        .godfather-box[data-has-error="true"] { 
+          order: 1; 
+          box-shadow: 0 0 15px rgba(244, 67, 54, 0.15); 
+        }
+        .godfather-box:hover { border-color: #666 !important; }
+        .godfather-box[data-has-error="true"]:hover { border-color: #ff5c61 !important; }
+      </style>
+
+      <div class="tracker-analytics-shell" style="height:100%; display:flex; flex-direction:column; overflow:hidden;">
+        <div class="tracker-analytics-topbar" style="padding:12px; border-bottom:1px solid #333; background:#1a1a1a; z-index:2; position:sticky; top:0;">
+          <div class="tracker-analytics-heading" style="margin-bottom:10px;">
+            <div class="tracker-analytics-kicker" style="color:#f44336;">Immune System</div>
+            <div class="tracker-analytics-title" style="color:#fff;">God Father 🛡️</div>
+            <div class="tracker-analytics-subtitle" style="color:#888;">Core engine diagnostics and auto-sorting health checks.</div>
+          </div>
+          
+          <input type="text" placeholder="🔍 Search diagnostics (e.g. 'queue', 'error', 'espn')..." 
+            oninput="
+              const q = this.value.toLowerCase().trim();
+              document.querySelectorAll('.godfather-box').forEach(b => {
+                const txt = (b.dataset.keywords + ' ' + b.innerText).toLowerCase();
+                b.style.display = (!q || txt.includes(q)) ? 'flex' : 'none';
+              });
+            "
+            style="width:100%; background:#0a0a0a; color:#fff; border:1px solid #444; padding:10px 12px; border-radius:6px; font-size:12px; font-family:monospace; outline:none;" autocomplete="off" spellcheck="false">
+        </div>
+        
+        <div id="godfatherGrid" style="flex:1; overflow-y:auto;">
+          ${godFatherDebugHtml}
+          ${engineErrorsHtml}
+          ${trackerErrorsHtml}
+        </div>
+      </div>
+    `;
+
   } else {
     panel.innerHTML = "";
   }
@@ -8129,7 +8345,7 @@ function renderTrackerAnalytics() {
 
 
 
-function clampNumber(function clampNumber(val, min, max) {
+function clampNumber(val, min, max) {
   return Math.max(min, Math.min(max, val));
 }
 
@@ -10453,8 +10669,8 @@ async function fetchScheduleCore(base, teamId, leagueKey, requiredVenue, allowFa
       if (isNaN(ms) || isNaN(os) || ms <= 0 || os <= 0) return null;
 
       return {
-        ms: parseFloat(ms.toFixed(2)),
-        os: parseFloat(os.toFixed(2)),
+        ms: Math.round(ms),
+        os: Math.round(os),
         h1m: gotLS && h1m > 0 ? Math.round(h1m) : null,
         h1o: gotLS && h1o > 0 ? Math.round(h1o) : null,
         h2m: gotLS && h2m > 0 ? Math.round(h2m) : null,
@@ -11507,7 +11723,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   </div>
 </div>
 
-<div id="afdbOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,0.96);flex-direction:column;font-family:ui-monospace,Consolas,monospace;">
-  <div id="afdbPanel" style="width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;"></div>
 </body>
 </html>
