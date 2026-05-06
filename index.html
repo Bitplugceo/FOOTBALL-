@@ -8304,62 +8304,13 @@ function renderTrackerAnalytics() {
         <div id="afdbTerminal" style="flex:1; overflow-y:auto; padding:10px; color:#49d45f; font-family:monospace; font-size:11px;">
            </div>
       </div>`;
-    AFDB.open(); 
-    // Godfather logic bypassed below
-    
-    const godFatherDebugHtml = buildGodFatherDebugHtml();
-    
-    // We pass our live logs into the newly standardized Report cards
-    const engineErrorsHtml = buildReportDebugCard("Important Engine Errors", importantEngineLines, 6, "No active engine errors. The watchdog is quiet.");
-    const trackerErrorsHtml = buildReportDebugCard("Important Tracker Errors", importantTrackerLines, 6, "No active tracker errors. Nothing urgent needs review.");
-
-    panel.innerHTML = `
-      <style>
-        #godfatherGrid { display: flex; flex-direction: column; gap: 12px; padding: 12px; padding-bottom: 30px; }
-        .godfather-box { order: 5; transition: box-shadow 0.2s ease, border-color 0.2s ease; }
-        /* The Auto-Sort Magic: Any box with an error instantly moves to order 1 (top of page) */
-        .godfather-box[data-has-error="true"] { 
-          order: 1; 
-          box-shadow: 0 0 15px rgba(244, 67, 54, 0.15); 
-        }
-        .godfather-box:hover { border-color: #666 !important; }
-        .godfather-box[data-has-error="true"]:hover { border-color: #ff5c61 !important; }
-      </style>
-
-      <div class="tracker-analytics-shell" style="height:100%; display:flex; flex-direction:column; overflow:hidden;">
-        <div class="tracker-analytics-topbar" style="padding:12px; border-bottom:1px solid #333; background:#1a1a1a; z-index:2; position:sticky; top:0;">
-          <div class="tracker-analytics-heading" style="margin-bottom:10px;">
-            <div class="tracker-analytics-kicker" style="color:#f44336;">Immune System</div>
-            <div class="tracker-analytics-title" style="color:#fff;">God Father 🛡️</div>
-            <div class="tracker-analytics-subtitle" style="color:#888;">Core engine diagnostics and auto-sorting health checks.</div>
-          </div>
-          
-          <input type="text" placeholder="🔍 Search diagnostics (e.g. 'queue', 'error', 'espn')..." 
-            oninput="
-              const q = this.value.toLowerCase().trim();
-              document.querySelectorAll('.godfather-box').forEach(b => {
-                const txt = (b.dataset.keywords + ' ' + b.innerText).toLowerCase();
-                b.style.display = (!q || txt.includes(q)) ? 'flex' : 'none';
-              });
-            "
-            style="width:100%; background:#0a0a0a; color:#fff; border:1px solid #444; padding:10px 12px; border-radius:6px; font-size:12px; font-family:monospace; outline:none;" autocomplete="off" spellcheck="false">
-        </div>
-        
-        <div id="godfatherGrid" style="flex:1; overflow-y:auto;">
-          ${godFatherDebugHtml}
-          ${engineErrorsHtml}
-          ${trackerErrorsHtml}
-        </div>
-      </div>
-    `;
-
+        AFDB.open(); 
   } else {
     panel.innerHTML = "";
   }
+
   updateTrackerInsightsButton();
 }
-
-
 
 
 function clampNumber(val, min, max) {
