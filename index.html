@@ -2599,13 +2599,17 @@ body.dark-mode .tracker-analytics-section-head {
 
   <span class="brand-right">
     <button class="theme-toggle" type="button" id="themeToggleBtn" title="Toggle dark/light mode">⚽</button>
-    <button class="theme-toggle" type="button" id="trackerToggleBtn" title="Open tracked picks">📊</button>\n    <button class="theme-toggle" type="button" id="afdbBtn" title="Auto-Fetch Debugger" onclick="AFDB.open()">🔬</button>
+    <button class="theme-toggle" type="button" id="trackerToggleBtn" title="Open tracked picks">📊</button>
+    <button class="theme-toggle" type="button" id="afdbBtn" title="Auto-Fetch Debugger" onclick="AFDB.open()">🔬</button>
     PREDICTIONS
   </span>
 </header>
 
     <div class="wrapper">
-      <div class="section" id="leagueSection">
+      
+
+
+        <div class="section" id="leagueSection">
       <h3>League &amp; Match Selection</h3>
       <div class="section-body" style="padding: 0;">
         <select id="leagueSelect" style="display:none;"></select>
@@ -2905,12 +2909,12 @@ body.dark-mode .tracker-analytics-section-head {
     try {
       const response = await originalFetch.apply(this, args);
       if (!response.ok && typeof window.engineDebug === "function") {
-        window.// API Error silenced
+        window.// // // // engineDebug(`API ERROR: HTTP ${response.status}`, { url: args[0] }); // Silenced // Silenced // Silenced // Silenced
       }
       return response;
     } catch (err) {
       if (typeof window.engineDebug === "function") {
-        window.// Network block silenced
+        window.// // // // engineDebug("CRITICAL NETWORK BLOCK", { url: args[0], error: err.message }); // Silenced // Silenced // Silenced // Silenced
       }
       throw err;
     }
@@ -8290,20 +8294,65 @@ function renderTrackerAnalytics() {
       </div>
     `;
   } else if (currentView === "debug") {
-    // === REPLACED: AFDB TERMINAL VIEW ===
-    const godFatherDebugHtml = buildGodFatherDebugHtml(); 
+    // AFDB System Log View Integration
     panel.innerHTML = `
       <div class="tracker-analytics-shell" style="height:100%; display:flex; flex-direction:column; background:#000;">
         <div style="padding:15px; background:#080808; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center;">
           <span style="color:#d4af37; font-weight:900;">🔬 AFDB SYSTEM LOG</span>
           <button onclick="AFDB.runTestFetch()" style="background:#2a0608; border:1px solid #d91f26; color:#fff; padding:6px 12px; font-size:11px; font-weight:900; border-radius:4px;">🚨 MILITARY RAID</button>
         </div>
-        <div id="afdbTerminal" style="flex:1; overflow-y:auto; padding:10px;">
+        <div id="afdbTerminal" style="flex:1; overflow-y:auto; padding:10px; color:#49d45f; font-family:monospace; font-size:11px;">
            </div>
+      </div>`;
+    AFDB.open(); 
+    // Godfather logic bypassed below
+    
+    const godFatherDebugHtml = buildGodFatherDebugHtml();
+    
+    // We pass our live logs into the newly standardized Report cards
+    const engineErrorsHtml = buildReportDebugCard("Important Engine Errors", importantEngineLines, 6, "No active engine errors. The watchdog is quiet.");
+    const trackerErrorsHtml = buildReportDebugCard("Important Tracker Errors", importantTrackerLines, 6, "No active tracker errors. Nothing urgent needs review.");
+
+    panel.innerHTML = `
+      <style>
+        #godfatherGrid { display: flex; flex-direction: column; gap: 12px; padding: 12px; padding-bottom: 30px; }
+        .godfather-box { order: 5; transition: box-shadow 0.2s ease, border-color 0.2s ease; }
+        /* The Auto-Sort Magic: Any box with an error instantly moves to order 1 (top of page) */
+        .godfather-box[data-has-error="true"] { 
+          order: 1; 
+          box-shadow: 0 0 15px rgba(244, 67, 54, 0.15); 
+        }
+        .godfather-box:hover { border-color: #666 !important; }
+        .godfather-box[data-has-error="true"]:hover { border-color: #ff5c61 !important; }
+      </style>
+
+      <div class="tracker-analytics-shell" style="height:100%; display:flex; flex-direction:column; overflow:hidden;">
+        <div class="tracker-analytics-topbar" style="padding:12px; border-bottom:1px solid #333; background:#1a1a1a; z-index:2; position:sticky; top:0;">
+          <div class="tracker-analytics-heading" style="margin-bottom:10px;">
+            <div class="tracker-analytics-kicker" style="color:#f44336;">Immune System</div>
+            <div class="tracker-analytics-title" style="color:#fff;">God Father 🛡️</div>
+            <div class="tracker-analytics-subtitle" style="color:#888;">Core engine diagnostics and auto-sorting health checks.</div>
+          </div>
+          
+          <input type="text" placeholder="🔍 Search diagnostics (e.g. 'queue', 'error', 'espn')..." 
+            oninput="
+              const q = this.value.toLowerCase().trim();
+              document.querySelectorAll('.godfather-box').forEach(b => {
+                const txt = (b.dataset.keywords + ' ' + b.innerText).toLowerCase();
+                b.style.display = (!q || txt.includes(q)) ? 'flex' : 'none';
+              });
+            "
+            style="width:100%; background:#0a0a0a; color:#fff; border:1px solid #444; padding:10px 12px; border-radius:6px; font-size:12px; font-family:monospace; outline:none;" autocomplete="off" spellcheck="false">
+        </div>
+        
+        <div id="godfatherGrid" style="flex:1; overflow-y:auto;">
+          ${godFatherDebugHtml}
+          ${engineErrorsHtml}
+          ${trackerErrorsHtml}
+        </div>
       </div>
     `;
-    // Force the Brain to render into our new terminal area
-    AFDB.open(); 
+
   } else {
     panel.innerHTML = "";
   }
@@ -9038,4 +9087,2658 @@ function settleTrackedPickFromCompetition(pick, competition, boxscore) {
             changed = true;
             trackerDebug("auto-settled pick", { eventId: pick.eventId, market: pick.marketKey, result: settled, actual: pick.actualScore, line: pick.lineAtPick || pick.line });
           }
+        } else {
+          g_settlementDebugLog.set(_dbgKey, { pick: `${pick.homeTeam} vs ${pick.awayTeam} · ${pick.marketKey}`, eventId: pick.eventId, status: `⏳ NOT FINAL`, apiFinal, clock, period, stateName, statusName, settled: null, actual: null, line: pick.lineAtPick || pick.line, ts: new Date().toLocaleTimeString([], {hour12:false}) });
+        }
+      });
+    }
+
+    const archivedChanged = archiveExpiredTrackedPicks();
+    
+    if (changed || archivedChanged) {
+      g_trackerState.updatedAt = new Date().toISOString();
+      rebuildTrackerStats();
+      
+      // FIX: Await the database save so it safely finishes writing to your phone
+      // BEFORE it attempts to push to the server. This stops the database crash.
+      await saveTrackerStateToLocal();
+      
+      // Fire a clean background push
+      forceTrackerSaveNow();
+      
+      renderTrackedPicks(); 
+    }
+
+  } catch (err) {
+    console.error("[BB Engine] refresh failed", err);
+  }
+}
+
+
+
+
+
+function addTrackedPicks(newPicks) {
+  // [SENTINEL FIX #3]
+  if (!Array.isArray(newPicks) || !newPicks.length) {
+    renderTrackedPicks();
+    return;
+  }
+  const current = Array.isArray(g_trackerState.activePicks) ? [...g_trackerState.activePicks] : [];
+  const archived = Array.isArray(g_trackerState.archivedPicks) ? g_trackerState.archivedPicks : [];
+  let changed = false;
+
+  newPicks.forEach(raw => {
+    const p = ensureTrackedPickKeys(raw);
+    if (p.diagnostics) {
+      p.godsEyeMemory = {
+        pace: p.diagnostics.pace, netA: p.diagnostics.netA, netB: p.diagnostics.netB,
+        aVol: p.diagnostics.aVol, bVol: p.diagnostics.bVol,
+        simPct: p.diagnostics.massacre?.simPct, edgePct: p.edgePct, grade: p.confidenceGrade
+      };
+      delete p.diagnostics; delete p.massacre; delete p.trackerFeedback;
+      delete p.shadowTrackerFeedback; delete p.teamMemory;
+    }
+    if (!p.signature) p.signature = makeTrackedSignature(p);
+    const exactIdx = current.findIndex(x => makeTrackedSignature(x) === p.signature);
+    if (exactIdx !== -1) {
+      if (String(current[exactIdx].resultStatus || "pending").toLowerCase() !== "pending") return;
+      const sameLine = String(displayLine(current[exactIdx].line)) === String(displayLine(p.line));
+      const betterLine = isBetterLineForSide(p.side, p.line, current[exactIdx].line);
+      if (sameLine || betterLine) {
+        current[exactIdx] = ensureTrackedPickKeys({ ...current[exactIdx], ...p, signature: p.signature });
+        changed = true;
+      }
+      return;
+    }
+    if (archived.findIndex(x => makeTrackedSignature(x) === p.signature) !== -1) return;
+    current.unshift(p);
+    changed = true;
+  });
+
+  if (changed) {
+    g_trackerState.activePicks = current.slice(0, TRACKED_PICKS_LIMIT);
+    g_trackerState.updatedAt = new Date().toISOString();
+    rebuildTrackerStats();
+    saveTrackerStateToLocal();
+    scheduleTrackerSave();
+  }
+  renderTrackedPicks();
+}
+
+/*
+  LOCKED ENGINE CALCULATION SECTION
+
+  This section contains the live model math and should not be edited unless a
+  current measurable regression is proven.
+
+  INCLUDED AS LOCKED BEHAVIOR
+  - H2H weighting, divergence suppression, and max-weight caps.
+  - Volatility adjustment, regression, pace blending, and home-edge application.
+  - FT / 1H / team projection formulas and venue blending rules.
+  - Anchor logic, trap filters, pick thresholds, NO PLAY gates, and suppression rules.
+  - Confidence grading, lock selection, correlated-period blocker, tracker feedback,
+    team-memory gating, and line-memory best-line protection.
+
+  AUDIT RULE
+  - Do NOT retune constants, formulas, thresholds, weights, filters, or gates
+    unless you can prove:
+      1) runtime break,
+      2) syntax error,
+      3) contradiction against the stated engine rules,
+      4) wrong calculation path in the current file,
+      5) measurable regression in outputs from the current build.
+
+  If output looks different, prove the exact broken path first before changing any constant.
+*/
+    function getH2HWeight(lenA, lenB, marketType = "ft", sampleTier = "thin", divergence = 0) {
+  const minLen = Math.min(Number(lenA) || 0, Number(lenB) || 0);
+  if (minLen < 2) return 0;
+
+  let base =
+    minLen >= 5 ? 0.24 :
+    minLen === 4 ? 0.20 :
+    minLen === 3 ? 0.15 :
+    0.10;
+
+  if (marketType === "h1") base += 0.02;
+  if (marketType === "h2") base += 0.05;
+
+  if (sampleTier === "thin") base *= 0.85;
+
+  if (isFinite(divergence)) {
+    const diff = Math.abs(divergence);
+    if (diff >= 2.5) base *= 0.60;
+    else if (diff >= 1.5) base *= 0.75;
+    else if (diff >= 1.0) base *= 0.90;
+  }
+
+  const maxCap =
+    marketType === "h2" ? 0.32 :
+    marketType === "h1" ? 0.28 :
+    MODEL_TUNING.h2hMaxWeight;
+
+  return clampNumber(base, 0, maxCap);
+}
+
+    // ── FIX #1: Volatility no longer shrinks the projection value.
+// High variance lowers CONFIDENCE (grade), not the projected number.
+// getVolatilityRating() feeds into getConfidenceGrade() as-is.
+function applyVolatility(proj, std, limit) {
+  return proj; // Passthrough — projection is market-independent
+}
+
+// ── FIX #2a: Volatility rating for confidence scoring ──
+function getVolatilityRating(std, limit) {
+  if (!isFinite(std) || !isFinite(limit) || limit === 0) return "NORMAL";
+  const ratio = std / limit;
+  if (ratio <= 1.0) return "LOW";
+  if (ratio <= 1.20) return "MEDIUM";
+  return "HIGH";
+}
+
+// ── FIX #2b: Controlled context adjustment layer (±6% hard cap) ──
+// Place AFTER base projection, BEFORE edge calculation.
+// All adjustments combined cannot exceed ±6% of base projection.
+function applyContextAdjustments(baseProjection, ctx) {
+  if (!isFinite(baseProjection)) return baseProjection;
+  let adj = 0;
+  // Injury (replacement-adjusted — dampened to 50% of raw impact, max 3%)
+  if (ctx.injuryImpact) adj -= Math.min(ctx.injuryImpact * 0.5, 0.03);
+  // Rest/fatigue
+  if (ctx.backToBack) adj -= 0.01;
+  // Strength of Schedule
+  if (ctx.sosHarder) adj += 0.01;
+  if (ctx.sosEasier) adj -= 0.01;
+  // Recency (capped at ±2% to prevent recent hot/cold streaks from dominating)
+  if (ctx.recencyBias) adj += Math.max(Math.min(ctx.recencyBias, 0.02), -0.02);
+  // HARD CAP: total context adjustment cannot exceed ±6%
+  adj = Math.max(-0.06, Math.min(0.06, adj));
+  return baseProjection * (1 + adj);
+}
+
+    function getSampleTier(...arrays) {
+      const lens = arrays.map(a => Array.isArray(a) ? a.length : 0);
+      const minLen = Math.min(...lens);
+      if (minLen >= 5) return "full";
+      if (minLen >= 2) return "thin";
+      return "insufficient";
+    }
+    function hasMinGames(arr, min = 2) {
+      return Array.isArray(arr) && arr.length >= min;
+    }
+            function getEffectivePaceClamp(league) {
+      // In Batch 3 we mapped Possession to Pace. 
+      // Possession bounds are typically 35% to 65% (0.7 to 1.3 multiplier relative to 50%)
+      return { min: 0.65, max: 1.35 };
+    }
+
+    function getLeagueEdgeThresholds(league) {
+      // Percentages hold up universally, we can keep them static
+      return { h1: 0.050, default: 0.067 };
+    }
+
+    function getLineSanityBands(league) {
+      // Football goal bounds
+      return { ft:[1.0, 5.5], h1:[0.5, 2.5], h2:[0.5, 2.5], team:[0.5, 3.5] };
+    }
+
+    function validateLines(league, ftLine, h1Line, h2Line, aLine, bLine) {
+      const bands = getLineSanityBands(league);
+      const errs = [];
+      function chk(val, band, label) {
+        if (val === null || !band) return;
+        if (val < band[0]) errs.push(label + " looks too low (" + val + ")");
+        if (val > band[1]) errs.push(label + " looks too high (" + val + ")");
+      }
+      chk(ftLine, bands.ft, league.toUpperCase() + " FT total");
+      chk(h1Line, bands.h1, league.toUpperCase() + " 1H total");
+      chk(h2Line, bands.h2, league.toUpperCase() + " 2H total");
+      chk(aLine, bands.team, league.toUpperCase() + " Team A total");
+      chk(bLine, bands.team, league.toUpperCase() + " Team B total");
+      return errs;
+    }
+
+    function getPick(edge, line, league, marketType, context = {}) {
+  if (!line || isNaN(edge) || isNaN(line) || line <= 0) return "NO PLAY";
+  const periodThresholds = getLeagueEdgeThresholds(league || "unknown");
+  const rules = PICK_RULES[marketType] || PICK_RULES.default;
+  const underBlockRatio = rules.underBlockRatio ?? PICK_RULES.default.underBlockRatio;
+
+  const lineScalar = line < 2.0 ? 1.25 : (line > 3.0 ? 0.85 : 1.0);
+
+  const overMin = (
+    marketType === "h2" ? (periodThresholds.h1 + 0.008) :
+    (marketType === "h1") ? periodThresholds.h1 :
+    Number(rules.over ?? PICK_RULES.default.over)
+  ) * lineScalar;
+
+  const underMin = (
+    marketType === "h2" ? (periodThresholds.h1 + Number(rules.underExtra || 0) + 0.010) :
+    (marketType === "h1") ? (periodThresholds.h1 + Number(rules.underExtra || 0)) :
+    Number(rules.under ?? PICK_RULES.default.under)
+  ) * lineScalar;
+
+  const pct = Math.abs(edge / line);
+  if (edge === 0) return "NO PLAY";
+  if (edge > 0 && pct < overMin) return "NO PLAY";
+  if (edge < 0 && pct < underMin) return "NO PLAY";
+
+  if (marketType === "h2" && Math.abs(edge) < 1.5) return "NO PLAY";
+
+  if (edge < 0) {
+    // Soft under gate only.
+    // Keep the normal threshold/sample/trap flow, but do not hard-veto
+    // a real UNDER just because recent scoring profile is high.
+  }
+
+  return edge > 0 ? "OVER " + displayLine(line) : "UNDER " + displayLine(line);
+}
+
+    function getTrapVolThreshold(marketType) {
+  // [SENTINEL FIX #7b]
+  return TRAP_RULES.volThresholds[marketType] ?? TRAP_RULES.volThresholds.ft;
+}
+
+    function detectTrap(edge, line, pick, league, marketType, vol) {
+      if (!line || isNaN(edge) || line <= 0 || !pick || pick === "NO PLAY") return false;
+      const pct = Math.abs(edge / line);
+      if (pct < TRAP_RULES.minEdgePct) return true;
+
+      let bad = 0;
+      const volLimit = getTrapVolThreshold(marketType, league);
+      if (pct > TRAP_RULES.extremeEdgePct) bad++;
+      if (vol && vol > volLimit) bad++;
+      if (marketType === "ft" && pick.includes("UNDER")) {
+        if (league === "nba" && line < TRAP_RULES.lowLineUnder.nba) bad++;
+        else if (league === "ncaa" && line < TRAP_RULES.lowLineUnder.ncaa) bad++;
+      }
+      return bad >= 2;
+    }
+
+    function selectLock(markets) {
+  const valid = markets.filter(m =>
+    m && m.pick !== "NO PLAY" && m.pick !== "—" && !isNaN(m.edge) && m.line > 0
+  );
+
+  // RULE: Only assign a lock if there is more than 1 valid pick to choose from
+  if (valid.length <= 1) return -1;
+
+  const best = [...valid].sort((a, b) => {
+    const aVolRisk = a.volatility > 0 ? (1 / a.volatility) : 1;
+    const bVolRisk = b.volatility > 0 ? (1 / b.volatility) : 1;
+
+    const aEdgePct = (Math.abs(a.edge / a.line) * 100) * (a.fullModel ? 1.1 : 0.9) * aVolRisk;
+    const bEdgePct = (Math.abs(b.edge / b.line) * 100) * (b.fullModel ? 1.1 : 0.9) * bVolRisk;
+
+    const aLockScore = aEdgePct + (isFinite(Number(a.lockStrength)) ? Number(a.lockStrength) : 0);
+    const bLockScore = bEdgePct + (isFinite(Number(b.lockStrength)) ? Number(b.lockStrength) : 0);
+    if (Math.abs(bLockScore - aLockScore) > 0.0001) {
+      return bLockScore - aLockScore;
+    }
+
+    if (Math.abs(bEdgePct - aEdgePct) > 0.0001) {
+      return bEdgePct - aEdgePct;
+    }
+
+    return Math.abs(b.edge) - Math.abs(a.edge);
+  })[0];
+
+  return Number.isInteger(best?._idx)
+    ? best._idx
+    : markets.findIndex(m => m === best);
+}
+
+
+
+
+function getConfidenceGrade({
+      pick, note, line, edge, sampleTier, projectionOnly, fullModel, trap,
+      hasH2H, volatility, volLimit, injuryNotes = [],
+      paceGapRisk = false, defensiveFloorFlag = false, blowoutGap = NaN, marketKey = ""
+    }) {
+      if (!pick || pick === "NO PLAY" || note || line === null || isNaN(line) || isNaN(edge)) return "—";
+
+      let score = 0;
+      const edgePct = Math.abs(edge / line);
+      const dtdCount = injuryNotes.filter(n => n && n.type === "dtd").length;
+      const outCount = injuryNotes.filter(n => n && n.type === "out").length;
+      const isPeriodMarket = marketKey === "ft" || marketKey === "h1" || marketKey === "h2";
+      const isH2 = marketKey === "h2";
+
+      if (fullModel && !projectionOnly && sampleTier === "full") score += 2;
+      else if (fullModel && !projectionOnly) score += 1;
+      else if (sampleTier === "full") score += 1;
+      else if (sampleTier === "thin") score -= isH2 ? 3 : 2;
+      else score -= 4;
+
+      if (projectionOnly) score -= 3;
+      if (edgePct >= 0.095) score += 2;
+      else if (edgePct >= 0.072) score += 1;
+      else if (edgePct < (isH2 ? 0.060 : 0.050)) score -= 1;
+
+      if (hasH2H) score += 1;
+      else if (isH2) score -= 1;
+
+      if (isFinite(volatility) && isFinite(volLimit)) {
+        if (volatility <= volLimit * 1.00) score += 1;
+        else if (volatility > volLimit * 1.20) score -= 1;
+      }
+      if (dtdCount >= 2) score -= 1;
+      if (outCount >= 2) score -= 1;
+      if (trap) score -= 3;
+      if (isPeriodMarket && paceGapRisk) score -= 1;
+      if (isPeriodMarket && defensiveFloorFlag) score -= 1;
+      if (isPeriodMarket && isFinite(blowoutGap) && blowoutGap > 20) score -= 1;
+      if (isH2) score -= 1;
+
+      if (isH2 && score >= 5) return "B";
+      if (score >= 5) return "A";
+      if (score >= 3) return "B";
+      if (score >= 1) return "C";
+      return "D";
+    }
+
+    // ── HYBRID FIX: Restored Market Anchoring (Vegas Safety Net) ──
+function anchorProjection(proj, line, league, marketType) {
+  // [SENTINEL FIX #7a]
+  const enabled = !!MODEL_TUNING.anchorEnabled?.[marketType];
+  if (!enabled || !isFinite(proj) || !isFinite(line) || line <= 0) return proj;
+  const rules = ANCHOR_RULES[marketType] || ANCHOR_RULES.ft;
+  const diffGate = Number(rules.diff || 0);
+  const baseWeight = Number(rules.weight || 0);
+  if (diffGate <= 0 || baseWeight <= 0) return proj;
+  const diff = Math.abs(proj - line);
+  if (diff <= diffGate) return proj;
+  const scale = Number(MODEL_TUNING.anchorScale?.[marketType] || 0.75);
+  const excess = clampNumber((diff - diffGate) / Math.max(1, diffGate * 1.5), 0, 1);
+  const weight = clampNumber(baseWeight * scale * excess, 0, 0.70);
+  return (proj * (1 - weight)) + (line * weight);
+}
+
+
+// Edge detection (use this to find value, never to correct projection)
+function calculateEdge(projection, marketLine) {
+  return isFinite(projection) && isFinite(marketLine) && marketLine !== 0
+    ? projection - marketLine
+    : NaN;
+}
+
+function readLooseSeries(id) {
+  const el = document.getElementById(id);
+  const raw = el?.value?.trim() || "";
+  if (!raw) return [];
+
+  // Split, trim, and remove completely empty strings
+  const parts = raw.split(",").map(x => x.trim()).filter(Boolean);
+  if (!parts.length) return [];
+
+  const out = [];
+  for (const part of parts) {
+    const value = Number(part);
+    
+    // Instead of nuking the whole array, just skip the corrupted entry
+    if (!isFinite(value) || value <= 0 || value > 300) {
+      engineDebug(`readLooseSeries skipped invalid input in #${id}:`, part);
+      continue; 
+    }
+    
+    out.push(value);
+    
+    // Enforce the 5-game maximum limit safely
+    if (out.length === 5) break;
+  }
+
+  return out;
+}
+
+
+function normalizeIntelSeries(arr) {
+  return (Array.isArray(arr) ? arr : []).map(Number).filter(v => isFinite(v));
+}
+
+function pairMapSeries(a, b, mapFn) {
+  const left = normalizeIntelSeries(a);
+  const right = normalizeIntelSeries(b);
+  const len = Math.min(left.length, right.length);
+  const out = [];
+
+  for (let i = 0; i < len; i++) {
+    const value = mapFn(left[i], right[i], i);
+    if (isFinite(value)) out.push(value);
+  }
+
+  return out;
+}
+
+function totalSeries(scored, allowed) {
+  return pairMapSeries(scored, allowed, (s, a) => s + a);
+}
+
+function marginSeries(scored, allowed) {
+  return pairMapSeries(scored, allowed, (s, a) => s - a);
+}
+
+
+function meanOf(...values) {
+  const clean = values.map(Number).filter(v => isFinite(v));
+  return clean.length ? clean.reduce((sum, v) => sum + v, 0) / clean.length : NaN;
+}
+
+function hitRateOver(series, threshold) {
+  const clean = normalizeIntelSeries(series);
+  const line = Number(threshold);
+  if (!clean.length || !isFinite(line) || line <= 0) return NaN;
+  return (clean.filter(v => v > line).length / clean.length) * 100;
+}
+
+function recentFormDelta(scored, allowed) {
+  const margins = marginSeries(scored, allowed);
+  if (!margins.length || margins.length < 5) return 0;
+
+  const recent = weightedRecentAverage(margins.slice(0, 3));
+  const baseline = weightedRecentAverage(margins.slice(3));
+
+  return isFinite(recent) && isFinite(baseline) ? recent - baseline : 0;
+}
+
+function formatSignedIntel(value) {
+  if (!isFinite(value)) return "—";
+  return (value > 0 ? "+" : "") + Number(value).toFixed(1);
+}
+
+function formatPctIntel(value) {
+  if (!isFinite(value)) return "—";
+  return Math.round(value) + "%";
+}
+
+function getIntelTeamBase(league, marketKey = "ft") {
+  const totalBase = LEAGUE_BASES[league] || LEAGUE_BASES.unknown;
+  if (marketKey === "h1" || marketKey === "h2") return totalBase / 4;
+  return totalBase / 2;
+}
+
+function buildLooseParsedState() {
+  return {
+    aFTScored: readLooseSeries("aFTScored"),
+    bFTScored: readLooseSeries("bFTScored"),
+    a1HScored: readLooseSeries("a1HScored"),
+    b1HScored: readLooseSeries("b1HScored"),
+    a2HScored: readLooseSeries("a2HScored"),
+    b2HScored: readLooseSeries("b2HScored")
+  };
+}
+
+function getIntelContextScope(side, scopeName) {
+  const ctx = g_massacreFetchContext?.[side] || {};
+  return scopeName === "venue" ? (ctx.venue || {}) : (ctx.overall || {});
+}
+
+function getIntelSeries(side, scopeName, key, fallback = []) {
+  const scope = getIntelContextScope(side, scopeName);
+  const ctxSeries = normalizeIntelSeries(scope?.[key]);
+  return ctxSeries.length ? ctxSeries : normalizeIntelSeries(fallback);
+}
+
+function buildTotalMarketIntelSignal(aSc, aAll, bSc, bAll, line, teamBase) {
+  const as = avgOrNaN(aSc);
+  const aa = avgOrNaN(aAll);
+  const bs = avgOrNaN(bSc);
+  const ba = avgOrNaN(bAll);
+  const totalHit = meanOf(hitRateOver(totalSeries(aSc, aAll), line), hitRateOver(totalSeries(bSc, bAll), line));
+  const form = meanOf(recentFormDelta(aSc, aAll), recentFormDelta(bSc, bAll));
+  let signed = 0;
+  const reasons = [];
+
+  if (isFinite(as) && isFinite(bs)) {
+    const avgOff = (as + bs) / 2;
+    if (avgOff >= teamBase * 1.03) {
+      signed += 1;
+      reasons.push("offense hot");
+    } else if (avgOff <= teamBase * 0.97) {
+      signed -= 1;
+      reasons.push("offense cold");
+    }
+  }
+
+  if (isFinite(aa) && isFinite(ba)) {
+    const avgLeak = (aa + ba) / 2;
+    if (avgLeak >= teamBase * 1.03) {
+      signed += 1;
+      reasons.push("defense leak");
+    } else if (avgLeak <= teamBase * 0.97) {
+      signed -= 1;
+      reasons.push("defense tight");
+    }
+  }
+
+  if (isFinite(totalHit)) {
+    if (totalHit >= 56) {
+      signed += 1;
+      reasons.push("line hit rate strong");
+    } else if (totalHit <= 44) {
+      signed -= 1;
+      reasons.push("line hit rate weak");
+    }
+  }
+
+  if (isFinite(form)) {
+    if (form >= 1.8) {
+      signed += 1;
+      reasons.push("current form up");
+    } else if (form <= -1.8) {
+      signed -= 1;
+      reasons.push("current form down");
+    }
+  }
+
+  return { signed, totalHit, form, reasons };
+}
+
+function buildTeamMarketIntelSignal(teamSc, teamAll, oppAll, line, teamBase) {
+  const off = avgOrNaN(teamSc);
+  const oppLeak = avgOrNaN(oppAll);
+  const lineHit = hitRateOver(teamSc, line);
+  const form = recentFormDelta(teamSc, teamAll);
+  const overallSpread = avgOrNaN(marginSeries(teamSc, teamAll));
+  let signed = 0;
+  const reasons = [];
+
+  if (isFinite(off)) {
+    if (off >= teamBase * 1.03) {
+      signed += 1;
+      reasons.push("team offense strong");
+    } else if (off <= teamBase * 0.97) {
+      signed -= 1;
+      reasons.push("team offense weak");
+    }
+  }
+
+  if (isFinite(oppLeak)) {
+    if (oppLeak >= teamBase * 1.03) {
+      signed += 1;
+      reasons.push("opponent defense weak");
+    } else if (oppLeak <= teamBase * 0.97) {
+      signed -= 1;
+      reasons.push("opponent defense strong");
+    }
+  }
+
+  if (isFinite(lineHit)) {
+    if (lineHit >= 56) {
+      signed += 1;
+      reasons.push("team line hit rate strong");
+    } else if (lineHit <= 44) {
+      signed -= 1;
+      reasons.push("team line hit rate weak");
+    }
+  }
+
+  if (isFinite(form)) {
+    if (form >= 1.2) {
+      signed += 1;
+      reasons.push("team form up");
+    } else if (form <= -1.2) {
+      signed -= 1;
+      reasons.push("team form down");
+    }
+  }
+
+  if (isFinite(overallSpread)) {
+    if (overallSpread >= 2) {
+      signed += 1;
+      reasons.push("spread profile positive");
+    } else if (overallSpread <= -2) {
+      signed -= 1;
+      reasons.push("spread profile negative");
+    }
+  }
+
+  return { signed, lineHit, form, reasons };
+}
+
+// [SENTINEL FIX #2]
+function avgOrNaN(arr) {
+  const work = Array.isArray(arr) ? arr.map(Number).filter(v => isFinite(v)) : [];
+  return work.length ? work.reduce((s, v) => s + v, 0) / work.length : NaN;
+}
+
+function getMarketKeyFromName(name) {
+  const n = String(name || "").toLowerCase();
+  if (n.includes("team a")) return "team_a";
+  if (n.includes("team b")) return "team_b";
+  if (n.includes("1h") || n.includes("first half")) return "h1";
+  if (n.includes("2h") || n.includes("second half")) return "h2";
+  if (n.includes("ft") || n.includes("total")) return "ft";
+  return "";
+}
+
+function computeIntelligencePack(league, lines = {}, parsedInput = null) {
+  const parsed = parsedInput || buildLooseParsedState();
+  const ftLine = Number(lines?.ftLine);
+  const h1Line = Number(lines?.h1Line);
+  const h2Line = Number(lines?.h2Line);
+  const baseFT = getIntelTeamBase(league, "ft");
+  const baseH1 = getIntelTeamBase(league, "h1");
+  const baseH2 = getIntelTeamBase(league, "h2");
+
+  const aOverallFTSc = getIntelSeries("A", "overall", "ftScored10", parsed.aFTScored);
+  const aOverallFTAl = [];
+  const bOverallFTSc = getIntelSeries("B", "overall", "ftScored10", parsed.bFTScored);
+  const bOverallFTAl = [];
+
+  const aOverallH1Sc = getIntelSeries("A", "overall", "h1Scored10", parsed.a1HScored);
+  const aOverallH1Al = [];
+  const bOverallH1Sc = getIntelSeries("B", "overall", "h1Scored10", parsed.b1HScored);
+  const bOverallH1Al = [];
+
+  const aOverallH2Sc = getIntelSeries("A", "overall", "h2Scored10", parsed.a2HScored);
+  const aOverallH2Al = [];
+  const bOverallH2Sc = getIntelSeries("B", "overall", "h2Scored10", parsed.b2HScored);
+  const bOverallH2Al = [];
+
+  const defaultTotalLine = isFinite(ftLine) && ftLine > 0 ? ftLine : (LEAGUE_BASES[league] || LEAGUE_BASES.unknown);
+  const altHighLine = defaultTotalLine + 1.0; // [SENTINEL FIX #5a]
+
+  const aForm = recentFormDelta(aOverallFTSc, aOverallFTAl);
+  const bForm = recentFormDelta(bOverallFTSc, bOverallFTAl);
+  const aOff = avgOrNaN(aOverallFTSc) - baseFT;
+  const bOff = avgOrNaN(bOverallFTSc) - baseFT;
+  const aDef = baseFT - avgOrNaN(aOverallFTAl);
+  const bDef = baseFT - avgOrNaN(bOverallFTAl);
+  const aSpreadOverall = avgOrNaN(marginSeries(aOverallFTSc, aOverallFTAl));
+  const bSpreadOverall = avgOrNaN(marginSeries(bOverallFTSc, bOverallFTAl));
+  const aHitLine = hitRateOver(totalSeries(aOverallFTSc, aOverallFTAl), defaultTotalLine);
+  const bHitLine = hitRateOver(totalSeries(bOverallFTSc, bOverallFTAl), defaultTotalLine);
+  const aHitHigh = hitRateOver(totalSeries(aOverallFTSc, aOverallFTAl), altHighLine);
+  const bHitHigh = hitRateOver(totalSeries(bOverallFTSc, bOverallFTAl), altHighLine);
+
+  return {
+    teamA: {
+      form: aForm,
+      offense: aOff,
+      defense: aDef,
+      spreadOverall: aSpreadOverall,
+      hitProfile: `Over ${displayLine(defaultTotalLine)} ${formatPctIntel(aHitLine)} | Over ${displayLine(altHighLine)} ${formatPctIntel(aHitHigh)}`,
+      summary: `Form ${formatSignedIntel(aForm)} | Off ${formatSignedIntel(aOff)} | Def ${formatSignedIntel(aDef)}`,
+      spreadSummary: `Overall ${formatSignedIntel(aSpreadOverall)}`
+    },
+    teamB: {
+      form: bForm,
+      offense: bOff,
+      defense: bDef,
+      spreadOverall: bSpreadOverall,
+      hitProfile: `Over ${displayLine(defaultTotalLine)} ${formatPctIntel(bHitLine)} | Over ${displayLine(altHighLine)} ${formatPctIntel(bHitHigh)}`,
+      summary: `Form ${formatSignedIntel(bForm)} | Off ${formatSignedIntel(bOff)} | Def ${formatSignedIntel(bDef)}`,
+      spreadSummary: `Overall ${formatSignedIntel(bSpreadOverall)}`
+    },
+    marketSignals: {
+      ft: buildTotalMarketIntelSignal(aOverallFTSc, aOverallFTAl, bOverallFTSc, bOverallFTAl, defaultTotalLine, baseFT),
+      h1: buildTotalMarketIntelSignal(aOverallH1Sc, aOverallH1Al, bOverallH1Sc, bOverallH1Al, isFinite(h1Line) ? h1Line : (LEAGUE_BASES[league] || LEAGUE_BASES.unknown) / 2, baseH1),
+      h2: buildTotalMarketIntelSignal(aOverallH2Sc, aOverallH2Al, bOverallH2Sc, bOverallH2Al, isFinite(h2Line) ? h2Line : (LEAGUE_BASES[league] || LEAGUE_BASES.unknown) / 2, baseH2),
+      team_a: buildTeamMarketIntelSignal(aOverallFTSc, aOverallFTAl, bOverallFTAl, Number(lines?.aLine), baseFT),
+      team_b: buildTeamMarketIntelSignal(bOverallFTSc, bOverallFTAl, aOverallFTAl, Number(lines?.bLine), baseFT)
+    },
+    hasAnyData: [aForm, bForm, aOff, bOff, aSpreadOverall, bSpreadOverall].some(v => isFinite(v))
+  };
+}
+
+function updateIntelligencePack(leagueOverride = "", linesOverride = null, parsedOverride = null) {
+  const league = leagueOverride || document.getElementById("leagueSelect")?.value || "";
+  const fields = [
+    "aFormIntel", "bFormIntel", "aSpreadIntel", "bSpreadIntel",
+    "aHitIntel", "bHitIntel"
+  ];
+
+  if (!league) {
+    setFieldValues(fields, "");
+    setAutoTagVisible("intelAutoTag", false);
+    return null;
+  }
+
+  const derivedLines = linesOverride || {
+    ftLine: parseMarketLine(document.getElementById("ftMarket")?.value || ""),
+    h1Line: parseMarketLine(document.getElementById("h1Market")?.value || ""),
+    h2Line: parseMarketLine(document.getElementById("h2Market")?.value || ""),
+    aLine: parseMarketLine(document.getElementById("teamAMarket")?.value || ""),
+    bLine: parseMarketLine(document.getElementById("teamBMarket")?.value || "")
+  };
+
+  const pack = computeIntelligencePack(league, derivedLines, parsedOverride || buildLooseParsedState());
+
+  const aFormIntel = document.getElementById("aFormIntel");
+  const bFormIntel = document.getElementById("bFormIntel");
+  const aSpreadIntel = document.getElementById("aSpreadIntel");
+  const bSpreadIntel = document.getElementById("bSpreadIntel");
+  const aHitIntel = document.getElementById("aHitIntel");
+  const bHitIntel = document.getElementById("bHitIntel");
+
+  if (aFormIntel) aFormIntel.value = pack.teamA.summary;
+  if (bFormIntel) bFormIntel.value = pack.teamB.summary;
+  if (aSpreadIntel) aSpreadIntel.value = pack.teamA.spreadSummary;
+  if (bSpreadIntel) bSpreadIntel.value = pack.teamB.spreadSummary;
+  if (aHitIntel) aHitIntel.value = pack.teamA.hitProfile;
+  if (bHitIntel) bHitIntel.value = pack.teamB.hitProfile;
+
+  setAutoTagVisible("intelAutoTag", !!pack.hasAnyData);
+  return pack;
+}
+
+function applyIntelligenceLayerToPicks(picks, intelligencePack, league) {
+  if (!Array.isArray(picks) || !intelligencePack?.marketSignals) return;
+
+  picks.forEach(p => {
+    if (!p || p.pick === "NO PLAY" || p.note || !isFinite(p.edge) || !isFinite(p.line) || p.line <= 0) return;
+
+    const side = getPickSideFromText(p.pick);
+    const marketKey = getMarketKeyFromName(p.name);
+    const marketSignal = intelligencePack.marketSignals[marketKey];
+    if (!side || !marketSignal) return;
+
+    const sideSignal = side === "over" ? Number(marketSignal.signed || 0) : -Number(marketSignal.signed || 0);
+    const factor = 1 + clampNumber(sideSignal, -2, 2) * 0.03;
+    const originalEdge = p.edge;
+    const adjustedEdge = p.edge * factor;
+    const hypotheticalPick = getPick(adjustedEdge, p.line, league, p.marketType, p.context || {});
+
+    p.intelligence = {
+      marketKey,
+      rawSignal: Number(marketSignal.signed || 0),
+      sideSignal,
+      factor,
+      reasons: Array.isArray(marketSignal.reasons) ? marketSignal.reasons : []
+    };
+
+    p.shadowIntelligence = {
+      originalEdge,
+      adjustedEdge,
+      hypotheticalPick: hypotheticalPick || "NO PLAY"
+    };
+
+    if (sideSignal <= -3 && (!hypotheticalPick || hypotheticalPick === "NO PLAY")) {
+      p.pick = "NO PLAY";
+      p.confidence = "—";
+      p.note = "Intel gate: form / offense / hit profile weak";
+      return;
+    }
+
+    p.edge = adjustedEdge;
+    p.proj = p.line + adjustedEdge;
+
+    if (hypotheticalPick && hypotheticalPick !== "NO PLAY" && getPickSideFromText(hypotheticalPick) === side) {
+      p.pick = hypotheticalPick;
+    }
+
+    if (sideSignal >= 2) p.confidence = bumpConfidenceGrade(p.confidence, 1);
+    else if (sideSignal <= -2) p.confidence = bumpConfidenceGrade(p.confidence, -1);
+  });
+}
+
+const FIELD_GROUPS = {
+  markets: ["ftMarket", "h1Market", "h2Market", "teamAMarket", "teamBMarket"],
+
+  teamAOverall: ["aFTScored", "a1HScored", "a2HScored"],
+
+  teamBOverall: ["bFTScored", "b1HScored", "b2HScored"],
+
+  h2h: ["aFTH2H", "bFTH2H", "a1HH2H", "b1HH2H", "a2HH2H", "b2HH2H"],
+
+  intelFields: ["aFormIntel", "bFormIntel", "aSpreadIntel", "bSpreadIntel", "aHitIntel", "bHitIntel"],
+
+  autoTags: ["aAutoTag", "bAutoTag", "h2hAutoTag", "intelAutoTag"],
+
+  periodInputs: [
+    "a1HScored","b1HScored",
+    "a1HH2H","b1HH2H","h1Market",
+    "a2HScored","b2HScored",
+    "a2HH2H","b2HH2H","h2Market"
+  ]
+};
+
+function setFieldValues(ids, value = "") {
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = value;
+  });
+}
+
+function setDisplayValues(ids, displayValue) {
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = displayValue;
+  });
+}
+
+function setAutoTagVisible(id, visible) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = visible ? "inline" : "none";
+}
+
+function hideInjuryBox(side) {
+  const box = document.getElementById(side === "A" ? "injuryBoxA" : "injuryBoxB");
+  const content = document.getElementById(side === "A" ? "injuryContentA" : "injuryContentB");
+  if (content) content.innerHTML = "";
+  if (box) box.style.display = "none";
+}
+
+    function clearSideFields(side) {
+  // [SENTINEL FIX #8a]
+  const ids = side === "A"
+    ? ["aFTScored", "aFTAllowed", "a1HScored", "a2HScored"]
+    : ["bFTScored", "bFTAllowed", "b1HScored", "b2HScored"];
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+  const tagIds = side === "A" ? ["aAutoTag"] : ["bAutoTag"];
+  tagIds.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  if (side === "A") g_injA = defaultInjuryMeta();
+  if (side === "B") g_injB = defaultInjuryMeta();
+  hideInjuryBox(side);
+}
+
+
+function clearH2HFields() {
+  ["aFTH2H", "bFTH2H", "a1HH2H", "b1HH2H", "a2HH2H", "b2HH2H"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+
+  g_h2hManualPreference.ft = null;
+  g_h2hManualPreference.h1 = null;
+  g_h2hManualPreference.h2 = null;
+
+  ["useFTH2H","use1HH2H","use2HH2H"].forEach(id => {
+    const cb = document.getElementById(id);
+    if (cb) cb.checked = false;
+  });
+
+  syncAllH2HCheckboxes(true);
+  const h2hTag = document.getElementById("h2hAutoTag");
+  if (h2hTag) h2hTag.style.display = "none";
+}
+
+        function clearAutoFill(changedSide = null) {
+      // FIX: _fetchToken++ removed
+      unlockFetchBtn();
+      setStatusText("", "");
+      setFetchAuditIssues([]);
+      resetResultsTable();
+
+      if (changedSide === "A" || changedSide === "B") {
+        g_massacreFetchContext = defaultMassacreFetchContext();
+        selectedTeamIds[changedSide] = null;
+        g_lastFetchedTeams[changedSide] = "";
+        setManualSource(changedSide);
+        if (changedSide === "A") { g_injA = defaultInjuryMeta(); hideInjuryBox("A"); }
+        if (changedSide === "B") { g_injB = defaultInjuryMeta(); hideInjuryBox("B"); }
+        clearSideFields(changedSide);
+        clearH2HFields();
+      } else {
+        selectedTeamIds = { A: null, B: null };
+        g_lastFetchedTeams = { A: "", B: "" };
+        g_fetchMeta = defaultFetchMeta();
+        clearSideFields("A");
+        clearSideFields("B");
+        clearH2HFields();
+      }
+
+      validateFetchSection();
+      updateIntelligencePack();
+    }
+
+
+
+    function updateSectionLocks() {
+  const league = document.getElementById("leagueSelect")?.value || "";
+  const isSupported = league !== "" && league !== "unknown";
+
+  if (!league) {
+    [
+      "espnSection",
+      "marketSection",
+      "teamASection",
+      "teamBSection",
+      "h2hSection",
+      "intelSection"
+    ].forEach(lockSection);
+    return;
+  }
+
+  unlockSection("marketSection");
+  unlockSection("teamASection");
+  unlockSection("teamBSection");
+  unlockSection("h2hSection");
+  unlockSection("intelSection");
+
+  if (isSupported) unlockSection("espnSection");
+  else lockSection("espnSection");
+}
+
+    function getDateKeyLocal(dateObj) {
+      const d = new Date(dateObj);
+      if (isNaN(d.getTime())) return "";
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return "" + y + m + day;
+    }
+
+    function getLocalDateKey(daysAhead = 0) {
+      const d = new Date();
+      d.setHours(12, 0, 0, 0);
+      d.setDate(d.getDate() + daysAhead);
+      return getDateKeyLocal(d);
+    }
+
+    function getLocalDateKeyFromISO(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  d.setHours(12, 0, 0, 0);
+  return getDateKeyLocal(d);
+}
+
+    function setFixtureDay(offset) {
+      const todayBtn = document.getElementById("fixturesTodayBtn");
+      const tomorrowBtn = document.getElementById("fixturesTomorrowBtn");
+      if (!todayBtn || !tomorrowBtn) return;
+      todayBtn.classList.toggle("active", offset === 0);
+      tomorrowBtn.classList.toggle("active", offset === 1);
+    }
+
+    function formatFixtureTime(dateStr) {
+      if (!dateStr) return "--:--";
+      try {
+        return new Date(dateStr).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      } catch (e) {
+        return "--:--";
+      }
+    }
+
+    function getLeagueBase(league) {
+  // Catch any empty/invalid requests early
+  if (!league || league === "unknown") return "";
+
+  // ESPN maps all soccer to this base structure: /sports/soccer/[league_slug]
+  // Since our HTML values (e.g., 'eng.1', 'uefa.champions') perfectly match ESPN's slugs, 
+  // we can route them dynamically without a massive if/else block!
+  return `https://site.api.espn.com/apis/site/v2/sports/soccer/${league}`;
+}
+
+function getTrackedLeagueBase(league) {
+  // This mirrors getLeagueBase for the background tracker sync
+  if (!league || league === "unknown") return "";
+  return `https://site.api.espn.com/apis/site/v2/sports/soccer/${league}`;
+}
+
+function isTrackerSupportedLeague(league) {
+  return league && league !== "unknown" && league.includes(".");
+}
+
+function getCurrentSeasonYear(league) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // Jan=0, Oct=9
+
+  // NBA / NCAA seasons that start in Oct belong to the next season year
+  if ((league === "nba" || league === "ncaa") && month >= 9) {
+    return year + 1;
+  }
+
+  return year;
+}
+
+    async function fetchLeagueTeamCatalog(league) {
+      const base = getLeagueBase(league);
+      if (!base) return [];
+      if (_teamCatalogCache.has(league)) return _teamCatalogCache.get(league);
+
+      const promise = (async () => {
+        const data = await proxyFetch(base + "/teams?limit=500");
+        const leagues = data?.sports?.[0]?.leagues || [];
+        let teams = [];
+        for (const lg of leagues) teams = teams.concat(lg?.teams || []);
+        if (!teams.length) teams = data?.teams || [];
+
+        const seen = new Set();
+        const out = [];
+        for (const item of teams) {
+          const t = item.team || item;
+          const id = String(t?.id || "");
+          const name = t?.displayName || t?.shortDisplayName || t?.name || "";
+          if (!id || !name) continue;
+          const key = id + "::" + normalizeTeamName(name);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          out.push({ id, name });
+        }
+        out.sort((a, b) => a.name.localeCompare(b.name));
+        return out;
+      })().catch(err => {
+        _teamCatalogCache.delete(league);
+        logDebug("fetchLeagueTeamCatalog failed", err);
+        return [];
+      });
+
+      cacheSet(_teamCatalogCache, league, promise);
+      return promise;
+    }
+
+    function highlight(name, query) {
+      const rawQ = String(query || "").trim();
+      if (!rawQ) return safeText(name);
+      const originalLower = String(name || "").toLowerCase();
+      const queryLower = rawQ.toLowerCase();
+      const rawIndex = originalLower.indexOf(queryLower);
+      if (rawIndex === -1) return safeText(name);
+      return (
+        safeText(name.slice(0, rawIndex)) +
+        "<strong>" + safeText(name.slice(rawIndex, rawIndex + rawQ.length)) + "</strong>" +
+        safeText(name.slice(rawIndex + rawQ.length))
+      );
+    }
+
+    function closeDrop(dropId) {
+      const drop = document.getElementById(dropId);
+      if (drop) { drop.style.display = "none"; drop.innerHTML = ""; }
+      if (activeDropTeam === (dropId === "dropA" ? "A" : "B")) activeDropTeam = null;
+    }
+const _dropCloseTimers = { dropA: null, dropB: null };
+
+function scheduleDropClose(dropId) {
+  if (!_dropCloseTimers.hasOwnProperty(dropId)) return;
+
+  clearTimeout(_dropCloseTimers[dropId]);
+  _dropCloseTimers[dropId] = setTimeout(() => {
+    closeDrop(dropId);
+    _dropCloseTimers[dropId] = null;
+  }, 120);
+}
+
+function cancelDropClose(dropId = null) {
+  if (dropId) {
+    if (_dropCloseTimers.hasOwnProperty(dropId)) {
+      clearTimeout(_dropCloseTimers[dropId]);
+      _dropCloseTimers[dropId] = null;
+    }
+    return;
+  }
+
+  Object.keys(_dropCloseTimers).forEach(key => {
+    clearTimeout(_dropCloseTimers[key]);
+    _dropCloseTimers[key] = null;
+  });
+}
+    function selectTeam(side, name, id) {
+  const inputId = side === "A" ? "teamAName" : "teamBName";
+  const dropId = side === "A" ? "dropA" : "dropB";
+  document.getElementById(inputId).value = name;
+  selectedTeamIds[side] = id || null;
+  closeDrop(dropId);
+  activeDropTeam = null;
+  validateFetchSection();
+updateIntelligencePack();
+}
+
+    function lookupTeamId(name, leagueHint) {
+      const n = normalizeTeamName(name);
+      if (leagueHint === "nba") {
+        if (NBA_TEAM_MAP[n] !== undefined) return NBA_TEAM_MAP[n];
+        let bestKey = null, bestLen = 0;
+        for (const key of Object.keys(NBA_TEAM_MAP)) {
+          if (n.includes(key) && key.length > bestLen) { bestKey = key; bestLen = key.length; }
+        }
+        if (bestKey) return NBA_TEAM_MAP[bestKey];
+        if (n.length >= 3) {
+          bestKey = null; bestLen = 0;
+          for (const key of Object.keys(NBA_TEAM_MAP)) {
+            if (key.includes(n) && key.length > bestLen) { bestKey = key; bestLen = key.length; }
+          }
+          if (bestKey) return NBA_TEAM_MAP[bestKey];
+        }
+      }
+      if (leagueHint === "ncaa") {
+        if (NCAA_TEAM_MAP[n] !== undefined) return NCAA_TEAM_MAP[n];
+        let bestKey = null, bestLen = 0;
+        for (const key of Object.keys(NCAA_TEAM_MAP)) {
+          if (n.includes(key) && key.length > bestLen) { bestKey = key; bestLen = key.length; }
+        }
+        if (bestKey) return NCAA_TEAM_MAP[bestKey];
+      }
+      return null;
+    }
+
+    function getTeamIdentityKey(name, league) {
+      const norm = normalizeTeamName(name);
+      if (!norm) return "";
+      const mappedId = lookupTeamId(norm, league);
+      return mappedId ? `${league}:${mappedId}` : `${league}:name:${norm}`;
+    }
+
+    async function onTeamInput(side) {
+      const inputId = side === "A" ? "teamAName" : "teamBName";
+      const dropId = side === "A" ? "dropA" : "dropB";
+      const input = document.getElementById(inputId);
+      const drop = document.getElementById(dropId);
+      const val = input.value.trim();
+      const league = document.getElementById("leagueSelect").value;
+      const normVal = normalizeTeamName(val);
+
+      if (normVal !== g_lastFetchedTeams[side]) {
+        if (g_lastFetchedTeams[side]) {
+          clearAutoFill(side);
+        } else {
+          setStatusText("", "");
+          setFetchAuditIssues([]);
+          resetResultsTable();
+        }
+      }
+      selectedTeamIds[side] = null;
+      validateFetchSection();
+
+      if (!val) { closeDrop(dropId); return; }
+      if (!league || league === "unknown") { closeDrop(dropId); return; }
+
+      // FIX: Use AbortController instead of legacy integer tokens
+      if (g_teamSearchControllers[side]) {
+        g_teamSearchControllers[side].abort();
+      }
+      g_teamSearchControllers[side] = new AbortController();
+      const currentSignal = g_teamSearchControllers[side].signal;
+
+      try {
+        const teams = await fetchLeagueTeamCatalog(league);
         
+        // Bail out if a newer keystroke has aborted this specific cycle
+        if (currentSignal.aborted) return;
+
+        const matches = teams.filter(t => normalizeTeamName(t.name).includes(normVal)).slice(0, 20);
+        if (!matches.length) { closeDrop(dropId); return; }
+
+        drop.innerHTML = "";
+        const group = document.createElement("div");
+        group.className = "group-label";
+        group.textContent = league === "nba" ? "NBA" : "NCAA";
+        drop.appendChild(group);
+
+        matches.forEach(team => {
+          const div = document.createElement("div");
+          div.dataset.id = team.id;
+          div.dataset.name = team.name;
+          div.innerHTML = highlight(team.name, val);
+          div.addEventListener("mousedown", () => selectTeam(side, team.name, team.id));
+          drop.appendChild(div);
+        });
+
+        drop.style.display = "block";
+        activeDropTeam = side;
+        validateFetchSection();
+      } catch (err) {
+        if (!currentSignal.aborted) {
+          console.error("[BB Engine] Autocomplete fetch failed", err);
+        }
+      }
+    }
+
+
+    document.addEventListener("click", e => {
+      if (!e.target.closest(".autocomplete-wrap")) {
+        closeDrop("dropA");
+        closeDrop("dropB");
+      }
+    });
+
+    document.addEventListener("keydown", e => {
+      if (!activeDropTeam) return;
+      const dropId = activeDropTeam === "A" ? "dropA" : "dropB";
+      const drop = document.getElementById(dropId);
+      const items = [...drop.querySelectorAll("div:not(.group-label)")];
+      if (!items.length) return;
+      const current = drop.querySelector(".active");
+      const idx = items.indexOf(current);
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (current) current.classList.remove("active");
+        items[Math.min(idx + 1, items.length - 1)].classList.add("active");
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (current) current.classList.remove("active");
+        items[Math.max(idx - 1, 0)].classList.add("active");
+      } else if (e.key === "Enter") {
+        if (current) { e.preventDefault(); current.dispatchEvent(new MouseEvent("mousedown")); }
+      } else if (e.key === "Escape") {
+        closeDrop(dropId);
+        activeDropTeam = null;
+      }
+    });
+
+    function makeSectionsCollapsible() {
+      document.querySelectorAll(".section").forEach(section => {
+        if (section.dataset.collapsibleReady === "1") return;
+        const heading = section.querySelector("h3");
+        if (!heading) return;
+        const titleHTML = heading.innerHTML;
+        const body = document.createElement("div");
+        body.className = "section-body";
+        const children = [...section.childNodes];
+        children.forEach(node => { if (node !== heading) body.appendChild(node); });
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "section-toggle";
+        const titleSpan = document.createElement("span");
+        titleSpan.className = "toggle-title";
+        titleSpan.innerHTML = titleHTML;
+        const iconSpan = document.createElement("span");
+        iconSpan.className = "toggle-icon";
+        iconSpan.innerHTML = "&#9662;";
+        btn.appendChild(titleSpan);
+        btn.appendChild(iconSpan);
+        btn.addEventListener("click", () => { section.classList.toggle("collapsed"); updateSectionLocks(); });
+
+        section.innerHTML = "";
+        section.appendChild(btn);
+        section.appendChild(body);
+        section.classList.add("collapsed");
+        section.dataset.collapsibleReady = "1";
+      });
+    }
+
+    function validateTeamId(id, league) {
+      if (!id) return false;
+      const n = parseInt(id, 10);
+      if (isNaN(n)) return false;
+      if (league === "nba") return n >= 1 && n <= 30;
+      if (league === "ncaa") return n >= 2;
+      return n > 0;
+    }
+
+    async function searchTeamFromAPI(base, name, league) {
+  const n = normalizeTeamName(name);
+  uiLog(`🔎 Resolving ID for: "${name}"...`);
+
+  try {
+    const data = await proxyFetch(base + "/teams?limit=500");
+    const leagues = data?.sports?.[0]?.leagues || [];
+    let teams = [];
+    for (const l of leagues) teams = teams.concat(l?.teams || []);
+    if (!teams.length) teams = data?.teams || [];
+
+    const words = n.split(/\s+/).filter(w => w.length >= 3);
+    let best = null, bestScore = 0;
+
+    for (const t of teams) {
+      const team = t.team || t;
+      const displayName = normalizeTeamName(team.displayName || "");
+      const shortName = normalizeTeamName(team.shortDisplayName || "");
+
+      if (displayName === n || shortName === n) {
+        uiLog(`✅ Found exact match: ${team.displayName} (ID: ${team.id})`);
+        return String(team.id);
+      }
+
+      let score = 0;
+      if (displayName.includes(n) || n.includes(displayName)) score += 4;
+      if (shortName.includes(n) || n.includes(shortName)) score += 4;
+      if (score > bestScore) { bestScore = score; best = String(team.id); }
+    }
+    if (best && bestScore >= 3) {
+      uiLog(`⚠️ Fuzzy match selected (ID: ${best})`);
+      return best;
+    }
+  } catch (e) { uiLog(`❌ Primary search failed`, true); }
+
+  try {
+    const catalog = await fetchLeagueTeamCatalog(league);
+    const catalogMap = new Map(catalog.map(t => [String(t.id), normalizeTeamName(t.name)]));
+
+    // FIX: Removed &sport=basketball from this URL
+    const data = await proxyFetch(
+      "https://site.api.espn.com/apis/common/v3/search?query=" +
+      encodeURIComponent(name) + "&limit=10&type=team" 
+    );
+
+    let bestId = null, bestScore = 0;
+    for (const r of (data?.items || data?.results || [])) {
+      const uid = r?.uid || r?.team?.uid || "";
+      const id = uid.match(/t:(\d+)/)?.[1] || String(r?.id || r?.team?.id || "");
+      if (!id || !catalogMap.has(id)) continue;
+
+      const resultName = normalizeTeamName(r?.displayName || "");
+      let score = (resultName === n) ? 6 : (resultName.includes(n) ? 2 : 0);
+      if (score > bestScore) { bestScore = score; bestId = id; }
+    }
+    if (bestId && bestScore >= 2) {
+      uiLog(`⚠️ Fallback match selected (ID: ${bestId})`);
+      return bestId;
+    }
+    uiLog(`❌ Could not resolve ID for "${name}".`, true);
+    return null;
+  } catch (e) { return null; }
+}
+
+
+
+    async function fetchInjuryMeta(base, teamId, teamAvgScored, league) {
+  const result = {
+    scoringMult: 1,
+    notes: [],
+    outCount: 0,
+    dtdCount: 0,
+    unknownImpactCount: 0,
+    hasUnknownImpact: false,
+    highUncertainty: false
+  };
+
+  try {
+    const data = await proxyFetch(`${base}/teams/${teamId}/injuries`).catch(() => null);
+    const items = data?.injuries || data?.items || [];
+    if (!items.length) return result;
+
+    const avgPPG = (isFinite(teamAvgScored) && teamAvgScored > 0) ? teamAvgScored : 1.5; // [SENTINEL FIX #5b]
+    let totalReduction = 0;
+
+    for (const inj of items) {
+      const status = (inj?.status || inj?.type?.description || "").toLowerCase();
+      const isOut = status.includes("out") || status.includes("injured reserve") || status.includes("suspended");
+      const isDTD = status.includes("questionable") || status.includes("doubtful") || status.includes("day-to-day");
+      if (!isOut && !isDTD) continue;
+
+      const athlete = inj?.athlete || inj?.person || {};
+      const playerName = athlete?.displayName || athlete?.fullName || "Unknown";
+      const tag = isOut ? "OUT" : "DTD";
+
+      if (isOut) result.outCount++;
+      if (isDTD) result.dtdCount++;
+
+      let ppg = 0;
+
+      for (const cat of (athlete?.statistics?.splits?.categories || [])) {
+        for (const stat of (cat.stats || [])) {
+          if (stat.name === "avgPoints" || stat.abbreviation === "PPG") {
+            ppg = parseFloat(stat.value) || 0;
+          }
+        }
+      }
+
+      if (ppg <= 0) {
+        result.unknownImpactCount++;
+        // FIX: Apply a flat, conservative 2% offense penalty for unknown injuries
+        const unknownPenalty = isOut ? 0.02 : 0.01; 
+        totalReduction += unknownPenalty;
+        result.notes.push({
+          type: isOut ? "out" : "dtd",
+          text: `${playerName} — ${tag} (impact unknown) → -${(unknownPenalty * 100).toFixed(1)}%`
+        });
+        continue;
+      }
+
+      const share = ppg / avgPPG;
+      const impact = Math.min(isOut ? share * 0.65 : share * 0.30, 0.22);
+      totalReduction += impact;
+
+      result.notes.push({
+        type: isOut ? "out" : "dtd",
+        text: `${playerName} (${ppg.toFixed(1)} ppg) — ${tag} → -${(impact * 100).toFixed(1)}% offense`
+      });
+    }
+
+    const maxInjCap = league === "nba" ? 0.25 : 0.20;
+    result.scoringMult = 1 - Math.min(totalReduction, maxInjCap);
+    result.hasUnknownImpact = result.unknownImpactCount > 0;
+
+    result.highUncertainty =
+      result.dtdCount >= 2 ||
+      result.unknownImpactCount >= 2 ||
+      (result.dtdCount >= 1 && result.hasUnknownImpact) ||
+      result.outCount >= 3;
+
+    if (result.hasUnknownImpact) {
+      result.notes.push({ type: "meta", text: "Injury caution: some player scoring data unavailable" });
+    }
+
+    if (result.highUncertainty) {
+      result.notes.push({ type: "meta", text: "High injury uncertainty" });
+    }
+  } catch (e) {
+    logDebug("fetchInjuryMeta failed", e);
+  }
+
+  return result;
+}
+
+
+    function stripOTFromScores(scoreA, scoreB, linesA, linesB, regulationPeriods) {
+  // In league soccer, we just take the standard 90-minute Match Score.
+  // Cup games with Extra Time/Penalties might need deeper handling later, 
+  // but for primary markets, we just pass the standard goals through.
+  return [scoreA, scoreB];
+}
+
+    // V3 + V6 + V7: shared fetch core using LEAGUE_FETCH_RULES
+
+async function fetchScheduleCore(base, teamId, leagueKey, requiredVenue, allowFallback = true) {
+  const rules = LEAGUE_FETCH_RULES[leagueKey];
+  if (!rules) return null;
+
+  const tId = String(teamId);
+  const gameRefs = [];
+  const currentSeason = getCurrentSeasonYear(leagueKey);
+
+  for (let i = 0; i < rules.recentSeasons; i++) {
+    const season = String(currentSeason - i);
+
+    for (const stype of rules.scheduleTypes) {
+      try {
+        const key = `${base}:sched:${teamId}:${season}:${stype}`;
+        const r = await (_schedCache.has(key)
+          ? _schedCache.get(key)
+          : (() => {
+              const p = proxyFetch(`${base}/teams/${teamId}/schedule?season=${season}&seasontype=${stype}`).catch(err => {
+                _schedCache.delete(key);
+                throw err;
+              });
+              cacheSet(_schedCache, key, p);
+              return p;
+            })());
+
+        const events = r?.events || r?.team?.schedule?.events || [];
+        for (const ev of events) {
+          if (!ev?.id) continue;
+
+          const comp = ev?.competitions?.[0];
+          if (!comp) continue;
+
+          const done =
+            comp?.status?.type?.completed ||
+            comp?.status?.type?.name === "STATUS_FINAL" ||
+            comp?.status?.type?.state === "post";
+
+          if (!done || (comp?.competitors || []).length < 2) continue;
+
+          const competitors = comp.competitors;
+          const mine = competitors.find(x => matchesTeam(x, tId)) || competitors[0];
+          const opp = competitors.find(x => !matchesTeam(x, tId)) || competitors[1];
+          const ps = s => typeof s === "object" ? parseFloat(s.value ?? s.displayValue ?? 0) : parseFloat(s);
+
+          gameRefs.push({
+            id: String(ev.id),
+            date: ev.date || "",
+            rawS: ps(mine?.score),
+            rawA: ps(opp?.score),
+            venue: mine?.homeAway || ""
+          });
+        }
+      } catch (e) {
+        logDebug("fetchScheduleCore failed", e);
+      }
+    }
+  }
+
+  if (!gameRefs.length) return null;
+
+  const seen = new Set();
+  const unique = gameRefs
+    .filter(g => {
+      if (seen.has(g.id)) return false;
+      seen.add(g.id);
+      return true;
+    })
+    .sort((a, b) => {
+      const da = a.date ? new Date(a.date).getTime() : 0;
+      const db = b.date ? new Date(b.date).getTime() : 0;
+      return db - da;
+    });
+
+  const strictFiltered = requiredVenue ? unique.filter(g => g.venue === requiredVenue) : unique;
+  const venueReliable = strictFiltered.length >= 2;
+  const usedVenueFallback = !!requiredVenue && !venueReliable && unique.length >= 2 && allowFallback;
+  const chosen = venueReliable ? strictFiltered : (allowFallback ? unique : strictFiltered);
+
+  if (chosen.length < 2) return null;
+
+  const scored10 = [];
+  const allowed10 = [];
+  const h1Scored10 = [];
+  const h1Allowed10 = [];
+  const h2Scored10 = [];
+  const h2Allowed10 = [];
+
+    // Weaponized Concurrency Limiter: Process 3 requests at a time
+  const batchSize = 3;
+  const targetGames = chosen.slice(0, 10);
+  const summaries = [];
+
+  for (let i = 0; i < targetGames.length; i += batchSize) {
+    const chunk = targetGames.slice(i, i + batchSize);
+    const chunkResults = await Promise.all(chunk.map(async ref => {
+      let ms = ref.rawS;
+      let os = ref.rawA;
+      let h1m = 0;
+      let h1o = 0;
+      let h2m = 0;
+      let h2o = 0;
+      let gotLS = false;
+      let advanced = null;
+
+      try {
+        const key = `${base}:sum:${ref.id}`;
+        const data = await (_summaryCache.has(key)
+          ? _summaryCache.get(key)
+          : (() => {
+              const p = proxyFetch(`${base}/summary?event=${ref.id}`).catch(err => {
+                _summaryCache.delete(key);
+                throw err;
+              });
+              cacheSet(_summaryCache, key, p);
+              return p;
+            })());
+
+        const hc = data?.header?.competitions?.[0];
+        const boxscore = data?.boxscore;
+
+        if (hc) {
+          const competitors = hc?.competitors || [];
+          const mine = competitors.find(c => matchesTeam(c, tId));
+          const opp = competitors.find(c => !matchesTeam(c, tId));
+
+                    if (mine && opp) {
+            gotLS = true;
+            ms = parseFloat(mine.score) || ms;
+            os = parseFloat(opp.score) || os;
+
+            const lm = mine?.linescores || [];
+            const lo = opp?.linescores || [];
+
+            // Correct actual half-time goal mapping
+            if (lm.length >= 1 && lo.length >= 1) {
+              h1m = readVal(lm[0]) || 0;
+              h1o = readVal(lo[0]) || 0;
+            }
+            if (lm.length >= 2 && lo.length >= 2) {
+              h2m = readVal(lm[1]) || 0;
+              h2o = readVal(lo[1]) || 0;
+            }
+
+            // LEVEL 2: Pure Advanced Box Score Extraction
+            if (boxscore && boxscore.teams) {
+              const myBox = boxscore.teams.find(t => matchesTeam(t, tId));
+              const oppBox = boxscore.teams.find(t => !matchesTeam(t, tId));
+
+              if (myBox && myBox.statistics && oppBox && oppBox.statistics) {
+                const sMap = {}; myBox.statistics.forEach(s => { sMap[s.name] = s.displayValue; });
+                const oMap = {}; oppBox.statistics.forEach(s => { oMap[s.name] = s.displayValue; });
+
+                const advResult = calculateAdvancedMetrics(sMap, ms, os, 90);
+                const oppAdvResult = calculateAdvancedMetrics(oMap, os, ms, 90);
+
+                if (advResult) {
+                  advanced = advResult;
+                  advanced.drtg = oppAdvResult ? oppAdvResult.ortg : 0;
+                  trackerDebug(`Clean xG Extracted: ${ref.id}`, advanced);
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        logDebug("fetchScheduleCore summary failed", e);
+      }
+
+      if (isNaN(ms) || isNaN(os) || ms <= 0 || os <= 0) return null;
+
+      return {
+        ms: Math.round(ms),
+        os: Math.round(os),
+        h1m: gotLS && h1m > 0 ? Math.round(h1m) : null,
+        h1o: gotLS && h1o > 0 ? Math.round(h1o) : null,
+        h2m: gotLS && h2m > 0 ? Math.round(h2m) : null,
+        h2o: gotLS && h2o > 0 ? Math.round(h2o) : null,
+        advanced: advanced
+      };
+    })
+  );
+    summaries.push(...chunkResults.filter(Boolean));
+  }
+
+
+  summaries.filter(Boolean).forEach(game => {
+    scored10.push(game.ms);
+    allowed10.push(game.os);
+
+    if (game.h1m !== null && game.h1o !== null) {
+      h1Scored10.push(game.h1m);
+      h1Allowed10.push(game.h1o);
+    }
+
+    if (game.h2m !== null && game.h2o !== null) {
+      h2Scored10.push(game.h2m);
+      h2Allowed10.push(game.h2o);
+    }
+  });
+
+    return scored10.length >= 2
+    ? {
+        scored: scored10.slice(0, 5),
+        allowed: allowed10.slice(0, 5),
+        h1Scored: h1Scored10.slice(0, 5),
+        h1Allowed: h1Allowed10.slice(0, 5),
+        h2Scored: h2Scored10.slice(0, 5),
+        h2Allowed: h2Allowed10.slice(0, 5),
+        // LEVEL 2 MEMORY ARRAYS
+        ortg10: summaries.filter(s => s && s.advanced).map(s => s.advanced.ortg),
+        drtg10: summaries.filter(s => s && s.advanced).map(s => s.advanced.drtg),
+        pace10: summaries.filter(s => s && s.advanced).map(s => s.advanced.pace),
+        scored10,
+        allowed10,
+        h1Scored10,
+        h1Allowed10,
+        h2Scored10,
+        h2Allowed10,
+        lastGameDate: unique[0]?.date || null,
+        venueReliable,
+        usedVenueFallback,
+        h2VenueReliable: !!(
+          venueReliable &&
+          h2Scored10.length >= 2 &&
+          h2Allowed10.length >= 2
+        )
+      }
+    : null;
+
+
+}
+
+/*
+  LOCKED H2H RULE
+
+  NBA H2H here is intentionally LIMITED to official NBA game data pulled from the
+  NBA league endpoint used by this engine.
+
+  INCLUDED:
+  - NBA regular season
+  - NBA postseason (if present in schedule types)
+
+  EXCLUDED ON PURPOSE:
+  - Summer League
+  - preseason
+  - franchise-name-only mixed competitions from third-party H2H pages
+
+  Reason:
+  Some public H2H pages mix Summer League franchise results into “head-to-head”.
+  That causes false mismatches against this engine. This engine keeps NBA H2H clean.
+
+  Do not change this unless the owner explicitly gives approval code.
+*/
+
+async function fetchH2HCore(base, teamAId, teamBId, leagueKey) {
+  const rules = LEAGUE_FETCH_RULES[leagueKey];
+  if (!rules) return [];
+
+  const tA = String(teamAId);
+  const tB = String(teamBId);
+  const currentSeason = getCurrentSeasonYear(leagueKey);
+
+  // FIX 4: Rolling Window Logic
+  // We look back 2 seasons from the current one to keep data fresh and fetches fast.
+  const lookbackYears = 2; 
+  const minSeason = currentSeason - lookbackYears;
+  // Generate timestamp for Jan 1st of the earliest lookback year
+  const minDateTs = new Date(minSeason, 0, 1).getTime();
+
+  const scheduleJobs = [];
+
+  // Scan ONLY Team A schedule from current season back to our dynamic minSeason
+  for (let season = currentSeason; season >= minSeason; season--) {
+    for (const stype of rules.h2hScheduleTypes) {
+      const key = `${base}:h2h-sched:${tA}:${season}:${stype}`;
+      const req = _schedCache.has(key)
+        ? _schedCache.get(key)
+        : (() => {
+            const p = proxyFetch(`${base}/teams/${teamAId}/schedule?season=${season}&seasontype=${stype}`).catch(err => {
+              _schedCache.delete(key);
+              throw err;
+            });
+            cacheSet(_schedCache, key, p);
+            return p;
+          })();
+
+      scheduleJobs.push(
+        req.catch(err => {
+          logDebug("fetchH2HCore schedule scan failed", err);
+          return null;
+        })
+      );
+    }
+  }
+
+
+  const schedulePayloads = await Promise.all(scheduleJobs);
+  const candidateMap = new Map();
+
+  schedulePayloads
+    .filter(Boolean)
+    .forEach(r => {
+      const events = [
+        ...(r?.events || []),
+        ...(r?.team?.schedule?.events || [])
+      ];
+
+      events.forEach(ev => {
+        const comp = ev?.competitions?.[0];
+        if (!ev?.id || !comp) return;
+
+        const done =
+          comp?.status?.type?.completed ||
+          comp?.status?.type?.name === "STATUS_FINAL" ||
+          comp?.status?.type?.state === "post";
+
+        if (!done) return;
+
+        const competitors = comp?.competitors || [];
+        if (competitors.length < 2) return;
+
+        const hasA = competitors.some(c => matchesTeam(c, tA));
+        const hasB = competitors.some(c => matchesTeam(c, tB));
+        if (!hasA || !hasB) return;
+
+        const rawDate = ev?.date || comp?.date || "";
+        const gameTs = rawDate ? Date.parse(rawDate) : NaN;
+        if (isFinite(gameTs) && gameTs < minDateTs) return;
+
+        candidateMap.set(String(ev.id), {
+          id: String(ev.id),
+          date: rawDate
+        });
+      });
+    });
+
+  if (!candidateMap.size) return [];
+
+  const refs = [...candidateMap.values()]
+    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+    .slice(0, 10);
+
+  const summaries = await Promise.all(
+    refs.map(async ref => {
+      try {
+        const key = `${base}:sum:${ref.id}`;
+        const data = await (_summaryCache.has(key)
+          ? _summaryCache.get(key)
+          : (() => {
+              const p = proxyFetch(`${base}/summary?event=${ref.id}`).catch(err => {
+                _summaryCache.delete(key);
+                throw err;
+              });
+              cacheSet(_summaryCache, key, p);
+              return p;
+            })());
+
+        const hc = data?.header?.competitions?.[0];
+        if (!hc) return null;
+
+        const done =
+          hc?.status?.type?.completed ||
+          hc?.status?.type?.name === "STATUS_FINAL" ||
+          hc?.status?.type?.state === "post";
+
+        if (!done) return null;
+
+        const gameDate = hc?.date || ref.date || "";
+        const gameTs = gameDate ? Date.parse(gameDate) : NaN;
+        if (isFinite(gameTs) && gameTs < minDateTs) return null;
+
+        const competitors = hc?.competitors || [];
+        const cA = competitors.find(c => matchesTeam(c, tA));
+        const cB = competitors.find(c => matchesTeam(c, tB));
+        if (!cA || !cB) return null;
+
+        const lA = cA?.linescores || [];
+        const lB = cB?.linescores || [];
+
+        let sA = readVal(cA?.score);
+        let sB = readVal(cB?.score);
+
+        if ((!isFinite(sA) || sA <= 0) && lA.length) {
+          sA = lA.reduce((t, p) => t + readVal(p), 0);
+        }
+        if ((!isFinite(sB) || sB <= 0) && lB.length) {
+          sB = lB.reduce((t, p) => t + readVal(p), 0);
+        }
+
+        if (!isFinite(sA) || !isFinite(sB) || sA <= 0 || sB <= 0) return null;
+
+        let h1A = 0;
+        let h1B = 0;
+        let h2A = 0;
+        let h2B = 0;
+
+        if (lA.length && lB.length) {
+          if (rules.regulationPeriods >= 4) {
+            h1A = lA.length >= 2 ? readVal(lA[0]) + readVal(lA[1]) : 0;
+            h1B = lB.length >= 2 ? readVal(lB[0]) + readVal(lB[1]) : 0;
+            h2A = lA.length >= 4 ? readVal(lA[2]) + readVal(lA[3]) : 0;
+            h2B = lB.length >= 4 ? readVal(lB[2]) + readVal(lB[3]) : 0;
+          } else {
+            [h1A, h1B] = extractFirstHalf(lA, lB);
+            [h2A, h2B] = extractSecondHalf(lA, lB);
+          }
+
+          [sA, sB] = stripOTFromScores(sA, sB, lA, lB, rules.regulationPeriods);
+        }
+
+        return {
+          eventId: ref.id,
+          teamAId: tA,
+          teamBId: tB,
+          scoreA: Math.round(sA),
+          scoreB: Math.round(sB),
+          h1A: Math.round(h1A),
+          h1B: Math.round(h1B),
+          h2A: Math.round(h2A),
+          h2B: Math.round(h2B),
+          date: gameDate
+        };
+      } catch (e) {
+        logDebug("fetchH2HCore summary failed", e);
+        return null;
+      }
+    })
+  );
+
+  return summaries
+    .filter(Boolean)
+    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+    .slice(0, 10);
+}
+
+
+
+function renderInjuryBox(boxId, contentId, inj) {
+      const box = document.getElementById(boxId);
+      const content = document.getElementById(contentId);
+      if (!box || !content) return;
+      if (!inj.notes.length) { content.innerHTML = ""; box.style.display = "none"; return; }
+      content.innerHTML = inj.notes.map(n => {
+const cls =
+  n.type === "out" ? "inj-out" :
+  n.type === "dtd" ? "inj-dtd" :
+  "";
+        return `<div class="${cls}">${safeText(n.text)}</div>`;
+      }).join("");
+      box.style.display = "block";
+    }
+
+                
+
+    function handleProMatchClick(element) {
+  const homeName = element.dataset.home   || "";
+  const homeId   = element.dataset.homeId || "";
+  const awayName = element.dataset.away   || "";
+  const awayId   = element.dataset.awayId || "";
+  const slug     = element.dataset.slug   || "";
+
+  document.querySelectorAll('.pro-match-item').forEach(el => el.classList.remove('active'));
+  element.classList.add('active');
+
+  // Always sync leagueSelect to this fixture's actual league
+  if (slug && slug !== "all" && slug !== "unknown") {
+    uiState.appliedLeagueSlug = slug;
+    const sel = document.getElementById("leagueSelect");
+    if (sel) { sel.innerHTML = `<option value="${slug}">${slug}</option>`; sel.value = slug; }
+  }
+
+  pickFixture(homeName, homeId, awayName, awayId);
+}
+
+    function onFixtureSelect() {
+      const select = document.getElementById("fixtureSelect");
+      const opt = select.options[select.selectedIndex];
+      if (!opt || !opt.value) return;
+      pickFixture(opt.dataset.home || "", opt.dataset.homeId || "", opt.dataset.away || "", opt.dataset.awayId || "");
+    }
+
+    function pickFixture(homeName, homeId, awayName, awayId) {
+  closeDrop("dropA");
+  closeDrop("dropB");
+  document.getElementById("teamAName").value = homeName;
+  document.getElementById("teamBName").value = awayName;
+  selectedTeamIds.A = String(homeId || "");
+  selectedTeamIds.B = String(awayId || "");
+  validateFetchSection();
+  accordionOpen("espnSection");
+  setStatusHTML('<span class="spinner"></span>Match selected. Fetching stats...', "loading");
+  fetchESPN();
+}
+
+const SOCCER_TAXONOMY = [
+  { cat: "Elite Europe", leagues: [
+    { name: "Premier League", slug: "eng.1" },
+    { name: "Spanish LALIGA", slug: "esp.1" },
+    { name: "German Bundesliga", slug: "ger.1" },
+    { name: "Italian Serie A", slug: "ita.1" },
+    { name: "French Ligue 1", slug: "fra.1" },
+    { name: "Dutch Eredivisie", slug: "ned.1" },
+    { name: "Portuguese Primeira Liga", slug: "por.1" },
+    { name: "Turkish Super Lig", slug: "tur.1" },
+    { name: "Scottish Premiership", slug: "sco.1" },
+    { name: "Belgian Pro League", slug: "bel.1" }
+  ]},
+  { cat: "Major Americas", leagues: [
+    { name: "USA MLS", slug: "usa.1" },
+    { name: "Mexican Liga MX", slug: "mex.1" },
+    { name: "Brazilian Serie A", slug: "bra.1" },
+    { name: "Argentine Liga Prof.", slug: "arg.1" },
+    { name: "Colombian Primera A", slug: "col.1" }
+  ]},
+  { cat: "Global Expansion", leagues: [
+    { name: "Saudi Pro League", slug: "ksa.1" },
+    { name: "Japanese J1 League", slug: "jpn.1" },
+    { name: "Australian A-League", slug: "aus.1" },
+    { name: "Chinese Super League", slug: "chn.1" },
+    { name: "South Korean K-League", slug: "kor.1" },
+    { name: "Greek Super League", slug: "gre.1" },
+    { name: "Austrian Bundesliga", slug: "aut.1" },
+    { name: "Swiss Super League", slug: "sui.1" },
+    { name: "Danish Superliga", slug: "den.1" }
+  ]},
+  { cat: "International Cups", leagues: [
+    { name: "UEFA Champions League", slug: "uefa.champions" },
+    { name: "UEFA Europa League", slug: "uefa.europa" },
+    { name: "UEFA Conference League", slug: "uefa.europa.conf" },
+    { name: "CONMEBOL Libertadores", slug: "conmebol.libertadores" }
+  ]}
+];
+
+async function runMassacreMonteCarlo(projA, projB, line) {
+  // [SENTINEL FIX #4] Bivariate Poisson — Football integer lines, exact push tracking
+  return new Promise((resolve) => {
+    function poisson(lambda, k) {
+      if (lambda <= 0) return k === 0 ? 1 : 0;
+      let k_fact = 1;
+      for (let i = 2; i <= k; i++) k_fact *= i;
+      return (Math.pow(lambda, k) * Math.exp(-lambda)) / k_fact;
+    }
+    const rho = (projA < 1.5 && projB < 1.5) ? -0.12 : 0.0;
+    let overProb = 0, pushProb = 0;
+    for (let i = 0; i <= 8; i++) {
+      for (let j = 0; j <= 8; j++) {
+        let baseProb = poisson(projA, i) * poisson(projB, j);
+        if (i === 0 && j === 0) baseProb *= (1 - projA * projB * rho);
+        else if (i === 0 && j === 1) baseProb *= (1 + projA * rho);
+        else if (i === 1 && j === 0) baseProb *= (1 + projB * rho);
+        else if (i === 1 && j === 1) baseProb *= (1 - rho);
+        if ((i + j) > line) overProb += Math.max(0, baseProb);
+        else if ((i + j) === line) pushProb += Math.max(0, baseProb);
+      }
+    }
+    const overPct = overProb * 100, pushPct = pushProb * 100;
+    resolve({ overPct, pushPct, underPct: 100 - overPct - pushPct });
+  });
+}
+
+// --- BATCH 1: UNIVERSAL FOOTBALL FETCHING & A-Z LEAGUES ---
+
+// --- LIVE UI LOGGER ---
+function uiLog(msg, isErr = false) {
+  const el = document.getElementById("liveEngineDebugger");
+  if(el) {
+    const color = isErr ? "#ff5c61" : "#49d45f";
+    el.innerHTML += `<div style="color:${color}; margin-top:4px;">&gt; ${safeText(msg)}</div>`;
+    el.scrollTop = el.scrollHeight;
+  }
+  console.log("[FETCH]", msg);
+}
+
+function clearUiLog() {
+  const el = document.getElementById("liveEngineDebugger");
+  if (el) el.innerHTML = "<div style='color:#aaa; font-weight:bold; margin-bottom:5px;'>[SYSTEM] Live Auto-Fetch Monitor Active...</div>";
+}
+
+
+async function fetchESPN() {
+  document.getElementById("liveEngineDebugger").innerHTML = "<div style='color:#aaa; font-weight:bold; margin-bottom:5px;'>[SYSTEM] Live Auto-Fetch Monitor Active...</div>";
+  const league = document.getElementById("leagueSelect").value;
+  const teamAName = document.getElementById("teamAName").value.trim();
+  const teamBName = document.getElementById("teamBName").value.trim();
+
+  uiLog(`🚀 Auto-Fetch triggered: ${teamAName} vs ${teamBName}`);
+
+  if (!teamAName || !teamBName || !league || league === "unknown") {
+    setStatusText("&#x274C; Select a league and match from the list.", "err");
+    return;
+  }
+
+  const btn = document.getElementById("fetchBtn");
+  if (btn) btn.disabled = true;
+  setStatusHTML('<span class="spinner"></span> &#x26BD; Fetching Pitch Intelligence...', "loading");
+
+  try {
+    const espnBase = getLeagueBase(league);
+
+    let tA = selectedTeamIds.A;
+    if (tA) uiLog(`✅ Using cached Team A ID: ${tA}`);
+    else tA = await searchTeamFromAPI(espnBase, teamAName, league);
+
+    let tB = selectedTeamIds.B;
+    if (tB) uiLog(`✅ Using cached Team B ID: ${tB}`);
+    else tB = await searchTeamFromAPI(espnBase, teamBName, league);
+
+    if (!tA || !tB) throw new Error("Could not resolve team IDs.");
+
+    uiLog(`📡 Pulling 10-game history...`);
+    const [aStats, bStats] = await Promise.all([
+      fetchScheduleCore(espnBase, tA, league, null, true),
+      fetchScheduleCore(espnBase, tB, league, null, true)
+    ]);
+
+    if (!aStats || !bStats) throw new Error("League data unavailable for these teams.");
+    uiLog(`✅ Match history successfully extracted.`);
+
+    document.getElementById("aFTScored").value = aStats.scored.join(",");
+    document.getElementById("aFTAllowed").value = aStats.allowed.join(",");
+    document.getElementById("bFTScored").value = bStats.scored.join(",");
+    document.getElementById("bFTAllowed").value = bStats.allowed.join(",");
+
+    if (aStats.ortg10?.length) document.getElementById("a1HScored").value = aStats.ortg10.slice(0,5).map(v => v.toFixed(2)).join(",");
+    if (bStats.ortg10?.length) document.getElementById("b1HScored").value = bStats.ortg10.slice(0,5).map(v => v.toFixed(2)).join(",");
+
+    setAutoTagVisible("aAutoTag", true);
+    setAutoTagVisible("bAutoTag", true);
+
+    uiLog(`📡 Scanning H2H database...`);
+    const h2h = await fetchH2HCore(espnBase, tA, tB, league);
+    if (h2h?.length >= 2) {
+      uiLog(`✅ Found ${h2h.length} recent H2H matchups.`);
+      document.getElementById("aFTH2H").value = h2h.map(g => normalizeId(g.teamAId) == tA ? g.scoreA : g.scoreB).join(",");
+      document.getElementById("bFTH2H").value = h2h.map(g => normalizeId(g.teamAId) == tA ? g.scoreB : g.scoreA).join(",");
+      document.getElementById("useFTH2H").checked = true;
+      setAutoTagVisible("h2hAutoTag", true);
+    } else {
+      uiLog(`⚠️ H2H skipped: Found less than 2 recent matchups.`);
+    }
+
+    setStatusHTML("&#x2705; Tactical Data Synchronized.", "ok");
+    uiLog(`🎉 Auto-fetch cycle complete!`);
+    updateSectionLocks();
+    updateIntelligencePack();
+  } catch (e) {
+    uiLog(`❌ FATAL: ${e.message}`, true);
+    setStatusText("&#x274C; Fetch Error: " + e.message, "err");
+  } finally { if (btn) btn.disabled = false; }
+}
+
+
+
+async function loadFixtures(timeFilter = 'all') {
+  const myToken = ++_fixtureLoadToken;
+  const league = document.getElementById("leagueSelect")?.value || "";
+  const list = document.getElementById("proMatchList");
+  if (!list) return;
+
+  list.innerHTML = '<div style="padding:20px; text-align:center;"><span class="spinner"></span> &#x1F6E1;&#xFE0F; Connecting to ESPN...</div>';
+
+  const getFmt = (o) => { const d = new Date(); d.setDate(d.getDate()+o); return d.toISOString().split('T')[0].replace(/-/g,''); };
+  const isDateKey = (s) => /^\d{8}$/.test(s);
+
+  let dParam;
+  if (timeFilter === 'today')         dParam = getFmt(0);
+  else if (timeFilter === 'tomorrow') dParam = getFmt(1);
+  else if (timeFilter === 'weekend') {
+    const sat = [0,1,2,3,4,5,6].find(i => { const d=new Date(); d.setDate(d.getDate()+i); return d.getDay()===6; });
+    dParam = `${getFmt(sat)}-${getFmt(sat+1)}`;
+  } else if (isDateKey(timeFilter)) {
+    dParam = timeFilter;
+  } else {
+    dParam = `${getFmt(0)}-${getFmt(7)}`;
+  }
+
+  try {
+    let allEvents = [];
+
+    if (!league || league === "all" || league === "unknown") {
+      // ALL LEAGUES MODE: batch-fetch all leagues in groups of 4
+      const slugs = SOCCER_TAXONOMY.flatMap(cat => cat.leagues.map(l => l.slug));
+      const batchSize = 4;
+      for (let i = 0; i < slugs.length; i += batchSize) {
+        if (myToken !== _fixtureLoadToken) return;
+        const chunk = slugs.slice(i, i + batchSize);
+        const results = await Promise.all(chunk.map(async sl => {
+          try {
+            const base = getLeagueBase(sl);
+            const d = await proxyFetch(`${base}/scoreboard?dates=${dParam}&limit=200`);
+            return (d?.events || []).filter(ev => ev.status?.type?.state === "pre").map(ev => ({...ev, _slug: sl}));
+          } catch(e) { return []; }
+        }));
+        results.forEach(r => allEvents.push(...r));
+      }
+      allEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+    } else {
+      // SINGLE LEAGUE MODE
+      const base = getLeagueBase(league);
+      const data = await proxyFetch(`${base}/scoreboard?dates=${dParam}&limit=800`);
+      if (myToken !== _fixtureLoadToken) return;
+      allEvents = (data?.events || []).filter(ev => ev.status?.type?.state === "pre").map(ev => ({...ev, _slug: league}));
+    }
+
+    if (!allEvents.length) {
+      list.innerHTML = '<div style="padding:20px; text-align:center;">No upcoming matches found.</div>';
+      return;
+    }
+
+    list.innerHTML = allEvents.map(ev => {
+      const c = ev.competitions[0];
+      const h = c.competitors.find(x=>x.homeAway==="home") || c.competitors[0];
+      const a = c.competitors.find(x=>x.homeAway==="away") || c.competitors[1];
+      const evSlug = ev._slug || league;
+      const d = new Date(ev.date);
+      const timeStr = d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+      const dateStr = d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
+      // Use data-* attrs — avoids apostrophe/quote issues in onclick
+      return `<div class="pro-match-item"
+        data-home="${h.team.displayName}"
+        data-home-id="${h.team.id}"
+        data-away="${a.team.displayName}"
+        data-away-id="${a.team.id}"
+        data-slug="${evSlug}"
+        onclick="handleProMatchClick(this)">
+        <div class="pro-match-time"><div>${timeStr}</div><div class="pro-match-id">${dateStr}</div></div>
+        <div class="pro-match-teams"><div class="pro-match-team">${h.team.displayName}</div><div class="pro-match-team">${a.team.displayName}</div></div>
+      </div>`;
+    }).join("");
+  } catch (e) { list.innerHTML = '<div style="padding:20px; text-align:center; color:red;">Connection Shield Error</div>'; }
+}
+
+// ==========================================
+// BATCH 1.5: UI RESTORATION & HELPERS
+// ==========================================
+
+// 1. UI State & Modal Logic (Restored)
+const uiState = {
+  stagedLeagueSlug: null,
+  appliedLeagueSlug: null,
+  selectedDateOffset: "all",
+  currentModalType: null,
+  activeCategoryIdx: 0
+};
+
+function openProModal(type) {
+  uiState.currentModalType = type;
+  const overlay = document.getElementById("proModalOverlay");
+  const dualPane = document.getElementById("proDualPane");
+  const simpleList = document.getElementById("proSimpleList");
+  const actions = document.getElementById("proModalActions");
+  const title = document.getElementById("proModalTitle");
+  if (!overlay) return;
+  overlay.classList.add("open");
+
+  if (type === "league") {
+    title.textContent = "Select League";
+    dualPane.style.display = "flex"; simpleList.style.display = "none"; actions.style.display = "flex";
+    renderLeaguePaneLeft();
+    renderLeaguePaneRight(uiState.activeCategoryIdx);
+  } else if (type === "date") {
+    title.textContent = "Filter by Date";
+    dualPane.style.display = "none"; simpleList.style.display = "block"; actions.style.display = "none";
+    renderDateList();
+  } else if (type === "sort") {
+    title.textContent = "Sort Matches";
+    dualPane.style.display = "none"; simpleList.style.display = "block"; actions.style.display = "none";
+    renderSortList();
+  }
+}
+
+function closeProModal() {
+  const overlay = document.getElementById("proModalOverlay");
+  if (overlay) overlay.classList.remove("open");
+  uiState.currentModalType = null;
+}
+
+function renderLeaguePaneLeft() {
+  const left = document.getElementById("proPaneLeft");
+  if (!left) return;
+  const allItem = `<div class="pane-item ${uiState.activeCategoryIdx === -1 ? "active" : ""}"
+       onclick="selectAllLeagues(this)">
+    <span>&#x1F310; All Leagues</span><span>&#x203A;</span>
+  </div>`;
+  const catItems = SOCCER_TAXONOMY.map((cat, idx) => `
+    <div class="pane-item ${idx === uiState.activeCategoryIdx ? "active" : ""}"
+         onclick="selectLeagueCategory(${idx}, this)">
+      <span>${safeText(cat.cat)}</span><span>&#x203A;</span>
+    </div>`).join("");
+  left.innerHTML = allItem + catItems;
+}
+
+function selectAllLeagues(el) {
+  uiState.activeCategoryIdx = -1;
+  uiState.stagedLeagueSlug = "all";
+  uiState.appliedLeagueSlug = "all";
+  document.querySelectorAll("#proPaneLeft .pane-item").forEach(i => i.classList.remove("active"));
+  el.classList.add("active");
+  const right = document.getElementById("proPaneRight");
+  if (right) right.innerHTML = '<div class="pane-item" style="color:#aaa; font-style:italic; pointer-events:none;">All leagues selected &#x2713;</div>';
+  const sel = document.getElementById("leagueSelect");
+  if (sel) { sel.innerHTML = `<option value="all">All Leagues</option>`; sel.value = "all"; }
+  closeProModal();
+  loadFixtures(uiState.selectedDateOffset || "all");
+}
+
+function selectLeagueCategory(idx, el) {
+  uiState.activeCategoryIdx = idx;
+  document.querySelectorAll("#proPaneLeft .pane-item").forEach(i => i.classList.remove("active"));
+  el.classList.add("active");
+  renderLeaguePaneRight(idx);
+}
+
+function renderLeaguePaneRight(catIdx = 0) {
+  const right = document.getElementById("proPaneRight");
+  if (!right) return;
+  const cat = SOCCER_TAXONOMY[catIdx];
+  if (!cat) { right.innerHTML = ""; return; }
+  right.innerHTML = cat.leagues.map(lg => `
+    <div class="pane-item ${uiState.stagedLeagueSlug === lg.slug ? "active" : ""}"
+         onclick="stageLeague('${lg.slug}', this)">
+      <span>${safeText(lg.name)}</span>
+      ${uiState.stagedLeagueSlug === lg.slug ? '<span class="item-badge">&#x2713;</span>' : ""}
+    </div>`).join("");
+}
+
+function stageLeague(slug, el) {
+  // Immediately apply the league — no need to click Apply
+  uiState.stagedLeagueSlug = slug;
+  uiState.appliedLeagueSlug = slug;
+
+  document.querySelectorAll("#proPaneRight .pane-item").forEach(i => {
+    i.classList.remove("active");
+    const b = i.querySelector(".item-badge");
+    if (b) b.remove();
+  });
+  el.classList.add("active");
+  const badge = document.createElement("span");
+  badge.className = "item-badge";
+  badge.textContent = "&#x2713;";
+  el.appendChild(badge);
+
+  // Sync leagueSelect so fetchESPN can read it
+  const sel = document.getElementById("leagueSelect");
+  if (sel) {
+    sel.innerHTML = `<option value="${slug}">${slug}</option>`;
+    sel.value = slug;
+  }
+  if (typeof updateSectionLocks === "function") updateSectionLocks();
+
+  // Close modal and load fixtures immediately
+  closeProModal();
+  loadFixtures(uiState.selectedDateOffset || "all");
+}
+
+function renderDateList() {
+  const list = document.getElementById("proSimpleList");
+  if (!list) return;
+  const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const opts = [
+    { label: "All", value: "all" },
+    { label: "Today", value: "today" },
+    { label: "Tomorrow", value: "tomorrow" }
+  ];
+  for (let i = 2; i <= 5; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    const key = d.toISOString().split('T')[0].replace(/-/g, '');
+    opts.push({ label: dayNames[d.getDay()], value: key });
+  }
+  opts.push({ label: "Weekend", value: "weekend" });
+
+  list.innerHTML = opts.map(o => `
+    <div class="pane-item ${uiState.selectedDateOffset === o.value ? "active" : ""}"
+         onclick="applyDateFilter('${o.value}', this)">
+      <span>${o.label}</span>
+      ${uiState.selectedDateOffset === o.value ? '<span style="color:#2f8f4a;font-weight:900;">&#x2713;</span>' : ""}
+    </div>`).join("");
+}
+
+function applyDateFilter(value, el) {
+  uiState.selectedDateOffset = value;
+  document.querySelectorAll("#proSimpleList .pane-item").forEach(i => i.classList.remove("active"));
+  el.classList.add("active");
+  const btn = document.getElementById("uiDateBtn");
+  if (btn) {
+    const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const fixed = { all:"All", today:"Today", tomorrow:"Tomorrow", weekend:"Weekend" };
+    let label = fixed[value];
+    if (!label) {
+      // value is a YYYYMMDD string — find its day name
+      const y = value.slice(0,4), m = value.slice(4,6), d = value.slice(6,8);
+      label = dayNames[new Date(`${y}-${m}-${d}`).getDay()] || value;
+    }
+    const child = btn.firstChild || btn;
+    if (child.nodeType === 3) child.textContent = label; else btn.textContent = label;
+  }
+  loadFixtures(value);
+  closeProModal();
+}
+
+function renderSortList() {
+  const list = document.getElementById("proSimpleList");
+  if (!list) return;
+  list.innerHTML = [
+    { label: "By time (default)", value: "time" },
+    { label: "By league", value: "league" }
+  ].map(o => `
+    <div class="pane-item" onclick="closeProModal()"><span>${o.label}</span></div>`).join("");
+}
+
+
+
+// 2. Missing Math & Naming Helpers
+
+function getConfidenceClass(grade) {
+  const g = String(grade || "").toUpperCase();
+  if (g === "A") return "conf-a";
+  if (g === "B") return "conf-b";
+  if (g === "C") return "conf-c";
+  if (g === "D") return "conf-d";
+  return "conf-none";
+}
+
+function getPhase2ActivationState() {
+  const settled = Number(g_trackerState?.stats?.settled || 0);
+  const trackerMin = Number(TRACKER_POLICY?.reviewCheckpointSettled || 20);
+  const trackerReady = settled >= trackerMin;
+  return {
+    phase2Mode: trackerReady ? "live" : "building",
+    trackerReady,
+    trackerFeedbackLive: trackerReady && !TRACKER_POLICY.advisoryOnly,
+    teamMemoryLive: trackerReady && !TRACKER_POLICY.advisoryOnly,
+    settled,
+    reviewCheckpointSettled: trackerMin,
+    trackerReasons: trackerReady
+      ? [`Tracker feedback active: ${settled} settled picks`]
+      : [`Building: ${settled}/${trackerMin} settled picks needed`]
+  };
+}
+
+function clearAll() {
+  clearSideFields("A");
+  clearSideFields("B");
+  clearH2HFields();
+  ["ftMarket","h1Market","h2Market","teamAMarket","teamBMarket"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  resetResultsTable();
+  setStatusText("", "");
+  g_massacreFetchContext = defaultMassacreFetchContext();
+  g_fetchMeta = defaultFetchMeta();
+  selectedTeamIds = { A: null, B: null };
+  g_lastFetchedTeams = { A: "", B: "" };
+  g_injA = defaultInjuryMeta();
+  g_injB = defaultInjuryMeta();
+  setFetchInputErrors([]);
+  setFetchAuditIssues([]);
+  updateIntelligencePack();
+  validateFetchSection();
+}
+
+
+
+// 4. Run Engine Placeholder
+function runEngine() {
+  const league = document.getElementById("leagueSelect")?.value || "";
+  if (!league || league === "unknown") { alert("Select a league first."); return; }
+
+  const teamAName = document.getElementById("teamAName")?.value.trim() || "";
+  const teamBName = document.getElementById("teamBName")?.value.trim() || "";
+  if (!teamAName || !teamBName) { engineDebug("Run blocked: missing team names"); return; }
+  if (normalizeTeamName(teamAName) === normalizeTeamName(teamBName)) {
+    engineDebug("Run blocked: duplicate teams"); return;
+  }
+
+  const ftLine  = parseMarketLine(document.getElementById("ftMarket")?.value || "");
+  const h1Line  = parseMarketLine(document.getElementById("h1Market")?.value || "");
+  const aLine   = parseMarketLine(document.getElementById("teamAMarket")?.value || "");
+  const bLine   = parseMarketLine(document.getElementById("teamBMarket")?.value || "");
+
+  const aFTScored  = safeArr(parseGames("aFTScored"));
+  const bFTScored  = safeArr(parseGames("bFTScored"));
+  if (!aFTScored || !bFTScored) { alert("Enter goal scored data for both teams."); return; }
+
+  const aFTAllowed = safeArr(parseGames("aFTAllowed")) || [];
+  const bFTAllowed = safeArr(parseGames("bFTAllowed")) || [];
+  const a1HScored  = safeArr(parseGames("a1HScored")) || [];
+  const b1HScored  = safeArr(parseGames("b1HScored")) || [];
+
+  const sampleTier = getSampleTier(aFTScored, bFTScored);
+  const aVol = stdDev(aFTScored);
+  const bVol = stdDev(bFTScored);
+  const volLimit = LEAGUE_VOL_LIMITS[league] || 1.4;
+  const dynW = getDynamicWeights(sampleTier, Math.max(aVol, bVol), league);
+  const leagueBase = LEAGUE_BASES[league] || 1.35;
+
+  let rawProjA = robustRecentAverage(aFTScored);
+  let rawProjB = robustRecentAverage(bFTScored);
+
+  if (aFTAllowed.length && bFTAllowed.length) {
+    const aAllowedAvg = robustRecentAverage(aFTAllowed);
+    const bAllowedAvg = robustRecentAverage(bFTAllowed);
+    rawProjA = (rawProjA * dynW.teamWeight) + (bAllowedAvg * dynW.oppWeight) * (rawProjA / leagueBase);
+    rawProjB = (rawProjB * dynW.teamWeight) + (aAllowedAvg * dynW.oppWeight) * (rawProjB / leagueBase);
+  }
+
+  const intPack = updateIntelligencePack(league, { ftLine, h1Line, aLine, bLine });
+  let projA = rawProjA;
+  let projB = rawProjB;
+
+  if (intPack && isFinite(intPack.teamA.offense) && isFinite(intPack.teamB.defense)) {
+    projA = (rawProjA * 0.60) + ((leagueBase + intPack.teamA.offense + intPack.teamB.defense) * 0.40);
+  }
+  if (intPack && isFinite(intPack.teamB.offense) && isFinite(intPack.teamA.defense)) {
+    projB = (rawProjB * 0.60) + ((leagueBase + intPack.teamB.offense + intPack.teamA.defense) * 0.40);
+  }
+
+  projA *= (g_injA.scoringMult || 1);
+  projB *= (g_injB.scoringMult || 1);
+
+  let ftProj = projA + projB;
+
+  const aH2H = safeArr(parseGames("aFTH2H")) || [];
+  const bH2H = safeArr(parseGames("bFTH2H")) || [];
+  let ftHasH2H = false;
+  if (maybeReadH2HEnabled("ft") && aH2H.length >= 2 && bH2H.length >= 2) {
+    const h2hAvg = robustRecentAverage(aH2H.map((s, i) => s + (bH2H[i] || 0)));
+    if (isFinite(h2hAvg)) {
+      const w = getH2HWeight(aH2H.length, bH2H.length, "ft", sampleTier, h2hAvg - ftProj);
+      ftProj = ftProj * (1 - w) + h2hAvg * w;
+      ftHasH2H = true;
+    }
+  }
+
+  if (ftLine) ftProj = anchorProjection(ftProj, ftLine, league, "ft");
+
+  let h1Proj = NaN;
+  if (h1Line) {
+    if (a1HScored.length >= 2 && b1HScored.length >= 2) {
+      h1Proj = robustRecentAverage(a1HScored) + robustRecentAverage(b1HScored);
+    } else if (isFinite(ftProj)) {
+      h1Proj = ftProj * 0.42;
+    }
+    if (isFinite(h1Proj)) h1Proj = anchorProjection(h1Proj, h1Line, league, "h1");
+  }
+
+  const picks = [];
+  const addPick = (name, mKey, mType, proj, line, vol, h2h) => {
+    if (!line || !isFinite(proj)) return;
+    const edge = calculateEdge(proj, line);
+    if (!isFinite(edge)) return;
+    const pick = getPick(edge, line, league, mType, {});
+    const trap = detectTrap(edge, line, pick, league, mType, vol);
+    const confidence = getConfidenceGrade({
+      pick, note: null, line, edge, sampleTier, projectionOnly: false,
+      fullModel: sampleTier === "full", trap, hasH2H: h2h,
+      volatility: vol, volLimit, marketKey: mKey
+    });
+    const smartPick = applySmartLineToPick({ pick, proj, line, edge, confidence, name }, line, league);
+    picks.push({
+      name, marketKey: mKey, marketType: mType, proj, line, edge,
+      pick: smartPick.displayPick || pick, confidence,
+      fullModel: sampleTier === "full", sampleTier,
+      hasH2H: h2h, volatility: vol, trap, league,
+      side: getPickSideFromText(pick),
+      edgePct: line ? (edge / line) * 100 : NaN,
+      _idx: picks.length
+    });
+  };
+
+  addPick("FT Total",     "ft",     "ft",   ftProj, ftLine, Math.max(aVol, bVol), ftHasH2H);
+  addPick("1H Total",     "h1",     "h1",   h1Proj, h1Line, Math.max(aVol, bVol) * 0.7, false);
+  // [SENTINEL FIX #9] 2H Market Implementation
+  let h2Proj = NaN;
+  const h2Line = parseMarketLine(document.getElementById("h2Market")?.value);
+  if (h2Line) {
+    const a2HScored_raw = safeArr(parseGames("a2HScored"));
+    const b2HScored_raw = safeArr(parseGames("b2HScored"));
+    if (a2HScored_raw && b2HScored_raw && a2HScored_raw.length >= 2 && b2HScored_raw.length >= 2) {
+      h2Proj = robustRecentAverage(a2HScored_raw) + robustRecentAverage(b2HScored_raw);
+    } else if (isFinite(ftProj) && isFinite(h1Proj)) {
+      h2Proj = ftProj - h1Proj; // Infer from FT - 1H
+    }
+    if (isFinite(h2Proj)) h2Proj = anchorProjection(h2Proj, h2Line, league, "h2");
+  }
+  addPick("2H Total", "h2", "h2", h2Proj, h2Line, Math.max(aVol, bVol) * 0.8, false);
+  addPick("Team A Total", "team_a", "team", projA,  aLine,  aVol,  false);
+  addPick("Team B Total", "team_b", "team", projB,  bLine,  bVol,  false);
+
+  if (!picks.length) { alert("Enter at least one market line."); return; }
+
+  const fixtureMeta = getCurrentFixtureMeta();
+  if (intPack) applyIntelligenceLayerToPicks(picks, intPack, league);
+  applyTrackerFeedbackToPickRows(picks);
+  applySoftTrackerInfluenceToPicks(picks, fixtureMeta);
+
+  const lockIdx = selectLock(picks);
+  if (lockIdx >= 0 && picks[lockIdx]) picks[lockIdx].isLock = true;
+
+  persistLineMemoryFromFinalPicks(picks, fixtureMeta, league);
+
+  const table = document.getElementById("results");
+  if (table) {
+    table.style.display = "";
+    table.innerHTML = `<tr><th>Pick</th><th>Projection</th><th>Edge</th><th>Model Grade</th><th>Prediction</th></tr>` +
+      picks.map(p => {
+        const gClass = getConfidenceClass(p.confidence);
+        const pClass = p.pick === "NO PLAY" ? "pred-noplay" : p.pick.startsWith("OVER") ? "pred-over" : "pred-under";
+        const edgeTxt = isFinite(p.edgePct) ? (p.edgePct > 0 ? "+" : "") + p.edgePct.toFixed(2) + "%" : "&#x2014;";
+        const lock = p.isLock ? ' <span class="lock">&#x1F512;</span>' : "";
+        return `<tr>
+          <td>${safeText(p.name)}</td>
+          <td>${safeText(displayLine(p.proj))}</td>
+          <td>${safeText(edgeTxt)}</td>
+          <td class="${gClass}">${safeText(p.confidence || "&#x2014;")}</td>
+          <td class="${pClass}">${safeText(p.pick)}${lock}</td>
+        </tr>`;
+      }).join("");
+  }
+
+  const trackerPicks = picks
+    .filter(p => p.pick && p.pick !== "NO PLAY" && !p.note)
+    .map(p => ensureTrackedPickKeys({
+      eventId: fixtureMeta.eventId || "",
+      eventDate: fixtureMeta.eventDate || "",
+      league,
+      homeTeam: fixtureMeta.homeTeam || teamAName,
+      awayTeam: fixtureMeta.awayTeam || teamBName,
+      homeId: fixtureMeta.homeId || String(selectedTeamIds.A || ""),
+      awayId: fixtureMeta.awayId || String(selectedTeamIds.B || ""),
+      marketKey: p.marketKey, marketName: p.name,
+      predictionText: p.pick, line: p.line, lineAtPick: p.line,
+      proj: p.proj, projection: p.proj, edge: p.edge, edgePct: p.edgePct,
+      side: p.side, confidence: p.confidence, confidenceGrade: p.confidence,
+      isLock: !!p.isLock, sampleTier: p.sampleTier,
+      inputSource: "manual", modelVersion: ENGINE_MODEL_VERSION,
+      resultStatus: "pending", createdAt: new Date().toISOString()
+    }));
+
+  if (trackerPicks.length) addTrackedPicks(trackerPicks);
+  engineDebug("Run complete", { picks: picks.length, league });
+}
+
+
+
+
+function toggleTheme() {
+  const isDark = document.body.classList.toggle("dark-mode");
+  try { localStorage.setItem("bb_theme", isDark ? "dark" : "light"); } catch(e) {}
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  if (typeof ensureFreshBuild === "function" && ensureFreshBuild()) return;
+
+  try {
+    if (localStorage.getItem("bb_theme") === "dark") document.body.classList.add("dark-mode");
+  } catch(e) {}
+
+  try {
+    const report = ENGINE_INTEGRITY_SHIELD.audit();
+    if (report.length) {
+      report.forEach(err => engineDebug("WATCHDOG CRITICAL ERROR: " + err));
+    } else {
+      engineDebug("WATCHDOG SUCCESS: System integrity 100% verified. &#x1F976;&#x26A1;&#xFE0F;");
+    }
+  } catch(e) { console.error("Watchdog failed", e); }
+
+  document.getElementById("themeToggleBtn")?.addEventListener("click", toggleTheme);
+  document.getElementById("trackerToggleBtn")?.addEventListener("click", openTrackerModal);
+  document.getElementById("trackerCloseBtn")?.addEventListener("click", closeTrackerModal);
+  document.getElementById("trackerInsightsBtn")?.addEventListener("click", toggleTrackerInsights);
+  document.getElementById("trackerDebugBtn")?.addEventListener("click", toggleTrackerDebugView);
+  document.getElementById("headerErrorBtn")?.addEventListener("click", showFetchInputErrors);
+  document.getElementById("uiDateBtn")?.addEventListener("click", () => openProModal("date"));
+  document.getElementById("uiLeagueBtn")?.addEventListener("click", () => openProModal("league"));
+  document.getElementById("uiSortBtn")?.addEventListener("click", () => openProModal("sort"));
+  document.getElementById("runBtn")?.addEventListener("click", runEngine);
+  document.getElementById("clearBtn")?.addEventListener("click", clearAll);
+  document.getElementById("teamAName")?.addEventListener("input", () => onTeamInput("A"));
+  document.getElementById("teamBName")?.addEventListener("input", () => onTeamInput("B"));
+  document.getElementById("teamAName")?.addEventListener("blur", () => scheduleDropClose("dropA"));
+  document.getElementById("teamBName")?.addEventListener("blur", () => scheduleDropClose("dropB"));
+  document.getElementById("dropA")?.addEventListener("mouseenter", () => cancelDropClose("dropA"));
+  document.getElementById("dropB")?.addEventListener("mouseenter", () => cancelDropClose("dropB"));
+
+  document.getElementById("proBtnApply")?.addEventListener("click", () => {
+    if (uiState.stagedLeagueSlug) {
+      uiState.appliedLeagueSlug = uiState.stagedLeagueSlug;
+      const sel = document.getElementById("leagueSelect");
+      sel.innerHTML = `<option value="${uiState.appliedLeagueSlug}">${uiState.appliedLeagueSlug}</option>`;
+      sel.value = uiState.appliedLeagueSlug;
+      updateSectionLocks();
+      loadFixtures(uiState.selectedDateOffset || "all");
+    }
+    closeProModal();
+  });
+
+  document.getElementById("trackedPicksBody")?.addEventListener("click", handleTrackedPicksActionClick);
+
+  ["useFTH2H","use1HH2H","use2HH2H"].forEach(id => {
+    const cb = document.getElementById(id);
+    if (!cb) return;
+    const kind = id === "useFTH2H" ? "ft" : id === "use1HH2H" ? "h1" : "h2";
+    cb.addEventListener("change", () => { g_h2hManualPreference[kind] = cb.checked ? true : false; });
+  });
+
+  openSection("leagueSection");
+  makeSectionsCollapsible();
+
+  await primeTrackerStateForRun();
+  await refreshTrackerInBackground(true);
+});
+</script>
+
+<div class="pro-modal-overlay" id="proModalOverlay">
+  <div class="pro-modal-content">
+    <div class="pro-modal-header"><span id="proModalTitle">Select</span><span class="pro-modal-close" onclick="closeProModal()">&#x2715;</span></div>
+    <div class="dual-pane-body" id="proDualPane" style="display:none;"><div class="pane-left" id="proPaneLeft"></div><div class="pane-right" id="proPaneRight"></div></div>
+    <div class="simple-list-body" id="proSimpleList" style="display:none;"></div>
+    <div class="pro-modal-actions" id="proModalActions" style="display:none;"><button class="pro-btn-reset" onclick="uiState.stagedLeagueSlug=null;renderLeaguePaneRight();">Reset</button><button class="pro-btn-apply" id="proBtnApply">Apply</button></div>
+  </div>
+</div>
+
+</body>
+</html>
