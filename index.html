@@ -3795,15 +3795,14 @@
     async function saveTrackerStateToLocal() {
       try {
         syncLineMemoryIntoTrackerState();
-        var e = reconcileTrackerBucketConflicts(g_trackerState.activePicks, g_trackerState.archivedPicks);
-        g_trackerState.activePicks = e.activePicks, g_trackerState.archivedPicks = e.archivedPicks;
-        const a = JSON.stringify(g_trackerState);
-        var t = [getTrackerLocalStateStableKey(), getTrackerLocalStateBuildKey(APP_BUILD_VERSION)].filter(Boolean);
-        const r = [...new Set(t)],
-          n = await Promise.all(r.map(e => writeAsyncStorage(e, a)));
-        if (0 < n.length && n.every(e => !1 === e)) throw new Error(
-          "Local storage write completely failed (Quota Exceeded or Blocked).")
-      } catch (e) {
+        const rec = reconcileTrackerBucketConflicts(g_trackerState.activePicks, g_trackerState.archivedPicks);
+        g_trackerState.activePicks = rec.activePicks; 
+        g_trackerState.archivedPicks = rec.archivedPicks.slice(0, 500); // Prevent Quota Death
+        const payload = JSON.stringify(g_trackerState);
+        const keys = [getTrackerLocalStateStableKey(), getTrackerLocalStateBuildKey(APP_BUILD_VERSION)].filter(Boolean);
+        const uniqueKeys = [...new Set(keys)];
+        await Promise.all(uniqueKeys.map(k => writeAsyncStorage(k, payload)));
+      } catch (err) {
         console.error("[BB Engine] saveTrackerStateToLocal async failed", e), engineDebug(
           "CRITICAL: Local storage failed. Data loss imminent.", String(e)), triggerGlobalEngineAlert(
           "STORAGE FAILURE: Your device cannot save tracker data. Ensure Private Browsing is off and storage is not full."
