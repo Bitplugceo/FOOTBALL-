@@ -11007,10 +11007,18 @@ const cls =
 const SOCCER_TAXONOMY = [
   { cat: "Elite Europe", leagues: [
     { name: "Premier League", slug: "eng.1" },
+    { name: "EFL Championship", slug: "eng.2" },
+    { name: "EFL League One", slug: "eng.3" },
+    { name: "EFL League Two", slug: "eng.4" },
+    { name: "National League", slug: "eng.5" },
     { name: "Spanish LALIGA", slug: "esp.1" },
+    { name: "Spanish Segunda", slug: "esp.2" },
     { name: "German Bundesliga", slug: "ger.1" },
+    { name: "German Bundesliga 2", slug: "ger.2" },
     { name: "Italian Serie A", slug: "ita.1" },
+    { name: "Italian Serie B", slug: "ita.2" },
     { name: "French Ligue 1", slug: "fra.1" },
+    { name: "French Ligue 2", slug: "fra.2" },
     { name: "Dutch Eredivisie", slug: "ned.1" },
     { name: "Portuguese Primeira Liga", slug: "por.1" },
     { name: "Turkish Super Lig", slug: "tur.1" },
@@ -11169,55 +11177,164 @@ async function loadFixtures(timeFilter = 'all') {
   const list = document.getElementById("proMatchList");
   if (!list) return;
 
-  list.innerHTML = '<div style="padding:20px; text-align:center;"><span class="spinner"></span> &#x1F6E1;&#xFE0F; Connecting to ESPN...</div>';
+  list.innerHTML = '<div style="padding:20px; text-align:center;"><span class="spinner"></span> &#x1F6E1;&#xFE0F; Fetching ALL soccer fixtures...</div>';
 
-  const getFmt = (o) => { const d = new Date(); d.setDate(d.getDate()+o); return d.toISOString().split('T')[0].replace(/-/g,''); };
+  // LOCAL DATE FIX — prevents "Today" from shifting into tomorrow because of UTC
+  const getLocalDateKey = (offset = 0) => {
+    const d = new Date();
+    d.setHours(12,0,0,0);
+    d.setDate(d.getDate() + offset);
+
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+
+    return `${y}${m}${day}`;
+  };
+
   const isDateKey = (s) => /^\d{8}$/.test(s);
 
   let dParam;
-  if (timeFilter === 'today')         dParam = getFmt(0);
-  else if (timeFilter === 'tomorrow') dParam = getFmt(1);
-  else if (timeFilter === 'weekend') {
-    const sat = [0,1,2,3,4,5,6].find(i => { const d=new Date(); d.setDate(d.getDate()+i); return d.getDay()===6; });
-    dParam = `${getFmt(sat)}-${getFmt(sat+1)}`;
+  if (timeFilter === 'today') {
+    dParam = getLocalDateKey(0);
+  } else if (timeFilter === 'tomorrow') {
+    dParam = getLocalDateKey(1);
+  } else if (timeFilter === 'weekend') {
+    const now = new Date();
+    const currentDay = now.getDay();
+    const daysUntilSat = (6 - currentDay + 7) % 7;
+    dParam = `${getLocalDateKey(daysUntilSat)}-${getLocalDateKey(daysUntilSat + 1)}`;
   } else if (isDateKey(timeFilter)) {
     dParam = timeFilter;
   } else {
-    dParam = `${getFmt(0)}-${getFmt(7)}`;
+    dParam = `${getLocalDateKey(0)}-${getLocalDateKey(7)}`;
   }
 
   try {
     let allEvents = [];
+    const dedupe = new Map();
+
+    // MASTER LEAGUE EXPANSION
+    const taxonomySlugs = SOCCER_TAXONOMY
+      .flatMap(cat => Array.isArray(cat.leagues) ? cat.leagues : [])
+      .map(lg => lg.slug)
+      .filter(Boolean);
+
+    async function fetchLeagueFixtures(slug) {
+      try {
+        const base = getLeagueBase(slug);
+        if (!base) return [];
+
+        const data = await proxyFetch(`${base}/scoreboard?dates=${dParam}&limit=1000`);
+
+        const events = Array.isArray(data?.events) ? data.events : [];
+
+        return events
+          .filter(ev => {
+            const state = ev?.status?.type?.state;
+            return state === "pre" || state === "in";
+          })
+          .map(ev => ({
+            ...ev,
+            _slug: slug
+          }));
+      } catch (err) {
+        console.warn("[FIXTURE FETCH FAIL]", slug, err);
+        return [];
+      }
+    }
 
     if (!league || league === "all" || league === "unknown") {
-      // ALL LEAGUES MODE: Fetch global soccer scoreboard directly
-      const d = await proxyFetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/all/scoreboard?dates=${dParam}&limit=1000`);
-      if (myToken !== _fixtureLoadToken) return;
-      
-      const leagueMap = new Map();
-      (d?.leagues || []).forEach(l => {
-        if (l.id && l.slug) leagueMap.set(String(l.id), l.slug);
-      });
 
-      allEvents = (d?.events || []).filter(ev => {
-        const state = ev.status?.type?.state;
-        return state === "pre" || state === "in";
-      }).map(ev => {
-        const lMatch = (ev.uid || ev.competitions?.[0]?.uid)?.match(/~l:(\d+)/);
-        const evSlug = lMatch ? leagueMap.get(lMatch[1]) : null;
-        return {...ev, _slug: evSlug || "unknown"};
-      });
-      allEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+      // GLOBAL SCOREBOARD
+      let globalEvents = [];
+
+      try {
+        const globalData = await proxyFetch(
+          `https://site.api.espn.com/apis/site/v2/sports/soccer/all/scoreboard?dates=${dParam}&limit=5000`
+        );
+
+        if (myToken !== _fixtureLoadToken) return;
+
+        const leagueMap = new Map();
+
+        (globalData?.leagues || []).forEach(l => {
+          if (l?.id && l?.slug) {
+            leagueMap.set(String(l.id), l.slug);
+          }
+        });
+
+        globalEvents = (globalData?.events || [])
+          .filter(ev => {
+            const state = ev?.status?.type?.state;
+            return state === "pre" || state === "in";
+          })
+          .map(ev => {
+            const lMatch = (ev.uid || ev?.competitions?.[0]?.uid || "").match(/~l:(\d+)/);
+            const evSlug = lMatch ? leagueMap.get(lMatch[1]) : null;
+
+            return {
+              ...ev,
+              _slug: evSlug || "unknown"
+            };
+          });
+
+      } catch (e) {
+        console.warn("Global scoreboard fetch failed", e);
+      }
+
+      // FETCH EVERY LEAGUE + SUBLEAGUE
+      const chunkSize = 12;
+      let expandedEvents = [];
+
+      for (let i = 0; i < taxonomySlugs.length; i += chunkSize) {
+        const chunk = taxonomySlugs.slice(i, i + chunkSize);
+
+        const results = await Promise.all(
+          chunk.map(slug => fetchLeagueFixtures(slug))
+        );
+
+        expandedEvents.push(...results.flat());
+
+        if (myToken !== _fixtureLoadToken) return;
+      }
+
+      allEvents = [...globalEvents, ...expandedEvents];
+
     } else {
+
       // SINGLE LEAGUE MODE
-      const base = getLeagueBase(league);
-      const data = await proxyFetch(`${base}/scoreboard?dates=${dParam}&limit=800`);
-      if (myToken !== _fixtureLoadToken) return;
-      allEvents = (data?.events || []).filter(ev => {
-        const state = ev.status?.type?.state;
-        return state === "pre" || state === "in";
-      }).map(ev => ({...ev, _slug: league}));
+      allEvents = await fetchLeagueFixtures(league);
+
     }
+
+    // HARD DEDUPE
+    allEvents.forEach(ev => {
+      const key =
+        String(ev?.id || "") +
+        "::" +
+        String(ev?.date || "") +
+        "::" +
+        String(ev?._slug || "");
+
+      if (!dedupe.has(key)) {
+        dedupe.set(key, ev);
+      }
+    });
+
+    allEvents = [...dedupe.values()];
+
+    // SORT
+    allEvents.sort((a, b) => {
+      return new Date(a.date) - new Date(b.date);
+    });
+
+    console.log("[FIXTURE ENGINE]", {
+      totalFixtures: allEvents.length,
+      totalLeagues: new Set(allEvents.map(x => x._slug)).size,
+      filter: timeFilter,
+      dParam
+    });
 
     if (!allEvents.length) {
       list.innerHTML = '<div style="padding:20px; text-align:center;">No upcoming matches found.</div>';
