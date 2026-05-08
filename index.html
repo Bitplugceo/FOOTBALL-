@@ -5742,7 +5742,7 @@ function getRawMarketInputMap() {
       for (let i = 0; i < parts.length; i++) {
         const v = parseFloat(parts[i]);
         if (isNaN(v)) return { err: '"' + parts[i] + '" at position ' + (i + 1) + " is not a number" };
-        if (v <= 0) return { err: "value at position " + (i + 1) + " must be greater than 0 (" + v + ")" };
+        if (v < 0) return { err: "value at position " + (i + 1) + " cannot be negative (" + v + ")" };
         if (v > 300) return { err: "value at position " + (i + 1) + " is too high (" + v + ")" };
         out.push(v);
       }
@@ -9473,7 +9473,7 @@ function readLooseSeries(id) {
     const value = Number(part);
     
     // Instead of nuking the whole array, just skip the corrupted entry
-    if (!isFinite(value) || value <= 0 || value > 300) {
+    if (!isFinite(value) || value < 0 || value > 300) {
       engineDebug(`readLooseSeries skipped invalid input in #${id}:`, part);
       continue; 
     }
@@ -10678,15 +10678,15 @@ async function fetchScheduleCore(base, teamId, leagueKey, requiredVenue, allowFa
         logDebug("fetchScheduleCore summary failed", e);
       }
 
-      if (isNaN(ms) || isNaN(os) || ms <= 0 || os <= 0) return null;
+      if (isNaN(ms) || isNaN(os) || ms < 0 || os < 0) return null;
 
       return {
         ms: Math.round(ms),
         os: Math.round(os),
-        h1m: gotLS && h1m > 0 ? Math.round(h1m) : null,
-        h1o: gotLS && h1o > 0 ? Math.round(h1o) : null,
-        h2m: gotLS && h2m > 0 ? Math.round(h2m) : null,
-        h2o: gotLS && h2o > 0 ? Math.round(h2o) : null,
+        h1m: gotLS && h1m >= 0 ? Math.round(h1m) : null,
+        h1o: gotLS && h1o >= 0 ? Math.round(h1o) : null,
+        h2m: gotLS && h2m >= 0 ? Math.round(h2m) : null,
+        h2o: gotLS && h2o >= 0 ? Math.round(h2o) : null,
         advanced: advanced
       };
     })
@@ -10892,14 +10892,14 @@ async function fetchH2HCore(base, teamAId, teamBId, leagueKey) {
         let sA = readVal(cA?.score);
         let sB = readVal(cB?.score);
 
-        if ((!isFinite(sA) || sA <= 0) && lA.length) {
+        if ((!isFinite(sA) || sA < 0) && lA.length) {
           sA = lA.reduce((t, p) => t + readVal(p), 0);
         }
-        if ((!isFinite(sB) || sB <= 0) && lB.length) {
+        if ((!isFinite(sB) || sB < 0) && lB.length) {
           sB = lB.reduce((t, p) => t + readVal(p), 0);
         }
 
-        if (!isFinite(sA) || !isFinite(sB) || sA <= 0 || sB <= 0) return null;
+        if (!isFinite(sA) || !isFinite(sB) || sA < 0 || sB < 0) return null;
 
         let h1A = 0;
         let h1B = 0;
