@@ -11190,28 +11190,33 @@ async function loadFixtures(timeFilter = 'all') {
     let allEvents = [];
 
     if (!league || league === "all" || league === "unknown") {
-      // ALL LEAGUES MODE: batch-fetch all leagues in groups of 4
-      const slugs = SOCCER_TAXONOMY.flatMap(cat => cat.leagues.map(l => l.slug));
-      const batchSize = 4;
-      for (let i = 0; i < slugs.length; i += batchSize) {
-        if (myToken !== _fixtureLoadToken) return;
-        const chunk = slugs.slice(i, i + batchSize);
-        const results = await Promise.all(chunk.map(async sl => {
-          try {
-            const base = getLeagueBase(sl);
-            const d = await proxyFetch(`${base}/scoreboard?dates=${dParam}&limit=200`);
-            return (d?.events || []).filter(ev => ev.status?.type?.state === "pre").map(ev => ({...ev, _slug: sl}));
-          } catch(e) { return []; }
-        }));
-        results.forEach(r => allEvents.push(...r));
-      }
+      // ALL LEAGUES MODE: Fetch global soccer scoreboard directly
+      const d = await proxyFetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/all/scoreboard?dates=${dParam}&limit=1000`);
+      if (myToken !== _fixtureLoadToken) return;
+      
+      const leagueMap = new Map();
+      (d?.leagues || []).forEach(l => {
+        if (l.id && l.slug) leagueMap.set(String(l.id), l.slug);
+      });
+
+      allEvents = (d?.events || []).filter(ev => {
+        const state = ev.status?.type?.state;
+        return state === "pre" || state === "in";
+      }).map(ev => {
+        const lMatch = (ev.uid || ev.competitions?.[0]?.uid)?.match(/~l:(\d+)/);
+        const evSlug = lMatch ? leagueMap.get(lMatch[1]) : null;
+        return {...ev, _slug: evSlug || "unknown"};
+      });
       allEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
     } else {
       // SINGLE LEAGUE MODE
       const base = getLeagueBase(league);
       const data = await proxyFetch(`${base}/scoreboard?dates=${dParam}&limit=800`);
       if (myToken !== _fixtureLoadToken) return;
-      allEvents = (data?.events || []).filter(ev => ev.status?.type?.state === "pre").map(ev => ({...ev, _slug: league}));
+      allEvents = (data?.events || []).filter(ev => {
+        const state = ev.status?.type?.state;
+        return state === "pre" || state === "in";
+      }).map(ev => ({...ev, _slug: league}));
     }
 
     if (!allEvents.length) {
@@ -11225,7 +11230,8 @@ async function loadFixtures(timeFilter = 'all') {
       const a = c.competitors.find(x=>x.homeAway==="away") || c.competitors[1];
       const evSlug = ev._slug || league;
       const d = new Date(ev.date);
-      const timeStr = d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+      const isLive = ev.status?.type?.state === "in";
+      const timeStr = isLive ? `<span style="color:#49a443;font-weight:900;">${ev.status?.displayClock || "LIVE"}</span>` : d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
       const dateStr = d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
       // Use data-* attrs — avoids apostrophe/quote issues in onclick
       return `<div class="pro-match-item"
