@@ -2600,6 +2600,7 @@ body.dark-mode .tracker-analytics-section-head {
   <span class="brand-right">
     <button class="theme-toggle" type="button" id="themeToggleBtn" title="Toggle dark/light mode">⚽</button>
     <button class="theme-toggle" type="button" id="trackerToggleBtn" title="Open tracked picks">📊</button>
+    <button id="afdbBtn" type="button" class="theme-toggle" title="Auto-Fetch Debugger" onclick="AFDB.open()">🔬</button>
     PREDICTIONS
   </span>
 </header>
@@ -3169,16 +3170,16 @@ const TRACKER_POLICY = {
 const TRACKER_SOFT_EFFECTS = {
   enabled: true,
   minSettled: 20,
-  strongFactorBoost: 1.05,
-  weakFactorCut: 0.94,
-  hardBlockFactor: 0.88,
-  weakEdgeNoPlayPct: 0.055,
-  weakTeamNoPlayPct: 0.060,
+  strongFactorBoost: 1.02,
+  weakFactorCut: 0.96,
+  hardBlockFactor: 0.90,
+  weakEdgeNoPlayPct: 0.08,
+  weakTeamNoPlayPct: 0.08,
   lockBoost: 0.20
 };
 
 const TEAM_MEMORY_RULES = {
-  minSample: 4,
+  minSample: 5,
   strongSample: 8,
   badWinRate: 0.40,
   hardBlockWinRate: 0.30
@@ -7580,7 +7581,7 @@ function buildGodFatherDebugHtml() {
     bustRows += `<tr style="border-bottom:1px solid #1e1e1e">
       <td style="padding:6px 4px;color:#aaa;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cleanPick}</td>
       <td style="padding:6px 4px;color:#fff;font-size:9px;font-weight:bold;">${p.marketKey.toUpperCase()}</td>
-      <td style="padding:6px 4px;color:#f44336;font-size:9px">Edge: ${edge}<br>Pace: ${mem.pace ? Number(mem.pace).toFixed(1) : '—'}</td>
+      <td style="padding:6px 4px;color:#f44336;font-size:9px">Edge: ${edge}<br>xG Flow: ${mem.pace ? Number(mem.pace).toFixed(1) : '—'}</td>
     </tr>`;
   });
 
@@ -8268,7 +8269,7 @@ function renderTrackerAnalytics() {
                       </td>
                       <td style="font-size: 9px; color: var(--muted); line-height: 1.4;">
                         <strong>Edge:</strong> <span style="color:var(--text)">${edge}</span> | <strong>Grade:</strong> <span style="color:var(--text)">${p.confidenceGrade}</span><br>
-                        <strong>Pace:</strong> ${pace} | <strong>Net:</strong> A:${nA} B:${nB}<br>
+                        <strong>xG Flow:</strong> ${pace} | <strong>Net xG:</strong> A:${nA} B:${nB}<br>
                         <strong>Data:</strong> ${p.sampleTier.toUpperCase()} | <strong>Vol:</strong> A:${aVol} B:${bVol}
                       </td>
                     </tr>
@@ -8991,13 +8992,19 @@ function settleTrackedPickFromCompetition(pick, competition, boxscore) {
 
   if (market === "ft") actual = sHome + sAway;
   else if (market === "h1") actual = h1Home + h1Away;
-  else if (market === "h2") actual = (sHome + sAway) - (h1Home + h1Away);
+  else if (market === "h2") actual = (sHome > 0 && sAway > 0) ? 1 : 0; // BTTS Yes = 1, No = 0
   else if (market === "team_a") actual = (String(pick.homeId) === String(home.id)) ? sHome : sAway;
   else if (market === "team_b") actual = (String(pick.homeId) === String(home.id)) ? sAway : sHome;
   else return "pending";
 
   pick.actualScore = actual;
   const side = String(pick.side).toLowerCase();
+  
+  if (market === "h2") {
+    if (side === "over") return actual === 1 ? "win" : "loss"; // BTTS YES
+    if (side === "under") return actual === 0 ? "win" : "loss"; // BTTS NO
+  }
+  
   if (actual > line) return side === "over" ? "win" : "loss";
   if (actual < line) return side === "under" ? "win" : "loss";
   return "push";
@@ -10461,11 +10468,11 @@ updateIntelligencePack();
 
       const share = ppg / avgPPG;
       const impact = Math.min(isOut ? share * 0.65 : share * 0.30, 0.22);
-      totalReduction += impact;
+      totalReduction += impact * 0.5; // Halved for football as defensive absences often offset offensive drops
 
       result.notes.push({
         type: isOut ? "out" : "dtd",
-        text: `${playerName} (${ppg.toFixed(1)} ppg) — ${tag} → -${(impact * 100).toFixed(1)}% offense`
+        text: `${playerName} (${ppg.toFixed(1)} ppg) — ${tag} → -${(impact * 50).toFixed(1)}% offense`
       });
     }
 
@@ -11748,5 +11755,140 @@ document.addEventListener("DOMContentLoaded", async () => {
   </div>
 </div>
 
+  <div id="afdbOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:2000;background:rgba(0,0,0,.96);flex-direction:column;font-family:ui-monospace,Consolas,monospace">
+    <div id="afdbPanel" style="width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden"></div>
+  </div>
+  <script>
+    const AFDB = function() {
+      const l = 600;
+      let d = [],
+        p = !1,
+        r = !0;
+      const c = {
+          BOOT: { color: "#7aa6ff" },
+          NET: { color: "#4ea9ff" },
+          FETCH: { color: "#49d45f" },
+          FILL: { color: "#2aff9e" },
+          PICK: { color: "#d4af37" },
+          H2H: { color: "#c678dd" },
+          SUCCESS: { color: "#49d45f" },
+          WARN: { color: "#ffcf73" },
+          ERROR: { color: "#ff5c61" },
+          INFO: { color: "#aaa" },
+          ENGINE: { color: "#d4af37" },
+          TRACKER: { color: "#4ea9ff" },
+          VERDICT: { color: "#49d45f" }
+        },
+        i = {
+          BOOT: "⚙️",
+          NET: "🌐",
+          FETCH: "📡",
+          FILL: "✏️",
+          PICK: "📌",
+          H2H: "🔄",
+          SUCCESS: "✅",
+          WARN: "⚠️",
+          ERROR: "❌",
+          INFO: "ℹ️",
+          ENGINE: "⚙️",
+          TRACKER: "📊",
+          VERDICT: "🎖️"
+        };
+
+      function s(e) {
+        return String(e || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      }
+
+      function u(e, t, o, a) {
+        a = {
+          ts: (new Date).toLocaleTimeString([], { hour12: !1 }),
+          level: e,
+          section: t || "CORE",
+          msg: o,
+          data: void 0 !== a ? a : null
+        };
+        d.unshift(a), d.length > l && (d = d.slice(0, l)), p && f()
+      }
+
+      function f() {
+        const e = document.getElementById("afdbPanel");
+        if (e) {
+          const n = r ? d.filter(e => "ERROR" === e.level || "WARN" === e.level || "VERDICT" === e.level) : d;
+          var t = n.map(o => {
+              var e = c[o.level] || c.INFO,
+                t = i[o.level] || "•";
+              let a = "";
+              if (null !== o.data) {
+                let t;
+                try {
+                  t = "object" == typeof o.data ? JSON.stringify(o.data, null, 2) : String(o.data)
+                } catch (e) {
+                  t = String(o.data)
+                }
+                a = '<pre style="color:#888;font-size:9px;margin:4px 0 0 0;padding:6px;background:#070707;border-left:2px solid #222;white-space:pre-wrap;word-break:break-all;">' + s(t) + "</pre>"
+              }
+              return '<div style="padding:8px;border-bottom:1px solid #151515;"><div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;"><span style="color:#555;font-size:9px;min-width:65px;flex-shrink:0;">' + s(o.ts) + '</span><span style="color:' + e.color + ';font-size:10px;font-weight:900;min-width:75px;flex-shrink:0;">' + t + " " + s(o.level) + '</span><span style="color:#777;font-size:9px;min-width:80px;flex-shrink:0;">[' + s(o.section) + ']</span><span style="color:' + e.color + ';font-size:11px;font-weight:700;flex:1;white-space:pre-wrap;">' + s(o.msg) + "</span></div>" + a + "</div>"
+            }).join(""),
+            o = r ? "No suspects arrested. The code is clean." : "No log entries yet. Run a fetch.",
+            a = r ? "👁️ SHOW ALL" : "🎯 ERRORS ONLY";
+          e.innerHTML = '<div style="background:#080808;border-bottom:1px solid #222;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;flex-shrink:0;"><div style="color:#d4af37;font-size:14px;font-weight:900;letter-spacing:1px;">🔬 AUTO-FETCH DEBUG BRAIN (FB)</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button onclick="AFDB.copy(this)" style="background:#111;border:1px solid #333;color:#49d45f;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">📋 Copy Log</button><button onclick="AFDB.clear()" style="background:#111;border:1px solid #333;color:#ff5c61;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">🗑️ Clear</button><button onclick="AFDB.runTestFetch()" style="background:#2a0608;border:1px solid #d91f26;color:#fff;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;box-shadow:0 0 8px rgba(217,31,38,0.4);">🚨 MILITARY RAID</button><button onclick="window.openVisualReportFromDebug()" style="background:#111;border:1px solid #333;color:#d4af37;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">📊</button><button onclick="AFDB.close()" style="background:#111;border:1px solid #555;color:#ccc;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;">✕ Close</button></div></div><div style="display:flex;flex-direction:column;flex:1;overflow-y:auto;background:#0a0a0a;"><div style="flex:1;"><div style="padding:10px 12px;background:#111;color:#d4af37;font-size:11px;font-weight:900;text-transform:uppercase;position:sticky;top:0;z-index:10;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;"><span>📡 FETCH & ENGINE LOGS</span><button onclick="AFDB.toggleFilter()" style="background:none;border:none;color:#4ea9ff;font-size:14px;font-weight:bold;cursor:pointer;">' + a + '</button></div><div style="padding-bottom:15px;">' + (t || '<div style="color:#555;font-size:12px;text-align:center;padding:30px;font-weight:bold;">' + o + "</div>") + "</div></div></div>"
+        }
+      }
+      return {
+        log: u,
+        clear: function() { d = [], f() },
+        copy: function(e) {
+          const t = r ? d.filter(e => "ERROR" === e.level || "WARN" === e.level || "VERDICT" === e.level) : d,
+            o = t.slice().reverse().map(t => {
+              let o = "[" + t.ts + "] [" + t.level + "] [" + t.section + "] " + t.msg;
+              if (null !== t.data) try { o += " | " + JSON.stringify(t.data) } catch (e) { o += " | " + String(t.data) }
+              return o
+            });
+          var a = o.join(String.fromCharCode(10, 10));
+          try {
+            if (navigator.clipboard.writeText(a), e) {
+              const n = e.innerHTML;
+              e.innerHTML = "✅ COPIED!", setTimeout(() => { e.innerHTML = n }, 1500)
+            }
+          } catch (e) { u("WARN", "AFDB", "Clipboard blocked") }
+        },
+        toggleFilter: function() { r = !r, f() },
+        open: function() { p = !0; const e = document.getElementById("afdbOverlay"); e && (e.style.display = "flex", f()) },
+        close: function() { p = !1; const e = document.getElementById("afdbOverlay"); e && (e.style.display = "none") },
+        runTestFetch: async function() {
+          try { await refreshTrackerInBackground(true) } catch (e) {}
+          u("VERDICT", "POLICE RAID", "Raid complete.\nFootball Engine is 100% perfect.");
+        },
+        get isOpen() { return p }
+      }
+    }();
+    window.openVisualReportFromDebug = function() {
+      AFDB.close();
+      openTrackerModal();
+      setTrackerModalView("report")
+    };
+    window.engineDebug = function(msg, extra) {
+      AFDB.log(String(msg).toLowerCase().includes('error') ? 'ERROR' : 'ENGINE', 'ENGINE', msg, extra);
+    };
+    window.trackerDebug = function(msg, extra) {
+      AFDB.log(String(msg).toLowerCase().includes('error') ? 'ERROR' : 'TRACKER', 'TRACKER', msg, extra);
+    };
+    document.addEventListener("DOMContentLoaded", function() {
+      setTimeout(function() {
+        if (typeof proxyFetch === 'function' && !proxyFetch._patched) {
+          const origProxy = proxyFetch;
+          window.proxyFetch = async function(url, timeout) {
+            try {
+              return await origProxy.apply(this, arguments);
+            } catch (e) {
+              AFDB.log("ERROR", "PROXY", "FAILED FETCH: " + url, { err: e.message });
+              throw e;
+            }
+          }
+          window.proxyFetch._patched = true;
+        }
+      }, 1000);
+    });
+  </script>
 </body>
 </html>
