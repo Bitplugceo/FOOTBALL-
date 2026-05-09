@@ -2594,7 +2594,7 @@ body.dark-mode .tracker-analytics-section-head {
     ⚠️
   </button>
 
-    <span class="brand-right">
+        <span class="brand-right">
     <button class="theme-toggle" type="button" id="themeToggleBtn" title="Toggle dark/light mode">🎾</button>
     <button class="theme-toggle" type="button" id="trackerToggleBtn" title="Open tracked picks">📊</button>
     <button class="theme-toggle" type="button" id="afdbBtn" title="Auto-Fetch Debugger" onclick="AFDB.open()">🔬</button>
@@ -2768,7 +2768,7 @@ body.dark-mode .tracker-analytics-section-head {
 
 <div id="trackerModal" class="tracker-modal" aria-hidden="true">
   <div class="tracker-panel">
-    <div class="tracker-head">
+            <div class="tracker-head">
       <span id="trackerHeadTitle">Tracked Picks</span>
       <div class="tracker-head-actions">
         <button type="button" id="trackerInsightsBtn" class="tracker-insights-btn state-idle" title="Open report" aria-label="Open report">📊 Report</button>
@@ -2860,8 +2860,9 @@ body.dark-mode .tracker-analytics-section-head {
   window.addEventListener("load", function () {
     setTimeout(function () {
       if (!window.__TENNISCEO_ENGINE_BOOT_SEEN) {
-        if (typeof window.engineDebug === "function") {
-            window.engineDebug("ENGINE BREAKDOWN", "Initialization Failure. The script stopped running immediately after load. Check for missing brackets or illegal syntax.");
+        if (typeof AFDB !== 'undefined') {
+            AFDB.log('ERROR', 'BOOT', 'Initialization Failure. The script stopped running immediately after load.');
+            AFDB.open();
         }
       }
     }, 5000);
@@ -5746,7 +5747,7 @@ if (!duplicate) {
     return g_trackerRefreshPromise;
   }
 
-  function setTrackerView(mode) {
+      function setTrackerView(mode) {
     const trackerModal = qs("trackerModal");
     const panel = trackerModal ? trackerModal.querySelector(".tracker-panel") : null;
     const reportBtn = qs("trackerInsightsBtn");
@@ -7196,6 +7197,236 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 })();
+</script>
+<div id="afdbOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,0.96);flex-direction:column;font-family:ui-monospace,Consolas,monospace;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);">
+  <div id="afdbPanel" style="width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;"></div>
+</div>
+
+<script>
+const AFDB = (function() {
+  const LOG_LIMIT = 600;
+  let _log = [];
+  let _isOpen = false;
+  let _showOnlyErrors = false; 
+
+  const LEVELS = {
+    BOOT:    { color:'#7aa6ff' }, NET:     { color:'#4ea9ff' },
+    FETCH:   { color:'#49d45f' }, FILL:    { color:'#2aff9e' },
+    PICK:    { color:'#d4af37' }, H2H:     { color:'#c678dd' },
+    SUCCESS: { color:'#49d45f' }, WARN:    { color:'#ffcf73' },
+    ERROR:   { color:'#ff5c61' }, INFO:    { color:'#aaa'    },
+    ENGINE:  { color:'#d4af37' }, TRACKER: { color:'#4ea9ff' },
+    VERDICT: { color:'#49d45f' } 
+  };
+
+  const ICONS = {
+    BOOT:'\u2699\ufe0f', NET:'\ud83c\udf10', FETCH:'\ud83d\udce1', FILL:'\u270f\ufe0f',
+    PICK:'\ud83d\udccc', H2H:'\ud83d\udd04', SUCCESS:'\u2705', WARN:'\u26a0\ufe0f', ERROR:'\u274c', INFO:'\u2139\ufe0f',
+    ENGINE:'\u2699\ufe0f', TRACKER:'\ud83d\udcca', VERDICT:'\ud83c\udf96\ufe0f'
+  };
+
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function log(level, section, msg, data) {
+    const entry = {
+      ts: new Date().toLocaleTimeString([],{hour12:false}),
+      level, section: section||'CORE', msg,
+      data: data !== undefined ? data : null
+    };
+    _log.unshift(entry);
+    if (_log.length > LOG_LIMIT) _log = _log.slice(0, LOG_LIMIT);
+    if (_isOpen) _render();
+  }
+
+  function clear() { _log = []; _render(); }
+
+  function toggleFilter() {
+    _showOnlyErrors = !_showOnlyErrors;
+    _render();
+  }
+
+  function copy(btnEl) {
+    const visibleLogs = _showOnlyErrors ? _log.filter(e => e.level === 'ERROR' || e.level === 'WARN' || e.level === 'VERDICT') : _log;
+    const textArr = visibleLogs.slice().reverse().map(e => {
+      let line = '[' + e.ts + '] [' + e.level + '] [' + e.section + '] ' + e.msg;
+      if (e.data !== null) {
+        try { line += ' | ' + JSON.stringify(e.data); }
+        catch(x) { line += ' | ' + String(e.data); }
+      }
+      return line;
+    });
+    const text = textArr.join(String.fromCharCode(10, 10));
+    try {
+      navigator.clipboard.writeText(text);
+      if (btnEl) {
+        const origText = btnEl.innerHTML;
+        btnEl.innerHTML = "\u2705 COPIED!";
+        setTimeout(() => { btnEl.innerHTML = origText; }, 1500);
+      }
+    } catch(e) {
+      log('WARN','AFDB','Clipboard blocked \u2014 printed to console');
+    }
+  }
+
+  function _render() {
+    const panel = document.getElementById('afdbPanel');
+    if (!panel) return;
+    const visibleLogs = _showOnlyErrors ? _log.filter(e => e.level === 'ERROR' || e.level === 'WARN' || e.level === 'VERDICT') : _log;
+    
+    let autopsyHtml = "";
+    const errorEntry = _log.find(e => e.level === 'ERROR' && (e.msg.toLowerCase().includes("fail") || e.msg.toLowerCase().includes("error") || e.msg.toLowerCase().includes("breakdown") || e.msg.toLowerCase().includes("blocked")));
+
+    if (errorEntry) {
+      let moduleName = "CORE ENGINE";
+      let fixAdvice = "Review the recent logic changes. A code snippet is breaking the engine.";
+      const rawText = String(errorEntry.msg).toLowerCase();
+
+      if (rawText.includes("toggletheme") || rawText.includes("dark-mode")) {
+        moduleName = "UI THEME / ICON SYSTEM";
+        fixAdvice = "Check the icon logic. Fix the specific text to restore the UI Theme.";
+      } else if (rawText.includes("runengine") || rawText.includes("simulation")) {
+        moduleName = "PREDICTION INTELLIGENCE";
+        fixAdvice = "A math formula or data input in the Run button is invalid. Trace the calculation block.";
+      } else if (rawText.includes("fetch") || rawText.includes("network") || rawText.includes("promise") || rawText.includes("cloudflare")) {
+        moduleName = "CLOUD SYNC / NETWORK";
+        fixAdvice = "The engine lost connection to the server or Cloudflare. Check your internet or wait for the backend to reboot.";
+      }
+      
+      const varMatch = rawText.match(/variable:\\s*([a-zA-Z0-9_$]+)/i) || 
+                       rawText.match(/([a-zA-Z0-9_$]+)\\s+is/i) || 
+                       rawText.match(/reading\\s+'([a-zA-Z0-9_$]+)'/i);
+      const culprit = varMatch ? varMatch[1] : "Execution_Flow";
+
+      autopsyHtml = \`
+        <div style="background:rgba(20,20,20,0.4); border-bottom:1px solid rgba(244,67,54,0.4); padding:15px;">
+          <div style="color:#f44336; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+            🚨 SYSTEM BREAKDOWN: \${moduleName}
+          </div>
+          <div style="color:#eee; font-size:11px; margin-bottom:10px;">
+            <strong>THE BREAK:</strong> The system died because of this code:
+          </div>
+          <div style="margin-bottom:15px;">
+          <span style="background:#f44336; color:#fff; padding:3px 10px; border-radius:4px; font-family:monospace; font-weight:bold; font-size:11px; display:inline-block;">
+            \${esc(culprit)}
+          </span>
+          </div>
+          <div style="background:#000; border:1px solid #333; border-radius:6px; padding:12px;">
+            <div style="color:#fff; font-size:11px; font-weight:900; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+              🛠️ HOW TO FIX:
+            </div>
+            <div style="color:#aaa; font-size:10px; line-height:1.6;">
+              \${fixAdvice}
+            </div>
+          </div>
+        </div>
+      \`;
+    }
+
+    const logRows = visibleLogs.map(e => {
+      const def = LEVELS[e.level]||LEVELS.INFO;
+      const icon = ICONS[e.level]||'•';
+      let dataHtml = '';
+      if (e.data !== null) {
+        let ds;
+        try { ds = typeof e.data==='object' ? JSON.stringify(e.data,null,2) : String(e.data); }
+        catch(x) { ds = String(e.data); }
+        dataHtml = '<pre style="color:#888;font-size:9px;margin:4px 0 0 0;padding:6px;background:#070707;border-left:2px solid #222;white-space:pre-wrap;word-break:break-all;">' + esc(ds) + '</pre>';
+      }
+      return '<div style="padding:8px;border-bottom:1px solid #151515;"><div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;"><span style="color:#555;font-size:9px;min-width:65px;flex-shrink:0;">' + esc(e.ts) + '</span><span style="color:' + def.color + ';font-size:10px;font-weight:900;min-width:75px;flex-shrink:0;">' + icon + ' ' + esc(e.level) + '</span><span style="color:#777;font-size:9px;min-width:80px;flex-shrink:0;">[' + esc(e.section) + ']</span><span style="color:' + def.color + ';font-size:11px;font-weight:700;flex:1;white-space:pre-wrap;">' + esc(e.msg) + '</span></div>' + dataHtml + '</div>';
+    }).join('');
+
+    const headerBtns = '<button onclick="AFDB.copy(this)" style="background:#111;border:1px solid #333;color:#49d45f;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">📋 Copy Log</button><button onclick="AFDB.clear()" style="background:#111;border:1px solid #333;color:#ff5c61;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">🗑️ Clear</button><button onclick="AFDB.runTestFetch()" style="background:#2a0608;border:1px solid #d91f26;color:#fff;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;box-shadow:0 0 8px rgba(217,31,38,0.4);">🚨 MILITARY RAID</button><button onclick="AFDB.close()" style="background:#111;border:1px solid #555;color:#ccc;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;">✕ Close</button>';
+
+    const emptyMsg = _showOnlyErrors ? 'No suspects arrested. The code is clean.' : 'No log entries yet. Run a fetch.';
+    const filterLabel = _showOnlyErrors ? '👁️ SHOW ALL' : '🎯 ERRORS ONLY';
+
+    panel.innerHTML = '<div style="background:#080808;border-bottom:1px solid #222;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;flex-shrink:0;"><div style="color:#d4af37;font-size:14px;font-weight:900;letter-spacing:1px;">🔭 AUTO-FETCH DEBUG BRAIN (TENNIS)</div><div style="display:flex;gap:8px;flex-wrap:wrap;">' + headerBtns + '</div></div><div style="display:flex;flex-direction:column;flex:1;overflow-y:auto;background:#0a0a0a;"><div style="flex:1;"><div style="padding:10px 12px;background:#111;color:#d4af37;font-size:11px;font-weight:900;text-transform:uppercase;position:sticky;top:0;z-index:10;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;"><span>📡 FETCH & ENGINE LOGS</span><button onclick="AFDB.toggleFilter()" style="background:none;border:none;color:#4ea9ff;font-size:14px;font-weight:bold;cursor:pointer;">' + filterLabel + '</button></div>' + autopsyHtml + '<div style="padding-bottom:15px;">' + (logRows||'<div style="color:#555;font-size:12px;text-align:center;padding:30px;font-weight:bold;">' + emptyMsg + '</div>') + '</div></div></div>';
+  }
+
+  function open() {
+    _isOpen = true;
+    const ov = document.getElementById('afdbOverlay');
+    if (ov) { ov.style.display='flex'; _render(); }
+  }
+
+  function close() {
+    _isOpen = false;
+    const ov = document.getElementById('afdbOverlay');
+    if (ov) ov.style.display='none';
+  }
+
+  async function runTestFetch() {
+    try {
+      if (typeof forceTrackerSaveNow === 'function') forceTrackerSaveNow();
+    } catch(e) {}
+
+    let totalSuspects = 0;
+
+    const inputsToCheck = ['aFTScored', 'bFTScored', 'ftMarket', 'h1Market'];
+    inputsToCheck.forEach(id => {
+      const el = document.getElementById(id);
+      const val = el ? el.value.trim() : '';
+      if (val && /[^0-9,.\\s-]/.test(val)) {
+        log('ERROR', 'UI INPUT', 'Invalid characters detected in ' + id + ': "' + val + '". Math engine will crash.');
+        totalSuspects++;
+      }
+    });
+
+    const active = typeof getTrackerItems === 'function' ? getTrackerItems() : [];
+    if (active.length > 490) { log('ERROR','STORAGE','Active picks array is critically full (Limit: 500).'); totalSuspects++; }
+
+    let edgeAnomalies = 0;
+    active.forEach(p => {
+      if (p.edge && p.line) {
+        const edgePct = Math.abs(p.edge / parseFloat(p.line)) * 100;
+        if (edgePct > 30) edgeAnomalies++;
+      }
+    });
+    if (edgeAnomalies > 0) { log('ERROR','MATH ENGINE', edgeAnomalies + ' picks show extreme edge anomalies (>30%).'); totalSuspects++; }
+
+    const league = document.getElementById('leagueSelect') && document.getElementById('leagueSelect').value;
+    const tA = document.getElementById('teamAName') && document.getElementById('teamAName').value;
+    const tB = document.getElementById('teamBName') && document.getElementById('teamBName').value;
+    if (league && league !== 'unknown' && tA && tB && typeof fetchESPNTennis === 'function') {
+      try { await fetchESPNTennis(); }
+      catch(e) { log('ERROR','NETWORK','Live sweep failed: ' + e.message); totalSuspects++; }
+    }
+
+    const verdictMsg = totalSuspects === 0 ? 'Raid complete.\\nEngine is 100% perfect.' : 'Raid complete.\\nCaught ' + totalSuspects + ' Thieves and locked them behind the bars.';
+    const verdictEntry = {
+      ts: new Date().toLocaleTimeString([],{hour12:false}),
+      level: totalSuspects === 0 ? 'VERDICT' : 'ERROR',
+      section: 'POLICE RAID',
+      msg: verdictMsg,
+      data: null
+    };
+    _log.unshift(verdictEntry);
+    if (_log.length > LOG_LIMIT) _log = _log.slice(0, LOG_LIMIT);
+    if (_isOpen) _render();
+    setTimeout(() => {
+      const idx = _log.indexOf(verdictEntry);
+      if (idx !== -1) { _log.splice(idx, 1); if (_isOpen) _render(); }
+    }, 7000);
+  }
+
+  return { log, clear, copy, toggleFilter, open, close, runTestFetch, get isOpen() { return _isOpen; } };
+})();
+
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    if (typeof proxyFetch === 'function' && !proxyFetch._afdbPatched) {
+      const _orig = proxyFetch;
+      window.proxyFetch = async function(url, timeout) {
+        const short = String(url||'').replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\/tennis\//,'TENNIS/').replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\//,'ESPN/');
+        try { return await _orig.apply(this, arguments); }
+        catch(err) { AFDB.log('ERROR','PROXY','FAILED: ' + short, { error: err.message }); throw err; }
+      };
+      window.proxyFetch._afdbPatched = true;
+    }
+  }, 0);
+});
 </script>
 <div id="afdbOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,0.96);flex-direction:column;font-family:ui-monospace,Consolas,monospace;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);">
   <div id="afdbPanel" style="width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;"></div>
