@@ -2772,7 +2772,6 @@ body.dark-mode .tracker-analytics-section-head {
       <span id="trackerHeadTitle">Tracked Picks</span>
       <div class="tracker-head-actions">
         <button type="button" id="trackerInsightsBtn" class="tracker-insights-btn state-idle" title="Open report" aria-label="Open report">📊 Report</button>
-        <button type="button" id="trackerDebugBtn" class="tracker-insights-btn state-idle" title="Open tracker debug" aria-label="Open tracker debug">🐞</button>
         <button type="button" id="trackerCloseBtn" class="tracker-close">✕</button>
       </div>
     </div>
@@ -2781,7 +2780,6 @@ body.dark-mode .tracker-analytics-section-head {
 
     <div class="tracker-body-scroll" id="trackedPicksWrap">
       <div id="trackerAnalyticsPanel" class="tracker-analytics-panel"></div>
-      <div id="trackerDebugPanel" class="tracker-analytics-panel"></div>
 
       <div id="trackerEmpty" class="tracker-empty">
         No tracked picks saved yet.
@@ -3180,31 +3178,8 @@ const ENGINE_INTEGRITY_SHIELD = {
     el.textContent = text;
   }
 
-  function renderTrackerDebug() {
-    const panel = qs("trackerDebugPanel");
-    if (!panel) return;
-    
-    const trackerModal = qs("trackerModal");
-    const isDebugView = trackerModal && trackerModal.querySelector(".tracker-panel").classList.contains("debug-view");
-    if (!isDebugView) return;
-
-    panel.innerHTML = `
-      <div class="tracker-analytics-shell">
-        <div class="tracker-analytics-topbar">
-          <div class="tracker-analytics-heading">
-            <div class="tracker-analytics-kicker" style="color:#4ea9ff;">Diagnostics</div>
-            <div class="tracker-analytics-title" style="color:#fff;">System Debug 🐞</div>
-            <div class="tracker-analytics-subtitle" style="color:#888;">Inline event logs. For advanced breakdown, use the AFDB scanner (🔬).</div>
-          </div>
-        </div>
-        <div style="margin-top:15px; border-top:1px solid #333; padding-top:10px;">
-           <div style="color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; margin-bottom:8px;">📜 Logic Event Log</div>
-           <div style="background:#000; border:1px solid #222; padding:10px; font-family:monospace; font-size:9px; color:#0f0; max-height:400px; overflow-y:auto;">
-             ${g_engineDebugLog.map(log => `<div>${htmlEscape(log)}</div>`).join('') || 'Waiting for events...'}
-           </div>
-        </div>
-      </div>
-    `;
+    function renderTrackerDebug() {
+    // Legacy debug panel logic removed. All diagnostics routed to AFDB overlay (🔬).
   }
 
 
@@ -5775,26 +5750,18 @@ if (!duplicate) {
     const trackerModal = qs("trackerModal");
     const panel = trackerModal ? trackerModal.querySelector(".tracker-panel") : null;
     const reportBtn = qs("trackerInsightsBtn");
-    const debugBtn = qs("trackerDebugBtn");
     if (!panel) return;
 
-    const finalMode = mode === "report" || mode === "debug" ? mode : "list";
+    const finalMode = mode === "report" ? mode : "list";
 
     panel.classList.toggle("analytics-view", finalMode === "report");
-    panel.classList.toggle("debug-view", finalMode === "debug");
+    panel.classList.remove("debug-view");
 
     if (reportBtn) {
       reportBtn.classList.toggle("active", finalMode === "report");
       reportBtn.textContent = finalMode === "report" ? "📋 List" : "📊 Report";
       reportBtn.title = finalMode === "report" ? "Show tracked picks" : "Open report";
       reportBtn.setAttribute("aria-label", reportBtn.title);
-    }
-
-    if (debugBtn) {
-      debugBtn.classList.toggle("active", finalMode === "debug");
-      debugBtn.textContent = finalMode === "debug" ? "📋 List" : "🐞";
-      debugBtn.title = finalMode === "debug" ? "Show tracked picks" : "Open tracker debug";
-      debugBtn.setAttribute("aria-label", debugBtn.title);
     }
   }
 
@@ -7065,23 +7032,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
 
-    const trackerDebugBtn = qs("trackerDebugBtn");
-    if (trackerDebugBtn) {
-      trackerDebugBtn.addEventListener("click", function () {
-        const trackerModal = qs("trackerModal");
-        if (!trackerModal) return;
-        const panel = trackerModal.querySelector(".tracker-panel");
-        const isDebug = panel && panel.classList.contains("debug-view");
-
-        if (!isTrackerModalOpen()) {
-          openTrackerModal();
-        }
-
-        setTrackerView(isDebug ? "list" : "debug");
-        updateTrackerUI();
-        renderTrackerDebug();
-      });
-    }
+    // Legacy trackerDebugBtn listener removed
 
     const trackerDebugCloseBtn = qs("trackerDebugCloseBtn");
     if (trackerDebugCloseBtn) trackerDebugCloseBtn.addEventListener("click", closeTrackerDebugModal);
@@ -7255,7 +7206,7 @@ const AFDB = (function() {
   const LOG_LIMIT = 600;
   let _log = [];
   let _isOpen = false;
-  let _showOnlyErrors = true; 
+  let _showOnlyErrors = false; 
 
   const LEVELS = {
     BOOT:    { color:'#7aa6ff' }, NET:     { color:'#4ea9ff' },
