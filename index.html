@@ -2594,10 +2594,9 @@ body.dark-mode .tracker-analytics-section-head {
     ⚠️
   </button>
 
-        <span class="brand-right">
+  <span class="brand-right">
     <button class="theme-toggle" type="button" id="themeToggleBtn" title="Toggle dark/light mode">🎾</button>
     <button class="theme-toggle" type="button" id="trackerToggleBtn" title="Open tracked picks">📊</button>
-    <button class="theme-toggle" type="button" id="afdbBtn" title="Auto-Fetch Debugger" onclick="AFDB.open()">🔬</button>
     PREDICTIONS
   </span>
 </header>
@@ -2768,10 +2767,11 @@ body.dark-mode .tracker-analytics-section-head {
 
 <div id="trackerModal" class="tracker-modal" aria-hidden="true">
   <div class="tracker-panel">
-            <div class="tracker-head">
+    <div class="tracker-head">
       <span id="trackerHeadTitle">Tracked Picks</span>
       <div class="tracker-head-actions">
         <button type="button" id="trackerInsightsBtn" class="tracker-insights-btn state-idle" title="Open report" aria-label="Open report">📊 Report</button>
+        <button type="button" id="trackerDebugBtn" class="tracker-insights-btn state-idle" title="Open tracker debug" aria-label="Open tracker debug">🐞</button>
         <button type="button" id="trackerCloseBtn" class="tracker-close">✕</button>
       </div>
     </div>
@@ -2780,6 +2780,7 @@ body.dark-mode .tracker-analytics-section-head {
 
     <div class="tracker-body-scroll" id="trackedPicksWrap">
       <div id="trackerAnalyticsPanel" class="tracker-analytics-panel"></div>
+      <div id="trackerDebugPanel" class="tracker-analytics-panel"></div>
 
       <div id="trackerEmpty" class="tracker-empty">
         No tracked picks saved yet.
@@ -2826,26 +2827,76 @@ body.dark-mode .tracker-analytics-section-head {
 <script>
 /**
  * 🛡️ TENNIS-CEO UNKILLABLE GOD-MODE WATCHDOG
- * Detects: Syntax Errors, Typos, CORS Blocks, and Boot Failures.
  */
 (function () {
   if (window.__TENNISCEO_WATCHDOG_LOADED) return;
   window.__TENNISCEO_WATCHDOG_LOADED = true;
   window.__TENNISCEO_ENGINE_BOOT_SEEN = false;
 
-  // 1. RAW ERROR INTERCEPTOR
-  window.addEventListener("error", function (e) {
+  function spawnFatalTerminal(msg, file, line, col, stack) {
+    if (document.getElementById("fatalGodModeTerminal")) return;
+    const t = document.createElement("div");
+    t.id = "fatalGodModeTerminal";
+    t.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.98); z-index:1000000; padding:20px; box-sizing:border-box; overflow-y:auto; font-family: ui-monospace, monospace; color: #0f0;";
+    
+    t.innerHTML = `
+      <div style="border:2px solid #ff5c61; background:#111; max-width:900px; margin:20px auto; box-shadow: 0 0 50px rgba(255, 0, 0, 0.3);">
+        <div style="background:#3b0000; color:#ff5c61; padding:15px; font-size:16px; font-weight:900; border-bottom:2px solid #ff5c61; display:flex; justify-content:space-between; text-transform:uppercase;">
+          <span>🚨 FATAL TENNIS ENGINE CRASH</span>
+          <span>[SYSTEM LOCK]</span>
+        </div>
+        <div style="padding:25px;">
+          <div style="color:#ffcf73; margin-bottom:20px; font-size:14px; border-left: 3px solid #ffcf73; padding-left: 15px; font-weight:800;">
+            CATASTROPHIC ERROR: The engine parser died. The UI is disabled to protect your data.
+          </div>
+          <div style="display:grid; gap:12px; margin-bottom:25px;">
+            <div><strong style="color:#fff; text-transform:uppercase; font-size:11px;">Error Message:</strong><br><span style="color:#ff5c61; font-size:15px; font-weight:bold;">${msg}</span></div>
+            <div style="display:flex; gap:30px;">
+                <div><strong style="color:#fff; text-transform:uppercase; font-size:11px;">Line:</strong><br><span style="color:#0f0; font-size:18px; font-weight:900;">${line}</span></div>
+                <div><strong style="color:#fff; text-transform:uppercase; font-size:11px;">Column:</strong><br><span style="color:#0f0; font-size:18px; font-weight:900;">${col}</span></div>
+                <div><strong style="color:#fff; text-transform:uppercase; font-size:11px;">Source:</strong><br><span style="color:#aaa; font-size:13px;">${file}</span></div>
+            </div>
+          </div>
+          <button onclick="location.reload()" style="margin-top:25px; background:#ff5c61; color:#fff; border:none; padding:12px 24px; font-weight:900; cursor:pointer; font-family:inherit; text-transform:uppercase;">Try Reboot</button>
+        </div>
+      </div>
+    `;
+
+    document.body ? document.body.appendChild(t) : document.addEventListener("DOMContentLoaded", () => document.body.appendChild(t));
+  }
+
+  const originalFetch = window.fetch;
+  window.fetch = async function(...args) {
+    try {
+      const response = await originalFetch.apply(this, args);
+      if (!response.ok && typeof window.engineDebug === "function") {
+        window.engineDebug(`API ERROR: HTTP ${response.status}`, { url: args[0] });
+      }
+      return response;
+    } catch (err) {
+      if (typeof window.engineDebug === "function") {
+        window.engineDebug("CRITICAL NETWORK BLOCK", { url: args[0], error: err.message });
+      }
+      throw err;
+    }
+  };
+
+    // 2. RAW ERROR INTERCEPTOR
+    window.addEventListener("error", function (e) {
     if (e.message === "Script error." && e.lineno === 0) return;
     const file = e.filename ? e.filename.split('/').pop() : "Inline Script";
+    
+    // Fire the red terminal
+    spawnFatalTerminal(e.message, file, e.lineno, e.colno, e.error?.stack);
 
     if (typeof window.engineDebug === "function") {
-        window.engineDebug("ENGINE BREAKDOWN", e.message + " | Loc: " + file + ":" + e.lineno);
+        window.engineDebug("ENGINE BREAKDOWN", `${e.message} | Loc: ${file}:${e.lineno}`);
     }
   });
 
-  // 2. NETWORK & PROMISE INTERCEPTOR
+  // 3. NETWORK & PROMISE INTERCEPTOR
   window.addEventListener("unhandledrejection", function (e) {
-    const reason = e.reason && e.reason.message ? e.reason.message : String(e.reason);
+    const reason = e.reason?.message || String(e.reason);
     if (typeof window.engineDebug === "function") {
         window.engineDebug("NETWORK/PROMISE ERROR", { detail: reason });
     }
@@ -2856,14 +2907,11 @@ body.dark-mode .tracker-analytics-section-head {
     }
   });
 
-  // 3. ENGINE BOOT PROTECTION
+  // 4. ENGINE BOOT PROTECTION
   window.addEventListener("load", function () {
     setTimeout(function () {
       if (!window.__TENNISCEO_ENGINE_BOOT_SEEN) {
-        if (typeof AFDB !== 'undefined') {
-            AFDB.log('ERROR', 'BOOT', 'Initialization Failure. The script stopped running immediately after load.');
-            AFDB.open();
-        }
+        spawnFatalTerminal("Initialization Failure", "Core Logic", "Check Syntax", "N/A", "The script stopped running immediately after load. Check for missing '}' or illegal characters.");
       }
     }, 5000);
   });
@@ -2917,6 +2965,58 @@ const ENGINE_INTEGRITY_SHIELD = {
 
   const APP_BUILD_VERSION = "tennis_cleanup_v1_prison_model";
   const ENGINE_MODEL_VERSION = "tennis_v1_final";
+
+  // 🧬 CLONED CONFIGURATION LAYER
+  const MODEL_CONFIG = {
+    H2H_DIVERGE_THRESHOLD: 0.20,
+    LINE_ANCHOR_TENNIS: 0.65,
+    DECAY_FACTOR: 0.75,
+    SURFACE_GRASS_BOOST: 1.035,
+    SURFACE_CLAY_DECAY: 0.965,
+    ADVISORY_ONLY: false // Phase 2 Global Toggle
+  };
+
+  const PHASE2_CONTROL = {
+    mode: "live", 
+    trackerFeedbackLive: true,
+    minSettled: 20 // Threshold for the engine to start learning
+  };
+
+  function getPhase2ActivationState() {
+    const items = getTrackerItems();
+    const settled = items.filter(i => i.status !== "PENDING").length;
+    const ready = settled >= PHASE2_CONTROL.minSettled;
+    return {
+      active: ready && PHASE2_CONTROL.trackerFeedbackLive,
+      settled: settled,
+      mode: ready ? "Live Learning" : "Data Collection"
+    };
+  }
+
+  const MASSACRE_TUNING = {
+    modelCountFloor: 2,
+    monteCarloRuns: 10000,
+    thresholds: {
+      match: { sim: 62, brutality: 65, agreement: 2 },
+      set1:  { sim: 58, brutality: 60, agreement: 1 }
+    }
+  };
+
+  function getDynamicWeights(sampleSize, volatility) {
+    // Ported from Basketball Brain V2
+    const isFull = sampleSize >= 5;
+    const isHighVol = volatility > 6.5;
+    
+    let teamWeight = isFull ? 0.65 : 0.50;
+    if (isHighVol) teamWeight -= 0.10;
+
+    teamWeight = Math.max(0.40, Math.min(0.75, teamWeight));
+    const oppWeight = 1.0 - teamWeight;
+    const baselineWeight = isHighVol ? 0.25 : 0.10;
+
+    return { teamWeight, oppWeight, regressionWeight: 1.0 - baselineWeight, baselineWeight };
+  }
+
   let g_engineDebugLog = [];
   let g_engineAlertNeedsReview = false;
   let g_trackerSaveInFlight = false;
@@ -2929,6 +3029,52 @@ const ENGINE_INTEGRITY_SHIELD = {
   const TRACKER_CACHE_KEY = "bb_engine_tracker_state_" + TRACKER_STORAGE_KEY;
   const TRACKER_NETWORK_TIMEOUT_MS = 12000;
   const HARD_RESET_FLAG_KEY = "tennis_engine_hard_reset_flag_v1";
+  const ENGINE_LINE_MEMORY_STORAGE = "tennis_engine_line_memory_v1";
+  let g_engineLineMemory = loadEngineLineMemory();
+
+  function loadEngineLineMemory() {
+    try {
+      const raw = localStorage.getItem(ENGINE_LINE_MEMORY_STORAGE);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (err) { return {}; }
+  }
+
+  function saveEngineLineMemory() {
+    try {
+      const MAX_ENTRIES = 150;
+      const now = Date.now();
+      let keys = Object.keys(g_engineLineMemory);
+      if (keys.length > MAX_ENTRIES) {
+        const sorted = keys.sort((a, b) => Date.parse(g_engineLineMemory[a].lastSeenAt || 0) - Date.parse(g_engineLineMemory[b].lastSeenAt || 0));
+        sorted.slice(0, keys.length - MAX_ENTRIES).forEach(k => delete g_engineLineMemory[k]);
+      }
+      localStorage.setItem(ENGINE_LINE_MEMORY_STORAGE, JSON.stringify(g_engineLineMemory));
+    } catch (err) { console.error("Line Memory Save Failed", err); }
+  }
+
+  function makeLineMemoryKey(eventId, tour, market, side) {
+    return [String(eventId || "manual"), String(tour).toUpperCase(), String(market), String(side).toLowerCase()].join("|");
+  }
+
+  function resolveLineWithMemory({ eventId, tour, market, currentLine, side, proj }) {
+    if (!eventId || !currentLine || !side || !proj) return { line: currentLine, usedMemory: false };
+    const key = makeLineMemoryKey(eventId, tour, market, side);
+    const entry = g_engineLineMemory[key];
+    if (!entry) return { line: currentLine, usedMemory: false };
+
+    const savedLine = Number(entry.bestLine);
+    let resolved = currentLine;
+    if (side === "over") resolved = Math.min(currentLine, savedLine);
+    if (side === "under") resolved = Math.max(currentLine, savedLine);
+
+    return {
+      line: resolved,
+      usedMemory: Math.abs(resolved - currentLine) > 0.01,
+      savedLine
+    };
+  }
+
   const selectedPlayerIds = { A: null, B: null };
   const fixtureRecordMap = new Map();
   let currentFixtureOffset = 0;
@@ -2936,7 +3082,7 @@ const ENGINE_INTEGRITY_SHIELD = {
   let historyPoolCache = new Map();
   let latestFetchedContext = null;
   let latestRunBundle = null;
-  let g_trackerState = { items: [], updatedAt: null };
+  let g_trackerState = { items: [], updatedAt: null, vId: 0 };
   let g_trackerDebug = {
     key: TRACKER_STORAGE_KEY,
     apiUrl: TRACKER_API_URL,
@@ -3179,8 +3325,80 @@ const ENGINE_INTEGRITY_SHIELD = {
     el.textContent = text;
   }
 
-    function renderTrackerDebug() {
-    // Legacy debug panel logic removed. All diagnostics routed to AFDB overlay (🔬).
+  // ── GOD FATHER: TENNIS X-RAY PANEL ──────────────────────────────────────────────
+  function buildReportDebugCard(title, logs = []) {
+    let hasError = false;
+    const items = logs.slice(0, 10).map(line => {
+      let color = "#4caf50";
+      const text = line.toLowerCase();
+      if (text.includes("fail") || text.includes("error")) { color = "#f44336"; hasError = true; }
+      else if (text.includes("warn") || text.includes("pending")) { color = "#ff9800"; }
+      return `<div style="border-bottom:1px solid #1a1a1a;padding:6px 0;font-size:10px;color:${color}">${htmlEscape(line)}</div>`;
+    }).join("");
+
+    let autopsy = "";
+    if (hasError) {
+      const errorLine = logs.find(l => l.toLowerCase().includes("error") || l.toLowerCase().includes("fail")) || "";
+      let advice = "Review recent logic changes.";
+      if (errorLine.includes("theme") || errorLine.includes("dark-mode")) advice = "Fix Theme Toggle logic.";
+      else if (errorLine.includes("run") || errorLine.includes("results")) advice = "Check math/input validation.";
+      
+      autopsy = `<div style="background:rgba(244,67,54,0.1);border:1px solid #f44336;padding:10px;margin-bottom:10px;border-radius:4px;">
+        <div style="color:#f44336;font-weight:900;font-size:11px;margin-bottom:4px;">🚨 SYSTEM BREAKDOWN DETECTED</div>
+        <div style="color:#aaa;font-size:10px;"><b>Advice:</b> ${advice}</div>
+      </div>`;
+    }
+
+    return `<div style="background:#111;border:1px solid ${hasError ? '#f44336' : '#333'};border-radius:6px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:900;color:#fff;text-transform:uppercase;margin-bottom:8px;">☄️ ${title}</div>
+      ${autopsy}
+      <div style="background:#0a0a0a;border:1px solid #222;padding:5px 10px;max-height:150px;overflow-y:auto;">${items || '<div style="color:#555;font-size:10px;">Clean log.</div>'}</div>
+    </div>`;
+  }
+
+  function buildGodFatherDebugHtml() {
+    const active = getTrackerItems();
+    const isDesynced = g_trackerSaveVersion > g_trackerPersistedVersion;
+    
+    const syncCard = `<div style="background:#111;border:1px solid ${isDesynced ? '#ff9800' : '#333'};border-left:4px solid ${isDesynced ? '#ff9800' : '#4caf50'};padding:12px;border-radius:6px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;color:#fff;font-size:11px;font-weight:900;"><span>☁️ CLOUD SYNC</span><span>${isDesynced ? 'DESYNCED' : 'SYNCED'}</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:10px;color:#aaa;margin-top:8px;">
+        <div>Local Queue: ${g_trackerSaveVersion}</div><div>Cloud Id: ${g_trackerPersistedVersion}</div>
+      </div>
+    </div>`;
+
+    return syncCard + buildReportDebugCard("Engine Logs", g_engineDebugLog) + buildReportDebugCard("Settlement Probes", g_trackerDebug.lastSettlementDetails.map(d => `${d.match}: ${d.reason}`));
+  }
+
+  function renderTrackerDebug() {
+    const panel = qs("trackerDebugPanel");
+    if (!panel) return;
+    
+    // Check if we are in debug view
+    const trackerModal = qs("trackerModal");
+    const isDebugView = trackerModal && trackerModal.querySelector(".tracker-panel").classList.contains("debug-view");
+    if (!isDebugView) return;
+
+    panel.innerHTML = `
+      <div class="tracker-analytics-shell">
+        <div class="tracker-analytics-topbar">
+          <div class="tracker-analytics-heading">
+            <div class="tracker-analytics-kicker" style="color:#f44336;">Immune System</div>
+            <div class="tracker-analytics-title" style="color:#fff;">God Father 🛡️</div>
+            <div class="tracker-analytics-subtitle" style="color:#888;">Tennis core diagnostics and auto-sorting health checks.</div>
+          </div>
+        </div>
+        <div id="godfatherGrid" style="padding:10px 0;">
+          ${buildGodFatherDebugHtml()}
+        </div>
+        <div style="margin-top:15px; border-top:1px solid #333; padding-top:10px;">
+           <div style="color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; margin-bottom:8px;">📜 Logic Event Log</div>
+           <div style="background:#000; border:1px solid #222; padding:10px; font-family:monospace; font-size:9px; color:#0f0; max-height:200px; overflow-y:auto;">
+             ${g_engineDebugLog.map(log => `<div>${htmlEscape(log)}</div>`).join('') || 'Waiting for events...'}
+           </div>
+        </div>
+      </div>
+    `;
   }
 
 
@@ -3415,42 +3633,38 @@ const ENGINE_INTEGRITY_SHIELD = {
 
       function getRawConfidence(edge, volatility, lineMid) {
     const absEdge = Math.abs(edge);
-    
-    // WEAPONIZED NORMALIZATION: Comparing raw games across different markets is a flaw.
-    // We convert the edge to a percentage relative to the line midpoint.
     const edgePct = (absEdge / (lineMid || 22.0)) * 100;
 
     if (volatility > 7.0) return "PASS"; 
     
-    // Percent-based thresholds provide fair grading for both Set 1 and Match totals.
-    // A: >14.0% | B: >9.0% | C: >4.5%
-    if (edgePct >= 14.0 && volatility <= 4.5) return "A";
-    if (edgePct >= 9.0 && volatility <= 5.5) return "B";
-    if (edgePct >= 4.5 && volatility <= 6.5) return "C";
+    // 🧬 TENNIS CONFIDENCE SCALE (Tuned for Markov Variance)
+    // Tennis edges are tighter than Basketball; thresholds lowered by 1% to trigger correctly.
+    if (edgePct >= 13.0 && volatility <= 4.5) return "A";
+    if (edgePct >= 8.0 && volatility <= 5.5) return "B";
+    if (edgePct >= 3.5 && volatility <= 6.5) return "C";
     return "PASS";
-
   }
 
     function parseLineRange(raw, name, allowEmpty = false) {
-    // Strip hidden characters and convert all dash types to a standard minus
-    const cleaned = String(raw || "")
-      .replace(/[\u00A0\ufeff]/g, " ")
-      .replace(/[–—]/g, "-")
-      .replace(/[^0-9.\-]/g, "") 
-      .trim();
-
+    const cleaned = String(raw || "").replace(/[\u00A0\ufeff]/g, " ").replace(/[–—]/g, "-").replace(/[^0-9.\-]/g, "").trim();
     if (!cleaned) { if (allowEmpty) return null; throw new Error(name + " is required."); }
-    const parts = cleaned.split("-").map(function (v) { return v.trim(); }).filter(Boolean);
+    
+    const parts = cleaned.split("-").map(v => v.trim()).filter(Boolean);
+    const normalizeLine = num => Math.round(num * 2) / 2;
+
     if (parts.length === 1) {
       const single = Number(parts[0]);
-      if (!Number.isFinite(single)) throw new Error(name + " must be a valid number or range.");
-      return { min: single, max: single, mid: single, label: fmt(single) };
+      if (!Number.isFinite(single)) throw new Error(name + " invalid number.");
+      const line = normalizeLine(single);
+      return { min: line, max: line, mid: line, label: fmt(line) };
     }
-    if (parts.length !== 2) throw new Error(name + " must look like 18.5 - 22.5.");
-    const low = Number(parts[0]); const high = Number(parts[1]);
-    if (!Number.isFinite(low) || !Number.isFinite(high)) throw new Error(name + " must contain valid numbers.");
-    if (low > high) throw new Error(name + " lower bound cannot be greater than upper bound.");
-    return { min: low, max: high, mid: (low + high) / 2, label: fmt(low) + " - " + fmt(high) };
+    if (parts.length === 2) {
+      const low = Number(parts[0]); const high = Number(parts[1]);
+      if (!Number.isFinite(low) || !Number.isFinite(high)) throw new Error(name + " invalid range.");
+      const mid = normalizeLine((low + high) / 2);
+      return { min: normalizeLine(low), max: normalizeLine(high), mid: mid, label: fmt(normalizeLine(low)) + " - " + fmt(normalizeLine(high)) };
+    }
+    throw new Error(name + " format error.");
   }
 
   function directionFromRange(value, lineRange) {
@@ -3495,9 +3709,42 @@ const ENGINE_INTEGRITY_SHIELD = {
     return latestFetchedContext.matchupKey === matchupKey(tour, playerAName, playerBName) ? latestFetchedContext : null;
   }
 
+  // 🧬 CLONED RELIABILITY PROFILES
+  const TRAP_RULES = {
+    minEdgePct: 0.05,
+    extremeEdgePct: 0.18,
+    volLimit: 6.8
+  };
+
+  const TOURNAMENT_TRUST_PROFILES = {
+    trusted: ["Grand Slam", "Finals", "Masters / 1000"],
+    advisory: ["500", "250", "Tour", "Olympics"],
+    blocked: ["Challenger", "Exhibition", "Junior"]
+  };
+
+  function getTournamentTrust(level) {
+    const lvl = level || "Tour";
+    if (TOURNAMENT_TRUST_PROFILES.trusted.includes(lvl)) return { label: "Trusted", mode: "full" };
+    if (TOURNAMENT_TRUST_PROFILES.blocked.includes(lvl)) return { label: "High Risk", mode: "block" };
+    return { label: "Advisory", mode: "advisory" };
+  }
+
+  // 🧬 CLONED TRAP DETECTOR (Tennis-Calibrated)
+  function detectTennisTrap(edge, line, volatility) {
+    const pct = Math.abs(edge / line);
+    let redFlags = 0;
+
+    if (pct < TRAP_RULES.minEdgePct) return false; // Edge too small to be a trap
+    if (pct > TRAP_RULES.extremeEdgePct) redFlags++; // Edge is suspiciously huge
+    if (volatility > TRAP_RULES.volLimit) redFlags++; // Market is too chaotic
+    
+    // In Tennis, huge edges on high volatility are almost always "Information Gaps" or Traps
+    return redFlags >= 2;
+  }
+
   function classifyEventLevel(tournamentName) {
     const value = normalizeName(tournamentName || "");
-    if (!value) return "";
+    if (!value) return "Tour";
     if (value.includes("australian open") || value.includes("french open") || value.includes("roland garros") || value.includes("wimbledon") || value.includes("us open")) return "Grand Slam";
     if (value.includes("atp finals") || value.includes("wta finals")) return "Finals";
     if (value.includes("masters") || value.includes("1000")) return "Masters / 1000";
@@ -3505,6 +3752,7 @@ const ENGINE_INTEGRITY_SHIELD = {
     if (value.includes("250")) return "250";
     if (value.includes("challenger")) return "Challenger";
     if (value.includes("olympic")) return "Olympics";
+    if (value.includes("exhibition")) return "Exhibition";
     return "Tour";
   }
 
@@ -3806,53 +4054,55 @@ const ENGINE_INTEGRITY_SHIELD = {
 
 
   async function buildMarketResult(config) {
-    const baseProjection = config.avgA + config.avgB;
     const hasH2H = Array.isArray(config.h2h) && config.h2h.length > 0;
+    
+    // 🧬 CLONED HOME SOIL ADVANTAGE (Venue Blending)
+    // If player is playing in their home country, apply the BB Home Edge logic
+    let homeSoilAdj = 0;
+    if (config.ctx && config.ctx.playerA_isHome) homeSoilAdj += 0.25;
+    if (config.ctx && config.ctx.playerB_isHome) homeSoilAdj -= 0.25;
     const h2hAvg = hasH2H ? mean(config.h2h) : null;
+    
+    // 🧬 DYNAMIC WEIGHT CLONE
+    let volatility = Math.sqrt(Math.pow(config.stdA, 2) + Math.pow(config.stdB, 2));
+    const weights = getDynamicWeights(Math.min(config.stdA > 0 ? 5 : 0, config.stdB > 0 ? 5 : 0), volatility);
 
     let h2hWeight = 0.3;
     if (config.ctx && config.ctx.surface === "Grass") h2hWeight = 0.2; 
     else if (config.ctx && config.ctx.surface === "Clay") h2hWeight = 0.4; 
 
-        const projectionCore = hasH2H ? ((baseProjection * (1 - h2hWeight)) + (h2hAvg * h2hWeight)) : baseProjection;
+    // BLENDED PROJECTION: (Team A * Weight) + (Team B * Weight) + H2H
+    const baseProjection = (config.avgA * weights.teamWeight) + (config.avgB * weights.teamWeight);
+    const projectionCore = hasH2H ? ((baseProjection * (1 - h2hWeight)) + (h2hAvg * h2hWeight)) : baseProjection;
     const projection = projectionCore + (config.projectionShift || 0);
-    
-    // WEAPONIZED MATH: Variance Summation Rule
-    // Standard deviations do not add linearly. We must sum the variances and take the square root.
-    // Correct Formula: σ_total = sqrt(σA² + σB²)
-    let volatility = Math.sqrt(Math.pow(config.stdA, 2) + Math.pow(config.stdB, 2));
     
     if (config.ctx && config.ctx.surface === "Grass") volatility *= 1.15; 
 
     const lineDecision = pickFromRange(projection, config.lineRange);
 
-            let pick = lineDecision.pick;
+    let pick = lineDecision.pick;
     let edge = lineDecision.edge;
-    // Updated call to include the line midpoint for normalized grading
     let confidence = getRawConfidence(edge, volatility, config.lineRange.mid);
 
     const notes = [].concat(config.extraNotes || []);
     const filtersTriggered = [];
     let terminalVeto = false;
 
-
-    // 🏎️ MARKOV SIMULATION WIRING
-    // We convert the raw game averages into point-level serve probabilities
-// 🏎️ MARKOV POINT CALIBRATION (Surface-Aware)
+    // 🏎️ MARKOV POINT CALIBRATION (Surface-Aware)
     let baseHoldProb = config.ctx?.tour === "ATP" ? 0.645 : 0.625;
-    
-    // Fast surfaces increase the "Base Hold" probability for everyone
     if (config.ctx?.surface === "Grass") baseHoldProb += 0.025;
     if (config.ctx?.surface === "Clay") baseHoldProb -= 0.025;
 
-    // Distribute the dominance based on the game-won averages
     const pA = baseHoldProb + (config.avgA / (config.avgA + config.avgB || 1) - 0.5) * 0.18;
     const pB = baseHoldProb + (config.avgB / (config.avgA + config.avgB || 1) - 0.5) * 0.18;
     const isBO5 = config.ctx?.matchFormat === "BO5";
 
-        // Run the point-by-point simulation
-    const sim = await runTennisMarkovSimulation(pA, pB, config.lineRange.mid, isBO5, 10000);
+    const sim = await runTennisMarkovSimulation(pA, pB, config.lineRange.mid, isBO5, MASSACRE_TUNING.monteCarloRuns);
     const simPct = (pick === "OVER") ? sim.overPct : sim.underPct;
+
+    // 🧬 BRUTALITY SCORE CLONE
+    const thresholds = MASSACRE_TUNING.thresholds[config.marketKey] || MASSACRE_TUNING.thresholds.match;
+    const brutalityScore = Math.min(100, (Math.abs(edge / config.lineRange.mid) * 400) + ((simPct - 50) * 1.5));
 
 
 
@@ -3898,15 +4148,23 @@ const ENGINE_INTEGRITY_SHIELD = {
     }
     if (volatility > 7.0) { filtersTriggered.push("chaos"); notes.push("Extreme volatility / skip zone"); confidence = "PASS"; pick = "PASS"; }
 
-    if (simPct < 53 && pick !== "PASS") { notes.push(`Sim Warning: ${simPct.toFixed(1)}%`); confidence = downgradeConfidence(confidence); } 
-    else if (simPct >= 62 && pick !== "PASS" && !terminalVeto) { 
-      notes.push(`Sim Strong: ${simPct.toFixed(1)}%`); 
-      if (confidence === "C") {
-        confidence = "B";
-      } else if (confidence === "PASS") { 
-        confidence = "C"; 
-        pick = lineDecision.pick; 
-      } 
+    // 🧬 MASSACRE GATE CLONE
+    // 🧬 CLONED TRAP NOTE
+    if (isTrap) notes.push("VETO: Suspicious Edge Trap detected");
+
+    if (pick !== "PASS" && !terminalVeto) {
+      if (simPct < thresholds.sim || brutalityScore < thresholds.brutality) {
+        notes.push(`Massacre gate: sim ${simPct.toFixed(1)}% • score ${brutalityScore.toFixed(0)}`);
+        confidence = downgradeConfidence(confidence);
+        if (brutalityScore < (thresholds.brutality - 10)) {
+           confidence = "PASS";
+           pick = "PASS";
+        }
+      } else if (simPct >= (thresholds.sim + 5)) {
+        notes.push(`Sim Strong: ${simPct.toFixed(1)}%`); 
+        if (confidence === "C") confidence = "B";
+        else if (confidence === "PASS") { confidence = "C"; pick = lineDecision.pick; } 
+      }
     }
 
 
@@ -3917,25 +4175,46 @@ const ENGINE_INTEGRITY_SHIELD = {
       market: config.marketLabel, marketKey: config.marketKey, lineDisplay: config.lineRange.label, lineRange: config.lineRange,
       avgA: config.avgA, avgB: config.avgB, baseProjection: baseProjection, h2hAvg: h2hAvg, projection: projection,
       stdA: config.stdA, stdB: config.stdB, volatility: volatility, edge: edge, pick: pick, confidence: confidence,
-      notes: finalNotes, filtersTriggered: filtersTriggered, simPct: simPct 
+      notes: finalNotes, filtersTriggered: filtersTriggered, simPct: simPct,
+      brutalityScore, thresholds 
     };
+  }
+
+  // 🧬 CLONED MASSACRE RESCUE LOGIC
+  function rescueBestTennisLean(results) {
+    if (!results || !results.length) return;
+    const hasActivePlay = results.some(r => r.pick !== "PASS" && r.confidence !== "PASS");
+    if (hasActivePlay) return;
+
+    // Identify the best "failed" pick that almost cleared the gate
+    const candidates = results.filter(r => r.simPct >= 58 && r.brutalityScore >= 50);
+    if (!candidates.length) return;
+
+    const winner = candidates.sort((a, b) => (b.simPct + b.brutalityScore) - (a.simPct + a.brutalityScore))[0];
+    winner.pick = "LEAN " + winner.pick;
+    winner.confidence = "C";
+    winner.notes.push("Massacre Rescue: Best mathematical outlier");
   }
 
 
 
 
 
-  async function buildEngineResults() {
-  const tour = String(qs("leagueSelect").value || "").trim();
-  const playerAName = String(qs("teamAName").value || "").trim();
-  const playerBName = String(qs("teamBName").value || "").trim();
+  async function buildEngineResults(overrides = null) {
+    const tour = String(qs("leagueSelect").value || "").trim();
+    const playerAName = String(qs("teamAName").value || "").trim();
+    const playerBName = String(qs("teamBName").value || "").trim();
 
-  if (!tour) throw new Error("Tour is required.");
-  if (!playerAName) throw new Error("Player A name is required.");
-  if (!playerBName) throw new Error("Player B name is required.");
+    if (!tour) throw new Error("Tour is required.");
+    if (!playerAName) throw new Error("Player A name is required.");
+    if (!playerBName) throw new Error("Player B name is required.");
 
-  const matchLineRange = parseLineRange(qs("ftMarket").value, "Match total range", false);
-  const set1LineRange = parseLineRange(qs("h1Market").value, "Set 1 total range", true);
+    // Deterministic Logic: Use memory line if provided, otherwise look at the screen
+    const matchLineRaw = (overrides && overrides.matchLine) ? overrides.matchLine : qs("ftMarket").value;
+    const set1LineRaw = (overrides && overrides.set1Line) ? overrides.set1Line : qs("h1Market").value;
+
+    const matchLineRange = parseLineRange(matchLineRaw, "Match total range", false);
+    const set1LineRange = parseLineRange(set1LineRaw, "Set 1 total range", true);
 
   const matchRecentA = parseNumericList(qs("aFTScored").value, "Player A recent games won", 3, 10, false);
   const matchRecentB = parseNumericList(qs("bFTScored").value, "Player B recent games won", 3, 10, false);
@@ -4038,10 +4317,29 @@ const ENGINE_INTEGRITY_SHIELD = {
           item.result.confidence !== "PASS";
       })
       .sort(function (a, b) {
-        const scoreA = confidenceScore(a.result.confidence, a.result.edge);
-        const scoreB = confidenceScore(b.result.confidence, b.result.edge);
-        return scoreB - scoreA;
+        // 🧬 CLONED SYNDICATE TIERING: Match Total > Set 1
+        const getTierBonus = (market) => (market === "Match Total Games" ? 50 : 0);
+        
+        const scoreA = confidenceScore(a.result.confidence, a.result.edge) + getTierBonus(a.result.market);
+        const scoreB = confidenceScore(b.result.confidence, b.result.edge) + getTierBonus(b.result.market);
+        
+        if (scoreB !== scoreA) return scoreB - scoreA;
+        return Math.abs(b.result.edge) - Math.abs(a.result.edge);
       });
+
+    // 🧬 CLONED CORRELATION BLOCKER
+    // If Match Total and Set 1 Total suggest opposite directions, nuke the lower confidence play
+    if (actionable.length >= 2) {
+      const match = actionable.find(a => a.result.marketKey === "match");
+      const set1 = actionable.find(a => a.result.marketKey === "set1");
+      if (match && set1 && match.result.pick !== "PASS" && set1.result.pick !== "PASS") {
+        if (match.result.pick !== set1.result.pick) {
+           set1.result.pick = "PASS";
+           set1.result.confidence = "PASS";
+           set1.result.notes.push("Correlation Block: Logic conflict with Match Total");
+        }
+      }
+    }
 
     return actionable.length ? actionable[0].idx : -1;
   }
@@ -4078,11 +4376,34 @@ const ENGINE_INTEGRITY_SHIELD = {
     const body = qs("resultsBody");
     if (!body) return;
 
-    // Filter out nulls so we only draw rows for markets that were actually calculated
+    // 🧬 TENNIS STREAK RADAR (Validated for Match/Set totals)
+    function getStreakRadar(series, line) {
+      if (!series || series.length < 3) return "";
+      let o = 0, u = 0;
+      series.forEach(v => { if (v > line) o++; else if (v < line) u++; });
+      const css = "font-size:8px; padding:1px 3px; border-radius:2px; margin-left:4px; vertical-align:middle; font-weight:900; letter-spacing:0.3px;";
+      // Higher sensitivity for tennis (75% threshold) due to shorter H2H cycles
+      if (o / series.length >= 0.75) return `<span style="${css} background:rgba(216,67,21,0.1); color:#d84315;">🔥 ${o}-${u} O</span>`;
+      if (u / series.length >= 0.75) return `<span style="${css} background:rgba(21,101,192,0.1); color:#1565c0;">❄️ ${u}-${o} U</span>`;
+      return "";
+    }
+
     const results = [resultBundle.matchResult, resultBundle.set1Result].filter(Boolean);
     const lockIdx = selectLockIndex(results);
+    const trust = getTournamentTrust(resultBundle.context?.eventLevel);
 
-        const rows = results.map(function (result, idx) {
+    const rows = results.map(function (result, idx) {
+      // 🧬 CLONED RELIABILITY GATE
+      if (trust.mode === "block") {
+        result.pick = "PASS";
+        result.confidence = "PASS";
+        result.notes.push("Trust Block: " + trust.label + " event");
+      } else if (trust.mode === "advisory" && result.confidence === "A") {
+        result.confidence = "B";
+        result.notes.push("Trust Downgrade: Advisory tournament tier");
+      }
+      const badge = result.usedMemory ? ' 🧠' : '';
+      const radar = getStreakRadar(result.h2h, result.lineRange.mid);
       const isNoPlay = result.pick === "PASS" || result.confidence === "PASS";
       const winProb = isNoPlay ? 0 : result.simPct;
       
@@ -4102,7 +4423,7 @@ const ENGINE_INTEGRITY_SHIELD = {
 
                               return (
         '<tr>' +
-          '<td class="result-market" style="font-weight:800;">' + htmlEscape(result.market) + '</td>' +
+          '<td class="result-market" style="font-weight:800;">' + htmlEscape(result.market) + badge + radar + '</td>' +
           '<td style="font-family:monospace;">' + fairLine + '</td>' +
           '<td style="color:#2f8f4a;">' + edgePct + '</td>' +
           '<td style="font-weight:bold;">' + probText + '</td>' +
@@ -4485,9 +4806,35 @@ const ENGINE_INTEGRITY_SHIELD = {
     return sTs > lTs ? server : local;
   }
 
+  function syncLineMemoryFromBundle(bundle) {
+    if (!bundle || (!bundle.eventId && !bundle.match)) return;
+    const results = [bundle.matchResult, bundle.set1Result].filter(Boolean);
+    const now = new Date().toISOString();
+
+    results.forEach(res => {
+      const side = String(res.pick).split(" ")[0].toLowerCase();
+      if (!side || side === "pass") return;
+
+      // Deterministic Tennis Key: Uses Event ID or the Match name string
+      const key = makeLineMemoryKey(bundle.eventId || bundle.match, bundle.tour, res.market, side);
+      const existing = g_engineLineMemory[key];
+      const line = Number(res.lineRange.mid);
+
+      if (!existing) {
+        g_engineLineMemory[key] = { bestLine: line, lastSeenAt: now };
+      } else {
+        const isBetter = side === "over" ? (line < existing.bestLine) : (line > existing.bestLine);
+        if (isBetter) existing.bestLine = line;
+        existing.lastSeenAt = now;
+      }
+    });
+    saveEngineLineMemory();
+  }
+
 
   function trackerItemMergeKey(item) {
-    return [item.tour, item.match, item.market, item.line].join("|");
+    // 🛡️ PRISON MODEL KEY: Uniquely identifies the slot by event/market
+    return [item.eventId || item.match, item.tour, item.market].join("|");
   }
 
   function mergeTrackerStates(localState, serverState) {
@@ -4495,25 +4842,34 @@ const ENGINE_INTEGRITY_SHIELD = {
     const server = serverState && serverState.items ? serverState.items : [];
     const map = new Map();
 
-    // Map local first as authority
+    // 🛡️ PRISON AUTHORITY: Local settled picks are UNTOUCHABLE by server pending data
     local.forEach(item => {
       const key = trackerItemMergeKey(item);
       map.set(key, item);
     });
 
-    // Merge server as a patch
     server.forEach(item => {
       const key = trackerItemMergeKey(item);
       if (!map.has(key)) {
         map.set(key, item);
       } else {
-        map.set(key, resolveTrackedItem(map.get(key), item));
+        const localItem = map.get(key);
+        const lW = getPickStateWeight(localItem.status);
+        const sW = getPickStateWeight(item.status);
+        
+        // Status Weight Hierarchy: Settled > Pending
+        if (sW > lW) map.set(key, item);
+        else if (lW === sW) {
+          const lTs = Date.parse(localItem.savedAt || 0);
+          const sTs = Date.parse(item.savedAt || 0);
+          if (sTs > lTs) map.set(key, item);
+        }
       }
     });
 
     return {
       items: Array.from(map.values()),
-      vId: Math.max(localState?.vId || 0, serverState?.vId || 0),
+      vId: Math.max(Number(localState?.vId || 0), Number(serverState?.vId || 0)),
       updatedAt: new Date().toISOString()
     };
   }
@@ -4758,12 +5114,111 @@ const ENGINE_INTEGRITY_SHIELD = {
   }
 }
 
+  function getConfidenceRank(grade = "") {
+    const raw = String(grade || "").toUpperCase();
+    if (raw === "A") return 4;
+    if (raw === "B") return 3;
+    if (raw === "C") return 2;
+    return 0;
+  }
+
+  function getTrackedPickEdgeAbsPct(item) {
+    const edge = Math.abs(Number(item.edge) || 0);
+    const line = Number(item.line) || 22;
+    return (edge / line) * 100;
+  }
+
+  function getEdgeBucketSortRank(key = "") {
+    const map = { "micro": 0, "small": 1, "medium": 2, "strong": 3, "extreme": 4, "unknown": 9 };
+    return map[String(key).toLowerCase()] ?? 9;
+  }
+
+  function getTrackedPickEdgeBucketLabel(key = "") {
+    const clean = String(key).toLowerCase();
+    if (clean === "micro") return "0–3% edge";
+    if (clean === "small") return "3–5% edge";
+    if (clean === "medium") return "5–7.5% edge";
+    if (clean === "strong") return "7.5–10% edge";
+    if (clean === "extreme") return "10%+ edge";
+    return "Unknown edge";
+  }
+
   function getTrackerEdgeBucket(edge) {
-    const absEdge = Math.abs(Number(edge) || 0);
-    if (absEdge < 1.0) return "0.0 - 0.99"; 
-    if (absEdge < 1.5) return "1.0 - 1.49";
-    if (absEdge < 2.5) return "1.5 - 2.49";
-    return "2.5+";
+    const pct = getTrackedPickEdgeAbsPct({ edge });
+    if (pct < 3) return "micro";
+    if (pct < 5) return "small";
+    if (pct < 7.5) return "medium";
+    if (pct < 10) return "strong";
+    return "extreme";
+  }
+
+  function getTrackedPickLineMoveProxy(item) {
+    const lineAtPick = Number(item.line);
+    const side = String(item.rawPick || "").toUpperCase();
+    
+    // 🧬 CLONED CLV ENGINE: Compare entry vs latest seen memory
+    const key = makeLineMemoryKey(item.eventId || item.match, item.tour, item.market, side);
+    const entry = g_engineLineMemory[key];
+    
+    if (!entry || !isFinite(lineAtPick)) {
+      return { state: "unknown", delta: null, favorable: null };
+    }
+
+    const latestLine = Number(entry.bestLine);
+    const delta = latestLine - lineAtPick;
+    
+    // Ignore noise smaller than 0.1 games
+    if (Math.abs(delta) < 0.1) return { state: "flat", delta: 0, favorable: null };
+
+    const isOver = side.includes("OVER");
+    const favorable = isOver ? (latestLine > lineAtPick) : (latestLine < lineAtPick);
+
+    return {
+      state: favorable ? "favorable" : "unfavorable",
+      delta: delta,
+      latestLine: latestLine,
+      favorable: favorable
+    };
+  }
+
+  function buildSettledPickRecord(items = []) {
+    const base = { settled: 0, wins: 0, losses: 0, pushes: 0, winPct: NaN, netWins: 0 };
+    items.forEach(item => {
+      if (item.status === "PENDING") return;
+      base.settled++;
+      if (item.status === "WIN") base.wins++;
+      else if (item.status === "LOSS") base.losses++;
+      else if (item.status === "PUSH") base.pushes++;
+    });
+    base.winPct = base.settled ? (base.wins / base.settled) * 100 : NaN;
+    base.netWins = base.wins - base.losses;
+    return base;
+  }
+
+  function buildBestPickOnlyShadowExperiment(items = []) {
+    const settled = items.filter(i => i.status !== "PENDING");
+    const grouped = new Map();
+    settled.forEach(i => {
+      const key = i.eventId || i.match;
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key).push(i);
+    });
+    const bestOnly = [];
+    grouped.forEach(rows => {
+      const winner = rows.sort((a, b) => {
+        const scoreA = getConfidenceRank(a.confidence) * 100 + getTrackedPickEdgeAbsPct(a);
+        const scoreB = getConfidenceRank(b.confidence) * 100 + getTrackedPickEdgeAbsPct(b);
+        return scoreB - scoreA;
+      })[0];
+      if (winner) bestOnly.push(winner);
+    });
+    return {
+      gameCount: grouped.size,
+      rows: [
+        { mode: "All tracked picks", ...buildSettledPickRecord(settled) },
+        { mode: "Best pick only", ...buildSettledPickRecord(bestOnly) }
+      ]
+    };
   }
 
 
@@ -5295,15 +5750,15 @@ const ENGINE_INTEGRITY_SHIELD = {
         recordCache.set(cacheKey, probe);
       }
 
-          const settlementSummary = {
-      match: item.match,
-      market: item.market,
-      reason: probe && probe.debug ? probe.debug.reason : "no debug"
-    };
-    g_trackerDebug.lastSettlementDetails.push(settlementSummary);
-    if (typeof AFDB !== 'undefined') {
-      AFDB.log('INFO', 'SETTLE', item.match + ' | ' + settlementSummary.reason);
-    }
+      g_trackerDebug.lastSettlementDetails.push({
+        match: item.match,
+        market: item.market,
+        savedAt: item.savedAt || "",
+        archived: !!item.archived,
+        status: item.status,
+        reason: probe && probe.debug ? probe.debug.reason : "no debug",
+        checks: probe && probe.debug && Array.isArray(probe.debug.checks) ? probe.debug.checks : []
+      });
 
       if (probe && probe.record) {
         const settledItem = settleTrackerItemFromRecord(item, probe.record);
@@ -5336,6 +5791,31 @@ const ENGINE_INTEGRITY_SHIELD = {
         setRunStatus("No new completed results found yet.", "ok");
       }
     }
+  }
+
+  function syncLineMemoryFromBundle(bundle) {
+    if (!bundle || (!bundle.eventId && !bundle.match)) return;
+    const results = [bundle.matchResult, bundle.set1Result].filter(Boolean);
+    const now = new Date().toISOString();
+
+    results.forEach(res => {
+      const side = String(res.pick).split(" ")[0].toLowerCase();
+      if (!side || side === "pass") return;
+
+      // Deterministic Tennis Key: Uses Event ID or the Match name string
+      const key = makeLineMemoryKey(bundle.eventId || bundle.match, bundle.tour, res.market, side);
+      const existing = g_engineLineMemory[key];
+      const line = Number(res.lineRange.mid);
+
+      if (!existing) {
+        g_engineLineMemory[key] = { bestLine: line, lastSeenAt: now };
+      } else {
+        const isBetter = side === "over" ? (line < existing.bestLine) : (line > existing.bestLine);
+        if (isBetter) existing.bestLine = line;
+        existing.lastSeenAt = now;
+      }
+    });
+    saveEngineLineMemory();
   }
 
   function buildTrackerEntriesFromBundle(bundle) {
@@ -5396,171 +5876,96 @@ const ENGINE_INTEGRITY_SHIELD = {
     const panel = qs("trackerAnalyticsPanel");
     if (!panel) return;
 
-    const settled = items.filter(function (item) { return item.status !== "PENDING"; });
-    const activeCount = items.filter(function (item) { return !item.archived; }).length;
-    const wins = settled.filter(function (item) { return item.status === "WIN"; }).length;
-    const losses = settled.filter(function (item) { return item.status === "LOSS"; }).length;
-    const pushes = settled.filter(function (item) { return item.status === "PUSH"; }).length;
-
-    const winRateRaw = settled.length ? Math.round((wins / settled.length) * 100) : 0;
-    const winRateText = settled.length ? winRateRaw + "%" : "—";
+    const all = items.map(normalizeTrackerItem);
+    const settled = all.filter(i => i.status !== "PENDING");
+    const overall = buildSettledPickRecord(settled);
+    const shadow = buildBestPickOnlyShadowExperiment(all);
+    
+    function formatPct(val) { return isFinite(val) ? val.toFixed(1) + "%" : "—"; }
 
     function buildGroupRows(keyFn, labelFn) {
       const map = new Map();
-      settled.forEach(function(item) {
-        const key = keyFn(item);
-        if (!map.has(key)) map.set(key, { wins: 0, losses: 0, pushes: 0, total: 0 });
-        const b = map.get(key);
-        b.total++;
-        if (item.status === "WIN") b.wins++;
-        else if (item.status === "LOSS") b.losses++;
-        else if (item.status === "PUSH") b.pushes++;
+      settled.forEach(i => {
+        const key = keyFn(i);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(i);
       });
-      const rows = Array.from(map.entries()).sort(function(a, b) { return b[1].total - a[1].total; }).map(function(e) {
-        const r = e[1].total ? Math.round((e[1].wins / e[1].total) * 100) + "%" : "—";
-        return '<tr><td>' + htmlEscape(labelFn ? labelFn(e[0]) : e[0]) + '</td><td class="num">' + e[1].total + '</td><td class="num">' + e[1].wins + '</td><td class="num">' + e[1].losses + '</td><td class="num">' + e[1].pushes + '</td><td class="rate">' + r + '</td></tr>';
-      }).join("");
-      return rows || '<tr><td colspan="6" class="note">No settled data yet.</td></tr>';
+      return Array.from(map.entries()).sort((a, b) => b[1].length - a[1].length).map(e => {
+        const rec = buildSettledPickRecord(e[1]);
+        return `<tr><td>${htmlEscape(labelFn ? labelFn(e[0]) : e[0])}</td><td class="num">${rec.settled}</td><td class="num">${rec.wins}</td><td class="num">${rec.losses}</td><td class="num">${rec.pushes}</td><td class="rate">${formatPct(rec.winPct)}</td></tr>`;
+      }).join("") || '<tr><td colspan="6" class="note">No data.</td></tr>';
     }
-
-    const marketRows = buildGroupRows(function(i) { return i.market; });
-    const confRows = buildGroupRows(function(i) { return i.confidence; });
-    const edgeRows = buildGroupRows(function(i) { return getTrackerEdgeBucket(i.edge); });
 
     panel.innerHTML = `
       <div class="tracker-analytics-shell">
-        <div class="tracker-analytics-topbar">
-          <div class="tracker-analytics-heading">
-            <div class="tracker-analytics-kicker">Engine report</div>
-            <div class="tracker-analytics-title">Tracked results and learning</div>
-            <div class="tracker-analytics-subtitle">Pick record, feedback, and post-checkpoint suggestions live here.</div>
-          </div>
-        </div>
-
         <div class="tracker-kpi-grid">
           <div class="tracker-kpi-card featured">
             <div class="tracker-kpi-label">Overall</div>
-            <div class="tracker-kpi-value">${wins}W</div>
-            <div class="tracker-kpi-sub">Losses ${losses} • Pushes ${pushes} • Win rate ${winRateText}</div>
+            <div class="tracker-kpi-value">${overall.wins}W</div>
+            <div class="tracker-kpi-sub">L ${overall.losses} • P ${overall.pushes} • ${formatPct(overall.winPct)}</div>
           </div>
           <div class="tracker-kpi-card">
-            <div class="tracker-kpi-label">Active picks</div>
-            <div class="tracker-kpi-value">${activeCount}</div>
-            <div class="tracker-kpi-sub">Current model tennis_v1</div>
+            <div class="tracker-kpi-label">Active</div>
+            <div class="tracker-kpi-value">${all.filter(i => !i.archived).length}</div>
+            <div class="tracker-kpi-sub">Tennis Model V1</div>
           </div>
           <div class="tracker-kpi-card">
-            <div class="tracker-kpi-label">Settled picks</div>
+            <div class="tracker-kpi-label">Settled</div>
             <div class="tracker-kpi-value">${settled.length}</div>
-            <div class="tracker-kpi-sub">Checkpoint target 20</div>
-          </div>
-          <div class="tracker-kpi-card">
-            <div class="tracker-kpi-label">Review status</div>
-            <div class="tracker-kpi-value">${settled.length >= 20 ? 'Review ready' : 'Building'}</div>
-            <div class="tracker-kpi-sub">Current version only</div>
+            <div class="tracker-kpi-sub">Checkpoint 20</div>
           </div>
         </div>
 
         <div class="tracker-analytics-card">
-          <div class="tracker-analytics-card-head">
-            <div class="tracker-analytics-card-title">Market win rates</div>
-            <div class="tracker-analytics-card-meta">Top tracked markets</div>
-          </div>
+          <div class="tracker-analytics-card-head"><div class="tracker-analytics-card-title">Measurement lab</div></div>
           <div class="tracker-analytics-card-body">
-            <div class="table-wrap tracker-report-table-wrap">
-              <table class="tracker-analytics-table">
-                <thead>
-                  <tr><th>Market</th><th class="num">Settled</th><th class="num">Wins</th><th class="num">Losses</th><th class="num">Pushes</th><th class="rate">Win rate</th></tr>
-                </thead>
-                <tbody>${marketRows}</tbody>
-              </table>
-            </div>
+            <table class="tracker-analytics-table">
+              <thead><tr><th>Experiment</th><th class="num">Games</th><th class="num">Wins</th><th class="num">Losses</th><th class="rate">Win rate</th></tr></thead>
+              <tbody>
+                ${shadow.rows.map(r => `<tr><td>${r.mode}</td><td class="num">${r.gameCount || r.settled}</td><td class="num">${r.wins}</td><td class="num">${r.losses}</td><td class="rate">${formatPct(r.winPct)}</td></tr>`).join('')}
+              </tbody>
+            </table>
           </div>
         </div>
 
         <div class="tracker-analytics-grid two">
           <div class="tracker-analytics-card">
-            <div class="tracker-analytics-card-head">
-              <div class="tracker-analytics-card-title">Confidence performance</div>
-              <div class="tracker-analytics-card-meta">Do higher grades win more?</div>
-            </div>
-            <div class="tracker-analytics-card-body">
-              <div class="table-wrap tracker-report-table-wrap">
-                <table class="tracker-analytics-table">
-                  <thead>
-                    <tr><th>Grade</th><th class="num">Settled</th><th class="num">Wins</th><th class="num">Losses</th><th class="num">Pushes</th><th class="rate">Win rate</th></tr>
-                  </thead>
-                  <tbody>${confRows}</tbody>
-                </table>
-              </div>
-            </div>
+            <div class="tracker-analytics-card-head"><div class="tracker-analytics-card-title">Confidence</div></div>
+            <div class="tracker-analytics-card-body"><table class="tracker-analytics-table"><tbody>${buildGroupRows(i => i.confidence)}</tbody></table></div>
           </div>
-
           <div class="tracker-analytics-card">
-            <div class="tracker-analytics-card-head">
-              <div class="tracker-analytics-card-title">Edge bucket performance</div>
-              <div class="tracker-analytics-card-meta">Check whether bigger edges are stronger</div>
-            </div>
-            <div class="tracker-analytics-card-body">
-              <div class="table-wrap tracker-report-table-wrap">
-                <table class="tracker-analytics-table">
-                  <thead>
-                    <tr><th>Edge bucket</th><th class="num">Settled</th><th class="num">Wins</th><th class="num">Losses</th><th class="num">Pushes</th><th class="rate">Win rate</th></tr>
-                  </thead>
-                  <tbody>${edgeRows}</tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-            <div class="tracker-analytics-card" style="margin-top: 10px; border-color: #d4af37;">
-          <div class="tracker-analytics-card-head" style="background: linear-gradient(90deg, #333 0%, #111 100%);">
-            <div class="tracker-analytics-card-title" style="color: #ffd700;">👁️ GOD'S EYE: POST-MORTEM LOG</div>
-            <div class="tracker-analytics-card-meta">Game-by-game diagnostic archive</div>
-          </div>
-          <div class="tracker-analytics-card-body">
-            <div class="tracker-report-subtitle">Review the exact conditions the engine saw when it locked the pick.</div>
-            <div class="table-wrap tracker-report-table-wrap">
-              <table class="tracker-analytics-table">
-                <thead>
-                  <tr>
-                    <th>Matchup & Market</th>
-                    <th>Pick</th>
-                    <th>Result</th>
-                    <th>Engine Context at Lock</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${settled.length ? settled.sort((a,b) => getTrackerItemTimeMs(b) - getTrackerItemTimeMs(a)).slice(0, 40).map(p => {
-                    const statusClass = p.status === 'WIN' ? 'color: #3a9c35;' : p.status === 'LOSS' ? 'color: #c91920;' : 'color: #888;';
-                    const edge = p.edge ? (p.edge > 0 ? '+' : '') + p.edge.toFixed(2) : '—';
-                    const simNote = p.notes.includes("Sim ") ? p.notes.split("|").find(n => n.includes("Sim ")) : "Sim: N/A";
-                    
-                    return `
-                      <tr>
-                        <td>
-                          <strong>${htmlEscape(p.match)}</strong><br>
-                          <span style="color: var(--muted); font-size: 9px;">${htmlEscape(p.market)} (Line: ${p.line})</span>
-                        </td>
-                        <td style="font-weight:bold; white-space: nowrap;">${htmlEscape(p.pick)}</td>
-                        <td style="font-weight:900; text-transform:uppercase; ${statusClass}">${htmlEscape(p.status)}</td>
-                        <td style="font-size: 9px; color: var(--muted); line-height: 1.4;">
-                                                   <strong>Edge:</strong> <span style="color:var(--text)">${edge}</span> | <strong>Grade:</strong> <span style="color:var(--text)">${p.confidence}</span><br>
-                          <strong>Sim Hit Rate:</strong> <span style="color:var(--text)">${p.simPct ? p.simPct.toFixed(1) + '%' : htmlEscape(simNote)}</span><br>
-                          <strong>Data:</strong> ${p.tour ? p.tour.toUpperCase() : 'ATP'} | <strong>Vol:</strong> ${htmlEscape(p.notes.includes("volatility") ? "High" : "Stable")}
-                        </td>
-                      </tr>
-                    `;
-                  }).join("") : `
-                    <tr><td colspan="4" class="note">No settled picks yet. The Eye is waiting.</td></tr>
-                  `}
-                </tbody>
-              </table>
-            </div>
+            <div class="tracker-analytics-card-head"><div class="tracker-analytics-card-title">Edge Buckets</div></div>
+            <div class="tracker-analytics-card-body"><table class="tracker-analytics-table"><tbody>${buildGroupRows(i => getTrackerEdgeBucket(i.edge), k => getTrackedPickEdgeBucketLabel(k))}</tbody></table></div>
           </div>
         </div>
 
-    `;
+        <div class="tracker-analytics-card" style="margin-top:10px; border-color:#d4af37;">
+          <div class="tracker-analytics-card-head" style="background:#222;"><div class="tracker-analytics-card-title" style="color:#ffd700;">👁️ GOD'S EYE: TENNIS ARCHIVE</div></div>
+          <div class="tracker-analytics-card-body">
+            <table class="tracker-analytics-table">
+              <thead><tr><th>Matchup</th><th>Pick</th><th>Result</th><th>Tennis Logic Context</th></tr></thead>
+              <tbody>
+                ${settled.sort((a,b) => getTrackerItemTimeMs(b) - getTrackerItemTimeMs(a)).slice(0, 25).map(p => {
+                  const sCls = p.status === 'WIN' ? 'color:#3a9c35' : p.status === 'LOSS' ? 'color:#c91920' : 'color:#888';
+                  const surf = p.tournamentName ? `<br><i>${htmlEscape(p.tournamentName)}</i>` : "";
+                  // Reconstructing context from tennis-specific saved attributes
+                  return `
+                    <tr>
+                      <td><strong>${htmlEscape(p.match)}</strong>${surf}<br><small>${p.market}</small></td>
+                      <td style="font-weight:bold;">${htmlEscape(p.pick)}</td>
+                      <td style="${sCls};font-weight:900;text-transform:uppercase;">${p.status}</td>
+                      <td style="font-size:9px; color:var(--muted); line-height:1.3;">
+                        <strong>Edge:</strong> <span style="color:var(--text)">${p.edge ? (p.edge > 0 ? '+' : '') + p.edge.toFixed(2) : '—'}</span><br>
+                        <strong>Sim:</strong> <span style="color:var(--text)">${p.simPct ? p.simPct.toFixed(1)+'%' : 'N/A'}</span><br>
+                        <strong>Data:</strong> ${p.tour} | <strong>Level:</strong> ${p.eventLevel || 'Tour'}
+                      </td>
+                    </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>`;
   }
 
 
@@ -5713,6 +6118,7 @@ if (!duplicate) {
 
     g_trackerDebug.lastSaveDiagnosis = "Local save executed for " + g_trackerDebug.lastInsertedEntries + " pick(s).";
     saveTrackerItems(items);
+    syncLineMemoryFromBundle(latestRunBundle);
     latestRunBundle._trackerSaved = true;
     updateTrackerUI();
     renderTrackerDebug();
@@ -5747,23 +6153,48 @@ if (!duplicate) {
     return g_trackerRefreshPromise;
   }
 
-      function setTrackerView(mode) {
+  function prioritizeDebugLines(lines = [], limit = 10) {
+    const rank = { error: 0, warn: 1, ok: 2, "": 3 };
+    return (Array.isArray(lines) ? lines : [])
+      .map((line, index) => {
+        let severity = "";
+        const text = line.toLowerCase();
+        if (text.includes("fail") || text.includes("error")) severity = "error";
+        else if (text.includes("warn") || text.includes("pending")) severity = "warn";
+        else if (text.includes("success") || text.includes("ok")) severity = "ok";
+        return { line, index, severity };
+      })
+      .sort((a, b) => (rank[a.severity] ?? 9) - (rank[b.severity] ?? 9) || a.index - b.index)
+      .slice(0, limit)
+      .map(row => row.line);
+  }
+
+  function setTrackerView(mode) {
     const trackerModal = qs("trackerModal");
     const panel = trackerModal ? trackerModal.querySelector(".tracker-panel") : null;
     const reportBtn = qs("trackerInsightsBtn");
+    const debugBtn = qs("trackerDebugBtn");
     if (!panel) return;
 
-    const finalMode = mode === "report" ? mode : "list";
+    // Reset all views
+    panel.classList.remove("analytics-view", "debug-view");
+    if (reportBtn) reportBtn.classList.remove("active");
+    if (debugBtn) debugBtn.classList.remove("active");
 
-    panel.classList.toggle("analytics-view", finalMode === "report");
-    panel.classList.remove("debug-view");
-
-    if (reportBtn) {
-      reportBtn.classList.toggle("active", finalMode === "report");
-      reportBtn.textContent = finalMode === "report" ? "📋 List" : "📊 Report";
-      reportBtn.title = finalMode === "report" ? "Show tracked picks" : "Open report";
-      reportBtn.setAttribute("aria-label", reportBtn.title);
+    if (mode === "report") {
+      panel.classList.add("analytics-view");
+      reportBtn.classList.add("active");
+      reportBtn.textContent = "← Picks";
+    } else if (mode === "debug") {
+      panel.classList.add("debug-view");
+      debugBtn.classList.add("active");
+      debugBtn.textContent = "← Picks";
+    } else {
+      reportBtn.textContent = "📊 Report";
+      debugBtn.textContent = "🐞";
     }
+
+    updateTrackerUI();
   }
 
   function openTrackerModal() {
@@ -6543,6 +6974,11 @@ if (!duplicate) {
     return records.filter(function (record) {
       return record.playerAId === playerId || record.playerBId === playerId;
     }).map(function (record) {
+      const status = record.status || {};
+      // 🧬 CLONED HEALTH MONITORING
+      const isRetirement = status.detail && (status.detail.includes("Ret") || status.detail.includes("W/O"));
+      
+      const isA = record.playerAId === playerId;
       const isA = record.playerAId === playerId;
       return {
         competitionId: record.competitionId,
@@ -6560,7 +6996,8 @@ if (!duplicate) {
         playerRankMove: isA ? record.playerARankMove : record.playerBRankMove,
         aSets: isA ? record.aSets : record.bSets,
         bSets: isA ? record.bSets : record.aSets,
-        setCount: record.setCount
+        setCount: record.setCount,
+        isRetirement: isRetirement
       };
     }).sort(function (a, b) {
       return new Date(b.date) - new Date(a.date);
@@ -6568,11 +7005,23 @@ if (!duplicate) {
   }
 
   // --- SYNDICATE LEVEL: BRUTAL METRICS CALCULATOR ---
-  function computeBrutalMetrics(series, currentSurface) {
+  function computeBrutalMetrics(series, currentSurface, boxscoreData = null) {
     const recent = Array.isArray(series) ? series.slice(0, 10) : [];
-    if (!recent.length) return { tiebreakIdx: 0, set1Kill: 0, grindRate: 0, surfaceDelta: 0 };
+    const baseResult = { tiebreakIdx: 0, set1Kill: 0, grindRate: 0, surfaceDelta: 0, avgAce: 0, avgDf: 0, servePct: 0.64 };
+    if (!recent.length) return baseResult;
 
     let totalSets = 0, tbSets = 0, set1Kills = 0, grindMatches = 0;
+    let aces = 0, dfs = 0, serves = [];
+
+    recent.forEach(function (match) {
+      // 🧬 CLONED LEVEL 2 BOX SCORE EXTRACTION
+      if (match.advanced) {
+         aces += (match.advanced.aces || 0);
+         dfs += (match.advanced.dfs || 0);
+         if (match.advanced.servePct) serves.push(match.advanced.servePct);
+      }
+      
+      const aSets = match.aSets || [];
     let surfaceGames = [], overallGames = [];
 
     recent.forEach(function (match) {
@@ -6985,19 +7434,10 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   window.engineDebug = function(msg, detail) {
-    const msgStr = String(msg).toLowerCase();
-    if (msgStr.includes("fetch") || msgStr.includes("load failed") || msgStr.includes("networkerror")) return;
-    const isErr = msgStr.includes("error") || msgStr.includes("fail") || msgStr.includes("critical");
-
-    if (typeof AFDB !== 'undefined') {
-      AFDB.log(isErr ? 'ERROR' : 'ENGINE', 'ENGINE', msg, detail);
-    }
-
     const stamp = new Date().toLocaleTimeString();
     const line = `[${stamp}] ${msg} ${detail ? '| ' + JSON.stringify(detail) : ''}`;
     g_engineDebugLog.unshift(line);
-    
-    if (isErr) {
+    if (line.toLowerCase().includes("error") || line.toLowerCase().includes("fail")) {
       g_engineAlertNeedsReview = true;
       renderHeaderErrorState();
     }
@@ -7033,7 +7473,23 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
 
-    // Legacy trackerDebugBtn listener removed
+    const trackerDebugBtn = qs("trackerDebugBtn");
+    if (trackerDebugBtn) {
+      trackerDebugBtn.addEventListener("click", function () {
+        const trackerModal = qs("trackerModal");
+        if (!trackerModal) return;
+        const panel = trackerModal.querySelector(".tracker-panel");
+        const isDebug = panel && panel.classList.contains("debug-view");
+
+        if (!isTrackerModalOpen()) {
+          openTrackerModal();
+        }
+
+        setTrackerView(isDebug ? "list" : "debug");
+        updateTrackerUI();
+        renderTrackerDebug();
+      });
+    }
 
     const trackerDebugCloseBtn = qs("trackerDebugCloseBtn");
     if (trackerDebugCloseBtn) trackerDebugCloseBtn.addEventListener("click", closeTrackerDebugModal);
@@ -7197,466 +7653,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 })();
-</script>
-<div id="afdbOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,0.96);flex-direction:column;font-family:ui-monospace,Consolas,monospace;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);">
-  <div id="afdbPanel" style="width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;"></div>
-</div>
-
-<script>
-const AFDB = (function() {
-  const LOG_LIMIT = 600;
-  let _log = [];
-  let _isOpen = false;
-  let _showOnlyErrors = false; 
-
-  const LEVELS = {
-    BOOT:    { color:'#7aa6ff' }, NET:     { color:'#4ea9ff' },
-    FETCH:   { color:'#49d45f' }, FILL:    { color:'#2aff9e' },
-    PICK:    { color:'#d4af37' }, H2H:     { color:'#c678dd' },
-    SUCCESS: { color:'#49d45f' }, WARN:    { color:'#ffcf73' },
-    ERROR:   { color:'#ff5c61' }, INFO:    { color:'#aaa'    },
-    ENGINE:  { color:'#d4af37' }, TRACKER: { color:'#4ea9ff' },
-    VERDICT: { color:'#49d45f' } 
-  };
-
-  const ICONS = {
-    BOOT:'\u2699\ufe0f', NET:'\ud83c\udf10', FETCH:'\ud83d\udce1', FILL:'\u270f\ufe0f',
-    PICK:'\ud83d\udccc', H2H:'\ud83d\udd04', SUCCESS:'\u2705', WARN:'\u26a0\ufe0f', ERROR:'\u274c', INFO:'\u2139\ufe0f',
-    ENGINE:'\u2699\ufe0f', TRACKER:'\ud83d\udcca', VERDICT:'\ud83c\udf96\ufe0f'
-  };
-
-  function esc(s) {
-    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
-  function log(level, section, msg, data) {
-    const entry = {
-      ts: new Date().toLocaleTimeString([],{hour12:false}),
-      level, section: section||'CORE', msg,
-      data: data !== undefined ? data : null
-    };
-    _log.unshift(entry);
-    if (_log.length > LOG_LIMIT) _log = _log.slice(0, LOG_LIMIT);
-    if (_isOpen) _render();
-  }
-
-  function clear() { _log = []; _render(); }
-
-  function toggleFilter() {
-    _showOnlyErrors = !_showOnlyErrors;
-    _render();
-  }
-
-  function copy(btnEl) {
-    const visibleLogs = _showOnlyErrors ? _log.filter(e => e.level === 'ERROR' || e.level === 'WARN' || e.level === 'VERDICT') : _log;
-    const textArr = visibleLogs.slice().reverse().map(e => {
-      let line = '[' + e.ts + '] [' + e.level + '] [' + e.section + '] ' + e.msg;
-      if (e.data !== null) {
-        try { line += ' | ' + JSON.stringify(e.data); }
-        catch(x) { line += ' | ' + String(e.data); }
-      }
-      return line;
-    });
-    const text = textArr.join(String.fromCharCode(10, 10));
-    try {
-      navigator.clipboard.writeText(text);
-      if (btnEl) {
-        const origText = btnEl.innerHTML;
-        btnEl.innerHTML = "\u2705 COPIED!";
-        setTimeout(() => { btnEl.innerHTML = origText; }, 1500);
-      }
-    } catch(e) {
-      log('WARN','AFDB','Clipboard blocked \u2014 printed to console');
-    }
-  }
-
-  function _render() {
-    const panel = document.getElementById('afdbPanel');
-    if (!panel) return;
-    const visibleLogs = _showOnlyErrors ? _log.filter(e => e.level === 'ERROR' || e.level === 'WARN' || e.level === 'VERDICT') : _log;
-    
-    let autopsyHtml = "";
-    const errorEntry = _log.find(e => e.level === 'ERROR' && (e.msg.toLowerCase().includes("fail") || e.msg.toLowerCase().includes("error") || e.msg.toLowerCase().includes("breakdown") || e.msg.toLowerCase().includes("blocked")));
-
-    if (errorEntry) {
-      let moduleName = "CORE ENGINE";
-      let fixAdvice = "Review the recent logic changes. A code snippet is breaking the engine.";
-      const rawText = String(errorEntry.msg).toLowerCase();
-
-      if (rawText.includes("toggletheme") || rawText.includes("dark-mode")) {
-        moduleName = "UI THEME / ICON SYSTEM";
-        fixAdvice = "Check the icon logic. Fix the specific text to restore the UI Theme.";
-      } else if (rawText.includes("runengine") || rawText.includes("simulation")) {
-        moduleName = "PREDICTION INTELLIGENCE";
-        fixAdvice = "A math formula or data input in the Run button is invalid. Trace the calculation block.";
-      } else if (rawText.includes("fetch") || rawText.includes("network") || rawText.includes("promise") || rawText.includes("cloudflare")) {
-        moduleName = "CLOUD SYNC / NETWORK";
-        fixAdvice = "The engine lost connection to the server or Cloudflare. Check your internet or wait for the backend to reboot.";
-      }
-      
-      const varMatch = rawText.match(/variable:\\s*([a-zA-Z0-9_$]+)/i) || 
-                       rawText.match(/([a-zA-Z0-9_$]+)\\s+is/i) || 
-                       rawText.match(/reading\\s+'([a-zA-Z0-9_$]+)'/i);
-      const culprit = varMatch ? varMatch[1] : "Execution_Flow";
-
-      autopsyHtml = \`
-        <div style="background:rgba(20,20,20,0.4); border-bottom:1px solid rgba(244,67,54,0.4); padding:15px;">
-          <div style="color:#f44336; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-            🚨 SYSTEM BREAKDOWN: \${moduleName}
-          </div>
-          <div style="color:#eee; font-size:11px; margin-bottom:10px;">
-            <strong>THE BREAK:</strong> The system died because of this code:
-          </div>
-          <div style="margin-bottom:15px;">
-          <span style="background:#f44336; color:#fff; padding:3px 10px; border-radius:4px; font-family:monospace; font-weight:bold; font-size:11px; display:inline-block;">
-            \${esc(culprit)}
-          </span>
-          </div>
-          <div style="background:#000; border:1px solid #333; border-radius:6px; padding:12px;">
-            <div style="color:#fff; font-size:11px; font-weight:900; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
-              🛠️ HOW TO FIX:
-            </div>
-            <div style="color:#aaa; font-size:10px; line-height:1.6;">
-              \${fixAdvice}
-            </div>
-          </div>
-        </div>
-      \`;
-    }
-
-    const logRows = visibleLogs.map(e => {
-      const def = LEVELS[e.level]||LEVELS.INFO;
-      const icon = ICONS[e.level]||'•';
-      let dataHtml = '';
-      if (e.data !== null) {
-        let ds;
-        try { ds = typeof e.data==='object' ? JSON.stringify(e.data,null,2) : String(e.data); }
-        catch(x) { ds = String(e.data); }
-        dataHtml = '<pre style="color:#888;font-size:9px;margin:4px 0 0 0;padding:6px;background:#070707;border-left:2px solid #222;white-space:pre-wrap;word-break:break-all;">' + esc(ds) + '</pre>';
-      }
-      return '<div style="padding:8px;border-bottom:1px solid #151515;"><div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;"><span style="color:#555;font-size:9px;min-width:65px;flex-shrink:0;">' + esc(e.ts) + '</span><span style="color:' + def.color + ';font-size:10px;font-weight:900;min-width:75px;flex-shrink:0;">' + icon + ' ' + esc(e.level) + '</span><span style="color:#777;font-size:9px;min-width:80px;flex-shrink:0;">[' + esc(e.section) + ']</span><span style="color:' + def.color + ';font-size:11px;font-weight:700;flex:1;white-space:pre-wrap;">' + esc(e.msg) + '</span></div>' + dataHtml + '</div>';
-    }).join('');
-
-    const headerBtns = '<button onclick="AFDB.copy(this)" style="background:#111;border:1px solid #333;color:#49d45f;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">📋 Copy Log</button><button onclick="AFDB.clear()" style="background:#111;border:1px solid #333;color:#ff5c61;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">🗑️ Clear</button><button onclick="AFDB.runTestFetch()" style="background:#2a0608;border:1px solid #d91f26;color:#fff;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;box-shadow:0 0 8px rgba(217,31,38,0.4);">🚨 MILITARY RAID</button><button onclick="AFDB.close()" style="background:#111;border:1px solid #555;color:#ccc;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;">✕ Close</button>';
-
-    const emptyMsg = _showOnlyErrors ? 'No suspects arrested. The code is clean.' : 'No log entries yet. Run a fetch.';
-    const filterLabel = _showOnlyErrors ? '👁️ SHOW ALL' : '🎯 ERRORS ONLY';
-
-    panel.innerHTML = '<div style="background:#080808;border-bottom:1px solid #222;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;flex-shrink:0;"><div style="color:#d4af37;font-size:14px;font-weight:900;letter-spacing:1px;">🔭 AUTO-FETCH DEBUG BRAIN (TENNIS)</div><div style="display:flex;gap:8px;flex-wrap:wrap;">' + headerBtns + '</div></div><div style="display:flex;flex-direction:column;flex:1;overflow-y:auto;background:#0a0a0a;"><div style="flex:1;"><div style="padding:10px 12px;background:#111;color:#d4af37;font-size:11px;font-weight:900;text-transform:uppercase;position:sticky;top:0;z-index:10;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;"><span>📡 FETCH & ENGINE LOGS</span><button onclick="AFDB.toggleFilter()" style="background:none;border:none;color:#4ea9ff;font-size:14px;font-weight:bold;cursor:pointer;">' + filterLabel + '</button></div>' + autopsyHtml + '<div style="padding-bottom:15px;">' + (logRows||'<div style="color:#555;font-size:12px;text-align:center;padding:30px;font-weight:bold;">' + emptyMsg + '</div>') + '</div></div></div>';
-  }
-
-  function open() {
-    _isOpen = true;
-    const ov = document.getElementById('afdbOverlay');
-    if (ov) { ov.style.display='flex'; _render(); }
-  }
-
-  function close() {
-    _isOpen = false;
-    const ov = document.getElementById('afdbOverlay');
-    if (ov) ov.style.display='none';
-  }
-
-  async function runTestFetch() {
-    try {
-      if (typeof forceTrackerSaveNow === 'function') forceTrackerSaveNow();
-    } catch(e) {}
-
-    let totalSuspects = 0;
-
-    const inputsToCheck = ['aFTScored', 'bFTScored', 'ftMarket', 'h1Market'];
-    inputsToCheck.forEach(id => {
-      const el = document.getElementById(id);
-      const val = el ? el.value.trim() : '';
-      if (val && /[^0-9,.\\s-]/.test(val)) {
-        log('ERROR', 'UI INPUT', 'Invalid characters detected in ' + id + ': "' + val + '". Math engine will crash.');
-        totalSuspects++;
-      }
-    });
-
-    const active = typeof getTrackerItems === 'function' ? getTrackerItems() : [];
-    if (active.length > 490) { log('ERROR','STORAGE','Active picks array is critically full (Limit: 500).'); totalSuspects++; }
-
-    let edgeAnomalies = 0;
-    active.forEach(p => {
-      if (p.edge && p.line) {
-        const edgePct = Math.abs(p.edge / parseFloat(p.line)) * 100;
-        if (edgePct > 30) edgeAnomalies++;
-      }
-    });
-    if (edgeAnomalies > 0) { log('ERROR','MATH ENGINE', edgeAnomalies + ' picks show extreme edge anomalies (>30%).'); totalSuspects++; }
-
-    const league = document.getElementById('leagueSelect') && document.getElementById('leagueSelect').value;
-    const tA = document.getElementById('teamAName') && document.getElementById('teamAName').value;
-    const tB = document.getElementById('teamBName') && document.getElementById('teamBName').value;
-    if (league && league !== 'unknown' && tA && tB && typeof fetchESPNTennis === 'function') {
-      try { await fetchESPNTennis(); }
-      catch(e) { log('ERROR','NETWORK','Live sweep failed: ' + e.message); totalSuspects++; }
-    }
-
-    const verdictMsg = totalSuspects === 0 ? 'Raid complete.\\nEngine is 100% perfect.' : 'Raid complete.\\nCaught ' + totalSuspects + ' Thieves and locked them behind the bars.';
-    const verdictEntry = {
-      ts: new Date().toLocaleTimeString([],{hour12:false}),
-      level: totalSuspects === 0 ? 'VERDICT' : 'ERROR',
-      section: 'POLICE RAID',
-      msg: verdictMsg,
-      data: null
-    };
-    _log.unshift(verdictEntry);
-    if (_log.length > LOG_LIMIT) _log = _log.slice(0, LOG_LIMIT);
-    if (_isOpen) _render();
-    setTimeout(() => {
-      const idx = _log.indexOf(verdictEntry);
-      if (idx !== -1) { _log.splice(idx, 1); if (_isOpen) _render(); }
-    }, 7000);
-  }
-
-  return { log, clear, copy, toggleFilter, open, close, runTestFetch, get isOpen() { return _isOpen; } };
-})();
-
-document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(function() {
-    if (typeof proxyFetch === 'function' && !proxyFetch._afdbPatched) {
-      const _orig = proxyFetch;
-      window.proxyFetch = async function(url, timeout) {
-        const short = String(url||'').replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\/tennis\//,'TENNIS/').replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\//,'ESPN/');
-        try { return await _orig.apply(this, arguments); }
-        catch(err) { AFDB.log('ERROR','PROXY','FAILED: ' + short, { error: err.message }); throw err; }
-      };
-      window.proxyFetch._afdbPatched = true;
-    }
-  }, 0);
-});
-</script>
-<div id="afdbOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,0.96);flex-direction:column;font-family:ui-monospace,Consolas,monospace;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);">
-  <div id="afdbPanel" style="width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;"></div>
-</div>
-
-<script>
-const AFDB = (function() {
-  const LOG_LIMIT = 600;
-  let _log = [];
-  let _isOpen = false;
-  let _showOnlyErrors = false; 
-
-  const LEVELS = {
-    BOOT:    { color:'#7aa6ff' }, NET:     { color:'#4ea9ff' },
-    FETCH:   { color:'#49d45f' }, FILL:    { color:'#2aff9e' },
-    PICK:    { color:'#d4af37' }, H2H:     { color:'#c678dd' },
-    SUCCESS: { color:'#49d45f' }, WARN:    { color:'#ffcf73' },
-    ERROR:   { color:'#ff5c61' }, INFO:    { color:'#aaa'    },
-    ENGINE:  { color:'#d4af37' }, TRACKER: { color:'#4ea9ff' },
-    VERDICT: { color:'#49d45f' } 
-  };
-
-  const ICONS = {
-    BOOT:'\u2699\ufe0f', NET:'\ud83c\udf10', FETCH:'\ud83d\udce1', FILL:'\u270f\ufe0f',
-    PICK:'\ud83d\udccc', H2H:'\ud83d\udd04', SUCCESS:'\u2705', WARN:'\u26a0\ufe0f', ERROR:'\u274c', INFO:'\u2139\ufe0f',
-    ENGINE:'\u2699\ufe0f', TRACKER:'\ud83d\udcca', VERDICT:'\ud83c\udf96\ufe0f'
-  };
-
-  function esc(s) {
-    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
-  function log(level, section, msg, data) {
-    const entry = {
-      ts: new Date().toLocaleTimeString([],{hour12:false}),
-      level, section: section||'CORE', msg,
-      data: data !== undefined ? data : null
-    };
-    _log.unshift(entry);
-    if (_log.length > LOG_LIMIT) _log = _log.slice(0, LOG_LIMIT);
-    if (_isOpen) _render();
-  }
-
-  function clear() { _log = []; _render(); }
-
-  function toggleFilter() {
-    _showOnlyErrors = !_showOnlyErrors;
-    _render();
-  }
-
-  function copy(btnEl) {
-    const visibleLogs = _showOnlyErrors ? _log.filter(e => e.level === 'ERROR' || e.level === 'WARN' || e.level === 'VERDICT') : _log;
-    const textArr = visibleLogs.slice().reverse().map(e => {
-      let line = '[' + e.ts + '] [' + e.level + '] [' + e.section + '] ' + e.msg;
-      if (e.data !== null) {
-        try { line += ' | ' + JSON.stringify(e.data); }
-        catch(x) { line += ' | ' + String(e.data); }
-      }
-      return line;
-    });
-    const text = textArr.join(String.fromCharCode(10, 10));
-    try {
-      navigator.clipboard.writeText(text);
-      if (btnEl) {
-        const origText = btnEl.innerHTML;
-        btnEl.innerHTML = "\u2705 COPIED!";
-        setTimeout(() => { btnEl.innerHTML = origText; }, 1500);
-      }
-    } catch(e) {
-      log('WARN','AFDB','Clipboard blocked \u2014 printed to console');
-    }
-  }
-
-  function _render() {
-    const panel = document.getElementById('afdbPanel');
-    if (!panel) return;
-    const visibleLogs = _showOnlyErrors ? _log.filter(e => e.level === 'ERROR' || e.level === 'WARN' || e.level === 'VERDICT') : _log;
-    
-    let autopsyHtml = "";
-    const errorEntry = _log.find(e => e.level === 'ERROR' && (e.msg.toLowerCase().includes("fail") || e.msg.toLowerCase().includes("error") || e.msg.toLowerCase().includes("breakdown") || e.msg.toLowerCase().includes("blocked")));
-
-    if (errorEntry) {
-      let moduleName = "CORE ENGINE";
-      let fixAdvice = "Review the recent logic changes. A code snippet is breaking the engine.";
-      const rawText = String(errorEntry.msg).toLowerCase();
-
-      if (rawText.includes("toggletheme") || rawText.includes("dark-mode")) {
-        moduleName = "UI THEME / ICON SYSTEM";
-        fixAdvice = "Check the icon logic. Fix the specific text to restore the UI Theme.";
-      } else if (rawText.includes("runengine") || rawText.includes("simulation")) {
-        moduleName = "PREDICTION INTELLIGENCE";
-        fixAdvice = "A math formula or data input in the Run button is invalid. Trace the calculation block.";
-      } else if (rawText.includes("fetch") || rawText.includes("network") || rawText.includes("promise") || rawText.includes("cloudflare")) {
-        moduleName = "CLOUD SYNC / NETWORK";
-        fixAdvice = "The engine lost connection to the server or Cloudflare. Check your internet or wait for the backend to reboot.";
-      }
-      
-      const varMatch = rawText.match(/variable:\\s*([a-zA-Z0-9_$]+)/i) || 
-                       rawText.match(/([a-zA-Z0-9_$]+)\\s+is/i) || 
-                       rawText.match(/reading\\s+'([a-zA-Z0-9_$]+)'/i);
-      const culprit = varMatch ? varMatch[1] : "Execution_Flow";
-
-      autopsyHtml = \`
-        <div style="background:rgba(20,20,20,0.4); border-bottom:1px solid rgba(244,67,54,0.4); padding:15px;">
-          <div style="color:#f44336; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-            🚨 SYSTEM BREAKDOWN: \${moduleName}
-          </div>
-          <div style="color:#eee; font-size:11px; margin-bottom:10px;">
-            <strong>THE BREAK:</strong> The system died because of this code:
-          </div>
-          <div style="margin-bottom:15px;">
-          <span style="background:#f44336; color:#fff; padding:3px 10px; border-radius:4px; font-family:monospace; font-weight:bold; font-size:11px; display:inline-block;">
-            \${esc(culprit)}
-          </span>
-          </div>
-          <div style="background:#000; border:1px solid #333; border-radius:6px; padding:12px;">
-            <div style="color:#fff; font-size:11px; font-weight:900; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
-              🛠️ HOW TO FIX:
-            </div>
-            <div style="color:#aaa; font-size:10px; line-height:1.6;">
-              \${fixAdvice}
-            </div>
-          </div>
-        </div>
-      \`;
-    }
-
-    const logRows = visibleLogs.map(e => {
-      const def = LEVELS[e.level]||LEVELS.INFO;
-      const icon = ICONS[e.level]||'•';
-      let dataHtml = '';
-      if (e.data !== null) {
-        let ds;
-        try { ds = typeof e.data==='object' ? JSON.stringify(e.data,null,2) : String(e.data); }
-        catch(x) { ds = String(e.data); }
-        dataHtml = '<pre style="color:#888;font-size:9px;margin:4px 0 0 0;padding:6px;background:#070707;border-left:2px solid #222;white-space:pre-wrap;word-break:break-all;">' + esc(ds) + '</pre>';
-      }
-      return '<div style="padding:8px;border-bottom:1px solid #151515;"><div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;"><span style="color:#555;font-size:9px;min-width:65px;flex-shrink:0;">' + esc(e.ts) + '</span><span style="color:' + def.color + ';font-size:10px;font-weight:900;min-width:75px;flex-shrink:0;">' + icon + ' ' + esc(e.level) + '</span><span style="color:#777;font-size:9px;min-width:80px;flex-shrink:0;">[' + esc(e.section) + ']</span><span style="color:' + def.color + ';font-size:11px;font-weight:700;flex:1;white-space:pre-wrap;">' + esc(e.msg) + '</span></div>' + dataHtml + '</div>';
-    }).join('');
-
-    const headerBtns = '<button onclick="AFDB.copy(this)" style="background:#111;border:1px solid #333;color:#49d45f;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">📋 Copy Log</button><button onclick="AFDB.clear()" style="background:#111;border:1px solid #333;color:#ff5c61;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">🗑️ Clear</button><button onclick="AFDB.runTestFetch()" style="background:#2a0608;border:1px solid #d91f26;color:#fff;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;box-shadow:0 0 8px rgba(217,31,38,0.4);">🚨 MILITARY RAID</button><button onclick="AFDB.close()" style="background:#111;border:1px solid #555;color:#ccc;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;">✕ Close</button>';
-
-    const emptyMsg = _showOnlyErrors ? 'No suspects arrested. The code is clean.' : 'No log entries yet. Run a fetch.';
-    const filterLabel = _showOnlyErrors ? '👁️ SHOW ALL' : '🎯 ERRORS ONLY';
-
-    panel.innerHTML = '<div style="background:#080808;border-bottom:1px solid #222;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;flex-shrink:0;"><div style="color:#d4af37;font-size:14px;font-weight:900;letter-spacing:1px;">🔭 AUTO-FETCH DEBUG BRAIN (TENNIS)</div><div style="display:flex;gap:8px;flex-wrap:wrap;">' + headerBtns + '</div></div><div style="display:flex;flex-direction:column;flex:1;overflow-y:auto;background:#0a0a0a;"><div style="flex:1;"><div style="padding:10px 12px;background:#111;color:#d4af37;font-size:11px;font-weight:900;text-transform:uppercase;position:sticky;top:0;z-index:10;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;"><span>📡 FETCH & ENGINE LOGS</span><button onclick="AFDB.toggleFilter()" style="background:none;border:none;color:#4ea9ff;font-size:14px;font-weight:bold;cursor:pointer;">' + filterLabel + '</button></div>' + autopsyHtml + '<div style="padding-bottom:15px;">' + (logRows||'<div style="color:#555;font-size:12px;text-align:center;padding:30px;font-weight:bold;">' + emptyMsg + '</div>') + '</div></div></div>';
-  }
-
-  function open() {
-    _isOpen = true;
-    const ov = document.getElementById('afdbOverlay');
-    if (ov) { ov.style.display='flex'; _render(); }
-  }
-
-  function close() {
-    _isOpen = false;
-    const ov = document.getElementById('afdbOverlay');
-    if (ov) ov.style.display='none';
-  }
-
-  async function runTestFetch() {
-    try {
-      if (typeof forceTrackerSaveNow === 'function') forceTrackerSaveNow();
-    } catch(e) {}
-
-    let totalSuspects = 0;
-
-    const inputsToCheck = ['aFTScored', 'bFTScored', 'ftMarket', 'h1Market'];
-    inputsToCheck.forEach(id => {
-      const el = document.getElementById(id);
-      const val = el ? el.value.trim() : '';
-      if (val && /[^0-9,.\\s-]/.test(val)) {
-        log('ERROR', 'UI INPUT', 'Invalid characters detected in ' + id + ': "' + val + '". Math engine will crash.');
-        totalSuspects++;
-      }
-    });
-
-    const active = typeof getTrackerItems === 'function' ? getTrackerItems() : [];
-    if (active.length > 490) { log('ERROR','STORAGE','Active picks array is critically full (Limit: 500).'); totalSuspects++; }
-
-    let edgeAnomalies = 0;
-    active.forEach(p => {
-      if (p.edge && p.line) {
-        const edgePct = Math.abs(p.edge / parseFloat(p.line)) * 100;
-        if (edgePct > 30) edgeAnomalies++;
-      }
-    });
-    if (edgeAnomalies > 0) { log('ERROR','MATH ENGINE', edgeAnomalies + ' picks show extreme edge anomalies (>30%).'); totalSuspects++; }
-
-    const league = document.getElementById('leagueSelect') && document.getElementById('leagueSelect').value;
-    const tA = document.getElementById('teamAName') && document.getElementById('teamAName').value;
-    const tB = document.getElementById('teamBName') && document.getElementById('teamBName').value;
-    if (league && league !== 'unknown' && tA && tB && typeof fetchESPNTennis === 'function') {
-      try { await fetchESPNTennis(); }
-      catch(e) { log('ERROR','NETWORK','Live sweep failed: ' + e.message); totalSuspects++; }
-    }
-
-    const verdictMsg = totalSuspects === 0 ? 'Raid complete.\\nEngine is 100% perfect.' : 'Raid complete.\\nCaught ' + totalSuspects + ' Thieves and locked them behind the bars.';
-    const verdictEntry = {
-      ts: new Date().toLocaleTimeString([],{hour12:false}),
-      level: totalSuspects === 0 ? 'VERDICT' : 'ERROR',
-      section: 'POLICE RAID',
-      msg: verdictMsg,
-      data: null
-    };
-    _log.unshift(verdictEntry);
-    if (_log.length > LOG_LIMIT) _log = _log.slice(0, LOG_LIMIT);
-    if (_isOpen) _render();
-    setTimeout(() => {
-      const idx = _log.indexOf(verdictEntry);
-      if (idx !== -1) { _log.splice(idx, 1); if (_isOpen) _render(); }
-    }, 7000);
-  }
-
-  return { log, clear, copy, toggleFilter, open, close, runTestFetch, get isOpen() { return _isOpen; } };
-})();
-
-document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(function() {
-    if (typeof proxyFetch === 'function' && !proxyFetch._afdbPatched) {
-      const _orig = proxyFetch;
-      window.proxyFetch = async function(url, timeout) {
-        const short = String(url||'').replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\/tennis\//,'TENNIS/').replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\//,'ESPN/');
-        try { return await _orig.apply(this, arguments); }
-        catch(err) { AFDB.log('ERROR','PROXY','FAILED: ' + short, { error: err.message }); throw err; }
-      };
-      window.proxyFetch._afdbPatched = true;
-    }
-  }, 0);
-});
 </script>
 </body>
 </html>
