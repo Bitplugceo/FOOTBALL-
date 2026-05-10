@@ -2948,20 +2948,32 @@ const ENGINE_INTEGRITY_SHIELD = {
     }, base);
   }
 
-  function normalizeTrackerState(raw) {
+    window.normalizeTrackerItem = function(item) {
+    const base = item && typeof item === "object" ? item : {};
+    return Object.assign({
+      id: "", savedAt: null, match: "", playerAName: "", playerBName: "",
+      tour: "", market: "", line: "", range: "", projection: null, edge: null,
+      pick: "", rawPick: "", confidence: "", status: "PENDING", isLock: false,
+      notes: "", actualTotal: null, settledAt: null, archived: false,
+      archivedAt: null, playerAId: "", playerBId: "", competitionId: "",
+      eventId: "", fixtureDate: "", tournamentName: "", eventLevel: "", roundName: ""
+    }, base);
+  };
+
+  window.normalizeTrackerState = function(raw) {
     const source = (raw && typeof raw === "object") ? raw : {};
     let items = [];
     if (Array.isArray(source.items)) {
-      items = source.items.map(normalizeTrackerItem);
+      items = source.items.map(window.normalizeTrackerItem);
     } else {
       const active = Array.isArray(source.activePicks) ? source.activePicks : [];
       const archived = Array.isArray(source.archivedPicks) ? source.archivedPicks : [];
-      items = active.map(i => normalizeTrackerItem({...i, archived: false}))
-                   .concat(archived.map(i => normalizeTrackerItem({...i, archived: true})));
+      items = active.map(i => window.normalizeTrackerItem({...i, archived: false}))
+                   .concat(archived.map(i => window.normalizeTrackerItem({...i, archived: true})));
     }
     items.sort((a, b) => (Date.parse(b.savedAt || 0) - Date.parse(a.savedAt || 0)));
     return { items: items, updatedAt: source.updatedAt || null, vId: source.vId || 0 };
-  }
+  };
 
   const APP_BUILD_VERSION = "tennis_cleanup_v1_prison_model";
   const ENGINE_MODEL_VERSION = "tennis_v1_final";
@@ -3234,15 +3246,14 @@ const ENGINE_INTEGRITY_SHIELD = {
     });
   }
 
-  function syncSectionBodyDisplay(section) {
+    function syncSectionBodyDisplay(section) {
     if (!section) return;
     const body = section.querySelector(".section-body");
     if (!body) return;
-
     if (section.classList.contains("collapsed") || section.classList.contains("locked")) {
-      body.style.setProperty("display", "none", "important");
+      body.style.display = "none";
     } else {
-      body.style.removeProperty("display");
+      body.style.display = "block";
     }
   }
 
@@ -4943,21 +4954,7 @@ const ENGINE_INTEGRITY_SHIELD = {
     }, base);
   }
 
-  window.normalizeTrackerState = function(raw) {
-
-    const source = (raw && typeof raw === "object") ? raw : {};
-    let items = [];
-    if (Array.isArray(source.items)) {
-      items = source.items.map(normalizeTrackerItem);
-    } else {
-      const active = Array.isArray(source.activePicks) ? source.activePicks : [];
-      const archived = Array.isArray(source.archivedPicks) ? source.archivedPicks : [];
-      items = active.map(i => normalizeTrackerItem({...i, archived: false}))
-                   .concat(archived.map(i => normalizeTrackerItem({...i, archived: true})));
-    }
-    items.sort((a, b) => (Date.parse(b.savedAt || 0) - Date.parse(a.savedAt || 0)));
-    return { items: items, updatedAt: source.updatedAt || null, vId: source.vId || 0 };
-  }
+    /* Redundant definition removed to prevent iOS SyntaxError */
 
 
   function withTrackerCacheBust(url) {
