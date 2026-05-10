@@ -2749,11 +2749,11 @@ body.dark-mode .tracker-analytics-section-head {
   <table id="results" class="results-hidden">
        <thead>
       <tr>
-        <th>Market</th>
-        <th>Fair Line</th>
-        <th>Edge %</th>
-        <th>Win Prob</th>
-<th>Pick</th>
+        <th>Pick</th>
+        <th>Projection</th>
+        <th>Edge</th>
+        <th>Model Grade</th>
+        <th>Prediction</th>
       </tr>
     </thead>
 
@@ -3147,8 +3147,20 @@ const ENGINE_INTEGRITY_SHIELD = {
       tx.objectStore(STORE_NAME).put(value, key);
       return new Promise(resolve => { tx.oncomplete = () => resolve(true); });
     } catch (err) {
-      localStorage.setItem(key, JSON.stringify(value));
-      return true;
+      // 🧬 CLONED STORAGE RESCUE: Prevent 5MB Quota Crash
+      try {
+        const serialized = JSON.stringify(value);
+        localStorage.setItem(key, serialized);
+        return true;
+      } catch (lsErr) {
+        if (lsErr.name === 'QuotaExceededError' && key.includes('tracker_state')) {
+           console.warn("Storage Full: Pruning archive to save latest picks.");
+           if (value.items) value.items = value.items.slice(0, 100);
+           localStorage.setItem(key, JSON.stringify(value));
+           return true;
+        }
+        return false;
+      }
     }
   }
 
@@ -3588,6 +3600,28 @@ const ENGINE_INTEGRITY_SHIELD = {
     return values.reduce(function (sum, val) { return sum + val; }, 0) / values.length;
   }
 
+  // 🧬 CLONED EXTREME OUTLIER MATH SHIELD
+  function trimmedAvg(arr) {
+    const work = Array.isArray(arr) ? arr.map(Number).filter(v => isFinite(v)) : [];
+    if (!work.length) return NaN;
+    if (work.length <= 2) return mean(work);
+
+    if (work.length >= 5) {
+      // Find extremes without sorting to preserve chronological decay
+      const maxVal = Math.max(...work);
+      const minVal = Math.min(...work);
+      let removedMax = false, removedMin = false;
+      
+      const middle = work.filter(v => {
+        if (!removedMax && v === maxVal) { removedMax = true; return false; }
+        if (!removedMin && v === minVal) { removedMin = true; return false; }
+        return true;
+      });
+      return weightedMean(middle);
+    }
+    return weightedMean(work);
+  }
+
     function stdDev(values) {
     if (!Array.isArray(values) || values.length < 2) return 0;
     const avg = mean(values);
@@ -3804,8 +3838,9 @@ const ENGINE_INTEGRITY_SHIELD = {
     function buildDerivedMarketInputs(options) {
     const ctx = options.ctx;
     const marketKey = options.marketKey;
-    let avgA = mean(options.manualA);
-    let avgB = mean(options.manualB);
+    // 🧬 CLONED ROBUST AVERAGING: Uses trimmedAvg to ignore "Freak" sets/matches
+    let avgA = trimmedAvg(options.manualA);
+    let avgB = trimmedAvg(options.manualB);
     let stdA = stdDev(options.manualA);
     let stdB = stdDev(options.manualB);
     
@@ -4372,9 +4407,31 @@ const ENGINE_INTEGRITY_SHIELD = {
     }
   }
 
+  let g_trackerMarketTab = 'core'; // 🧬 CLONED MARKET STATE
+
   function renderResults(resultBundle) {
     const body = qs("resultsBody");
     if (!body) return;
+
+    // 🧬 CLONED SYNDICATE DASHBOARD INJECTION
+    const existingDash = qs("syndicateDashboard");
+    if (existingDash) existingDash.remove();
+
+    const ctx = resultBundle.context;
+    const eloDiff = Math.abs((ctx.eloA || 1500) - (ctx.eloB || 1500)).toFixed(0);
+    const dashHtml = `
+      <div id="syndicateDashboard" style="background:var(--panel); border:1px solid var(--panel-border); margin:10px 0; padding:0; box-shadow:var(--shadow); font-family:sans-serif;">
+        <div style="background:#333; color:#ffd700; padding:8px 10px; font-weight:800; font-size:11px; display:flex; justify-content:space-between; border-bottom:1px solid var(--panel-border);">
+          <span>SYNDICATE INSIGHT (TENNIS L2)</span>
+          <span style="color:#4CAF50">🟢 PRO-TIER ACTIVE</span>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; padding:12px; text-align:center; gap:5px;">
+          <div><div style="font-size:9px; color:var(--muted); text-transform:uppercase;">Elo Gap</div><div style="font-size:16px; font-weight:900; color:var(--text);">${eloDiff}</div></div>
+          <div><div style="font-size:9px; color:var(--muted); text-transform:uppercase;">Format</div><div style="font-size:16px; font-weight:900; color:var(--text);">${ctx.matchFormat || 'BO3'}</div></div>
+          <div><div style="font-size:9px; color:var(--muted); text-transform:uppercase;">Surface</div><div style="font-size:16px; font-weight:900; color:var(--text);">${ctx.surface || 'Hard'}</div></div>
+        </div>
+      </div>`;
+    qs("results").insertAdjacentHTML('beforebegin', dashHtml);
 
     // 🧬 TENNIS STREAK RADAR (Validated for Match/Set totals)
     function getStreakRadar(series, line) {
@@ -5971,6 +6028,13 @@ const ENGINE_INTEGRITY_SHIELD = {
 
   function updateTrackerUI() {
     const items = getTrackerItems();
+    
+    // 🧬 CLONED MARKET FILTERING
+    const filteredItems = items.filter(item => {
+      const isExotic = ["player", "margin", "other"].includes(item.marketKey);
+      return g_trackerMarketTab === 'exotic' ? isExotic : !isExotic;
+    });
+
     const summary = qs("trackerSummary");
     const marketSummary = qs("trackerMarketSummary");
     const empty = qs("trackerEmpty");
@@ -6185,7 +6249,9 @@ if (!duplicate) {
       panel.classList.add("analytics-view");
       reportBtn.classList.add("active");
       reportBtn.textContent = "← Picks";
+      if (qs("trackerCopyReportBtn")) qs("trackerCopyReportBtn").style.display = "inline-block";
     } else if (mode === "debug") {
+      if (qs("trackerCopyReportBtn")) qs("trackerCopyReportBtn").style.display = "none";
       panel.classList.add("debug-view");
       debugBtn.classList.add("active");
       debugBtn.textContent = "← Picks";
@@ -6977,8 +7043,6 @@ if (!duplicate) {
       const status = record.status || {};
       // 🧬 CLONED HEALTH MONITORING
       const isRetirement = status.detail && (status.detail.includes("Ret") || status.detail.includes("W/O"));
-      
-      const isA = record.playerAId === playerId;
       const isA = record.playerAId === playerId;
       return {
         competitionId: record.competitionId,
@@ -7128,6 +7192,21 @@ if (!duplicate) {
     const el = qs(id);
     if (!el) return;
     el.placeholder = text;
+  }
+
+  function getTrackerHeaders(includeJson) {
+    const headers = {};
+    if (includeJson) headers["Content-Type"] = "text/plain";
+    return headers;
+  }
+
+  function exportTrackerStatePayload(state) {
+    return {
+      ok: true,
+      state: state,
+      lastUpdate: new Date().toISOString(),
+      source: "tennis_engine_v1"
+    };
   }
 
   function applyAutofillData(bundle) {
@@ -7473,6 +7552,11 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
 
+    const trackerCopyReportBtn = qs("trackerCopyReportBtn");
+    if (trackerCopyReportBtn) {
+      trackerCopyReportBtn.addEventListener("click", copyTrackerReport);
+    }
+
     const trackerDebugBtn = qs("trackerDebugBtn");
     if (trackerDebugBtn) {
       trackerDebugBtn.addEventListener("click", function () {
@@ -7551,12 +7635,19 @@ document.addEventListener("DOMContentLoaded", function () {
       fixtureSelect.addEventListener("change", onFixtureSelect);
     }
 
+    // 🧬 CLONED NETWORK DEBOUNCER
+    let teamSearchTimeoutA = null;
+    let teamSearchTimeoutB = null;
+
     const teamAInput = qs("teamAName");
     const teamBInput = qs("teamBName");
     if (teamAInput) {
       teamAInput.addEventListener("input", function () {
-        selectedPlayerIds.A = null;
-        clearFetchedAutofill();
+        clearTimeout(teamSearchTimeoutA);
+        teamSearchTimeoutA = setTimeout(() => {
+          selectedPlayerIds.A = null;
+          clearFetchedAutofill();
+        }, 300);
       });
     }
     if (teamBInput) {
