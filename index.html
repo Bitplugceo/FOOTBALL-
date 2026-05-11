@@ -13,10 +13,9 @@
             --win: #3a9c35;
             --loss: #c91920;
             --border: #222;
-            --header-grad: linear-gradient(90deg, #b91520 0%, #d91f26 100%);
+            --header-grad: linear-gradient(90deg, #1a472a 0%, #2f8f4a 100%); /* Pitch Green Header */
         }
 
-        /* Prevent horizontal overflow and fix padding issues */
         * {
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
@@ -48,7 +47,6 @@
             font-weight: 900;
         }
 
-        /* Content Wrapper */
         .wrapper {
             width: 100%;
             max-width: 500px;
@@ -61,7 +59,6 @@
             border: 1px solid var(--border);
             padding: 15px;
             margin-bottom: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
 
         .section h3 {
@@ -100,7 +97,7 @@
             border: 1px solid var(--border);
             color: white;
             padding: 12px 10px;
-            font-size: 16px; /* Prevents iOS zoom on focus */
+            font-size: 16px; 
             font-weight: bold;
             outline: none;
             width: 100%;
@@ -124,10 +121,6 @@
             margin-top: 15px;
             cursor: pointer;
             letter-spacing: 0.5px;
-        }
-
-        button:active {
-            opacity: 0.8;
         }
 
         /* Analysis Dashboard */
@@ -207,12 +200,12 @@
 <body>
 
     <div class="header">
-        <h1>vSoccer Probability Lab ⚡</h1>
+        <h1>vSoccer Probability Lab ⚽</h1>
     </div>
 
     <div class="wrapper">
         <div class="section">
-            <h3>Algorithm Input (Core Odds)</h3>
+            <h3>Match Algorithm Input</h3>
             <div class="grid-inputs">
                 <div class="input-group">
                     <label>HOME (1)</label>
@@ -235,23 +228,23 @@
                     <input type="number" id="underOdds" step="0.01" inputmode="decimal" placeholder="1.84">
                 </div>
                 <div class="input-group">
-                    <label>GG (Both Score)</label>
+                    <label>GG (Both to Score)</label>
                     <input type="number" id="ggOdds" step="0.01" inputmode="decimal" placeholder="1.75">
                 </div>
             </div>
-            <button onclick="runAnalysis()">Analyze RNG Pattern</button>
+            <button onclick="runAnalysis()">Analyze Goal Patterns</button>
         </div>
 
         <div id="resultsArea" style="display: none;">
             <div class="section">
-                <h3>Projected Match Script</h3>
+                <h3>Match xG Projection</h3>
                 <div class="dashboard">
                     <div>
                         <div class="dash-label">Home xG</div>
                         <div id="hxG" class="dash-val">0.00</div>
                     </div>
                     <div>
-                        <div class="dash-label">Exp. Total</div>
+                        <div class="dash-label">Total xG</div>
                         <div id="txG" class="dash-val" style="color: var(--accent);">0.00</div>
                     </div>
                     <div>
@@ -262,7 +255,7 @@
             </div>
 
             <div class="section">
-                <h3>Detailed Probability Matrix</h3>
+                <h3>Goal Probability Matrix</h3>
                 <table id="matrix">
                     <thead>
                         <tr>
@@ -278,7 +271,6 @@
     </div>
 
     <script>
-        // Poisson Probability Mass Function
         function poisson(k, lambda) {
             return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
         }
@@ -290,7 +282,6 @@
             return res;
         }
 
-        // Search for the lambda (average goals) that results in the provided Under 2.5 probability
         function solveTotalLambda(pUnder25) {
             let lambda = 2.0; 
             for (let i = 0; i < 60; i++) {
@@ -309,11 +300,10 @@
             const un = parseFloat(document.getElementById('underOdds').value);
 
             if (isNaN(h) || isNaN(ov) || isNaN(un)) {
-                alert("Core inputs (1, 2, O/U 2.5) are required.");
+                alert("Please input Home, Away, and O/U 2.5 odds.");
                 return;
             }
 
-            // 1. De-Vig Calculation
             const margin1X2 = (1/h) + (1/d) + (1/a);
             const probH = (1/h) / margin1X2;
             const probA = (1/a) / margin1X2;
@@ -322,9 +312,7 @@
             const marginOU = (1/ov) + (1/un);
             const trueProbUnder25 = (1/un) / marginOU;
 
-            // 2. Derive Lambda (Expected Goals)
             const totalLambda = solveTotalLambda(trueProbUnder25);
-            // Distribute goals based on win-market strength
             const hxG = totalLambda * (probH / (probH + probA));
             const axG = totalLambda * (probA / (probH + probA));
 
@@ -332,7 +320,6 @@
             document.getElementById('axG').innerText = axG.toFixed(2);
             document.getElementById('txG').innerText = totalLambda.toFixed(2);
 
-            // 3. Build Results
             const matrixBody = document.getElementById('matrixBody');
             matrixBody.innerHTML = "";
 
