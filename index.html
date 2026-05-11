@@ -14,7 +14,6 @@
     --text:#f1f1f1;
     --accent:#d4af37;
     --green:#35d07f;
-    --yellow:#ffd447;
     --red:#ff6363;
 }
 
@@ -28,7 +27,6 @@ body{
     background:var(--bg);
     color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    line-height:1.4;
 }
 
 .header{
@@ -70,7 +68,6 @@ body{
     letter-spacing:1px;
 }
 
-/* Specific Grid Layout Requested */
 .grid{
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -94,16 +91,15 @@ input{
     background:#1a1a1a;
     border:1px solid var(--border);
     color:#fff;
-    padding:12px;
+    padding:14px 12px;
     font-size:16px;
     font-weight:700;
     outline:none;
-    border-radius:2px;
+    border-radius:4px;
 }
 
 input:focus{
     border-color:var(--accent);
-    background:#222;
 }
 
 .btns{
@@ -119,19 +115,11 @@ button{
     font-weight:900;
     text-transform:uppercase;
     cursor:pointer;
-    border-radius:2px;
-    font-size:12px;
+    border-radius:4px;
 }
 
-#analyzeBtn{
-    background:var(--accent);
-    color:#000;
-}
-
-#clearBtn{
-    background:#333;
-    color:#fff;
-}
+#analyzeBtn{ background:var(--accent); color:#000; }
+#clearBtn{ background:#333; color:#fff; }
 
 .dashboard{
     display:grid;
@@ -143,79 +131,33 @@ button{
     border-radius:4px;
 }
 
-.metricLabel{
-    font-size:8px;
-    color:#777;
-    text-transform:uppercase;
-}
+.metricLabel{ font-size:8px; color:#777; text-transform:uppercase; }
+.metricValue{ margin-top:5px; font-size:20px; font-weight:900; }
 
-.metricValue{
-    margin-top:5px;
-    font-size:20px;
-    font-weight:900;
-}
+table{ width:100%; border-collapse:collapse; }
+th{ background:#181818; padding:10px; text-align:left; font-size:9px; color:var(--accent); text-transform:uppercase; }
+td{ padding:14px 10px; border-bottom:1px solid var(--border); font-size:13px; font-weight:700; }
 
-table{
-    width:100%;
-    border-collapse:collapse;
+/* Highlight the Top Pick */
+#marketBody tr:first-child {
+    background: rgba(212, 175, 55, 0.05);
 }
-
-th{
-    background:#181818;
-    padding:10px;
-    text-align:left;
-    font-size:9px;
-    color:var(--accent);
-    text-transform:uppercase;
-}
-
-td{
-    padding:12px 10px;
-    border-bottom:1px solid var(--border);
-    font-size:13px;
-    font-weight:700;
+#marketBody tr:first-child td:first-child {
+    color: var(--accent);
 }
 
 .center{ text-align:center; }
 .right{ text-align:right; }
-
 .green{ color:var(--green); }
 .red{ color:var(--red); }
 
-.scoreGrid{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:8px;
-}
+.scoreGrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.scoreCard{ background:#0a0a0a; border:1px solid #1a1a1a; padding:12px; text-align:center; border-radius:4px; }
+.score{ color:var(--accent); font-size:17px; font-weight:900; }
+.scoreProb{ margin-top:4px; font-size:10px; color:#888; }
 
-.scoreCard{
-    background:#0a0a0a;
-    border:1px solid #1a1a1a;
-    padding:12px;
-    text-align:center;
-}
-
-.score{
-    color:var(--accent);
-    font-size:17px;
-    font-weight:900;
-}
-
-.scoreProb{
-    margin-top:4px;
-    font-size:10px;
-    color:#888;
-}
-
-#results{
-    display:none;
-    animation:slideUp 0.4s ease-out;
-}
-
-@keyframes slideUp{
-    from{ opacity:0; transform:translateY(20px); }
-    to{ opacity:1; transform:translateY(0); }
-}
+#results{ display:none; animation:slideUp 0.4s ease-out; }
+@keyframes slideUp{ from{ opacity:0; transform:translateY(20px); } to{ opacity:1; transform:translateY(0); } }
 </style>
 </head>
 
@@ -226,39 +168,16 @@ td{
 </div>
 
 <div class="wrapper">
-
     <div class="section">
         <h3>Market Odds Input</h3>
-        
         <div class="grid">
-            <div class="group">
-                <label>Home (1)</label>
-                <input type="number" id="homeOdds" placeholder="0.00" step="0.01">
-            </div>
-            <div class="group">
-                <label>Away (2)</label>
-                <input type="number" id="awayOdds" placeholder="0.00" step="0.01">
-            </div>
-
-            <div class="group">
-                <label>Over 2.5</label>
-                <input type="number" id="overOdds" placeholder="0.00" step="0.01">
-            </div>
-            <div class="group">
-                <label>Under 2.5</label>
-                <input type="number" id="underOdds" placeholder="0.00" step="0.01">
-            </div>
-
-            <div class="group">
-                <label>Draw (X)</label>
-                <input type="number" id="drawOdds" placeholder="0.00" step="0.01">
-            </div>
-            <div class="group">
-                <label>GG / BTTS</label>
-                <input type="number" id="ggOdds" placeholder="0.00" step="0.01">
-            </div>
+            <div class="group"><label>Home (1)</label><input type="number" id="homeOdds" step="0.01"></div>
+            <div class="group"><label>Away (2)</label><input type="number" id="awayOdds" step="0.01"></div>
+            <div class="group"><label>Over 2.5</label><input type="number" id="overOdds" step="0.01"></div>
+            <div class="group"><label>Under 2.5</label><input type="number" id="underOdds" step="0.01"></div>
+            <div class="group"><label>Draw (X)</label><input type="number" id="drawOdds" step="0.01"></div>
+            <div class="group"><label>GG / BTTS</label><input type="number" id="ggOdds" step="0.01"></div>
         </div>
-
         <div class="btns">
             <button id="analyzeBtn" onclick="runAnalysis()">Find Strongest Pick</button>
             <button id="clearBtn" onclick="clearAll()">Clear</button>
@@ -269,18 +188,9 @@ td{
         <div class="section">
             <h3>Expected Goals (xG)</h3>
             <div class="dashboard">
-                <div>
-                    <div class="metricLabel">Home xG</div>
-                    <div id="hxg" class="metricValue">0.00</div>
-                </div>
-                <div>
-                    <div class="metricLabel">Total xG</div>
-                    <div id="txg" class="metricValue" style="color:var(--accent)">0.00</div>
-                </div>
-                <div>
-                    <div class="metricLabel">Away xG</div>
-                    <div id="axg" class="metricValue">0.00</div>
-                </div>
+                <div><div class="metricLabel">Home xG</div><div id="hxg" class="metricValue">0.00</div></div>
+                <div><div class="metricLabel">Total xG</div><div id="txg" class="metricValue" style="color:var(--accent)">0.00</div></div>
+                <div><div class="metricLabel">Away xG</div><div id="axg" class="metricValue">0.00</div></div>
             </div>
         </div>
 
@@ -290,7 +200,7 @@ td{
                 <thead>
                     <tr>
                         <th>Market</th>
-                        <th class="center">Model</th>
+                        <th class="center">Model %</th>
                         <th class="right">EV Edge</th>
                     </tr>
                 </thead>
@@ -306,23 +216,13 @@ td{
 </div>
 
 <script>
-function factorial(n){
-    if(n<=1) return 1;
-    let r=1;
-    for(let i=2;i<=n;i++) r*=i;
-    return r;
-}
-
-function poisson(k,lambda){
-    return (Math.pow(lambda,k)*Math.exp(-lambda))/factorial(k);
-}
-
+function factorial(n){ return (n<=1) ? 1 : n * factorial(n-1); }
+function poisson(k,lambda){ return (Math.pow(lambda,k)*Math.exp(-lambda))/factorial(k); }
 function removeMargin(arr){
     let total=0;
     arr.forEach(v=>{ total+=(1/v); });
     return arr.map(v=>(1/v)/total);
 }
-
 function solveLambda(pUnder){
     let low=0.01, high=7;
     for(let i=0;i<100;i++){
@@ -332,26 +232,20 @@ function solveLambda(pUnder){
     }
     return (low+high)/2;
 }
-
-function dixonColes(h,a,rho){
-    if(h===0 && a===0) return 1-rho;
-    if(h===0 && a===1) return 1+rho;
-    if(h===1 && a===0) return 1+rho;
-    if(h===1 && a===1) return 1-rho;
-    return 1;
-}
-
 function buildMatrix(hxg,axg,rho){
     let matrix=[];
     for(let h=0;h<=6;h++){
         for(let a=0;a<=6;a++){
-            let p=poisson(h,hxg)*poisson(a,axg)*dixonColes(h,a,rho);
-            matrix.push({home:h, away:a, score:`${h}-${a}`, prob:p});
+            let adj = 1;
+            if(h===0 && a===0) adj = 1-rho;
+            else if(h===0 && a===1) adj = 1+rho;
+            else if(h===1 && a===0) adj = 1+rho;
+            else if(h===1 && a===1) adj = 1-rho;
+            matrix.push({home:h, away:a, score:`${h}-${a}`, prob:poisson(h,hxg)*poisson(a,axg)*adj});
         }
     }
     return matrix;
 }
-
 function probability(matrix,condition){
     let total=0;
     matrix.forEach(m=>{ if(condition(m)) total+=m.prob; });
@@ -359,89 +253,57 @@ function probability(matrix,condition){
 }
 
 function runAnalysis(){
-    const inputs = {
-        h: parseFloat(document.getElementById("homeOdds").value),
-        a: parseFloat(document.getElementById("awayOdds").value),
-        ov: parseFloat(document.getElementById("overOdds").value),
-        un: parseFloat(document.getElementById("underOdds").value),
-        d: parseFloat(document.getElementById("drawOdds").value),
-        gg: parseFloat(document.getElementById("ggOdds").value)
-    };
+    const h=parseFloat(document.getElementById("homeOdds").value);
+    const a=parseFloat(document.getElementById("awayOdds").value);
+    const ov=parseFloat(document.getElementById("overOdds").value);
+    const un=parseFloat(document.getElementById("underOdds").value);
+    const d=parseFloat(document.getElementById("drawOdds").value);
+    const gg=parseFloat(document.getElementById("ggOdds").value);
 
-    if(Object.values(inputs).some(isNaN)){
-        alert("Please fill all odds fields.");
-        return;
-    }
+    if([h,a,ov,un,d,gg].some(isNaN)){ alert("Fill all fields."); return; }
 
-    // Normalization
-    const p1x2 = removeMargin([inputs.h, inputs.d, inputs.a]);
-    const pOU = removeMargin([inputs.ov, inputs.un]);
-    const pGG = (1/inputs.gg)/((1/inputs.gg)+(1/2.05));
+    const p1x2 = removeMargin([h, d, a]);
+    const pOU = removeMargin([ov, un]);
+    const pGG = (1/gg)/((1/gg)+(1/2.10));
 
-    // Goal Math
     let txg = solveLambda(pOU[1]);
-    txg *= 1-(p1x2[1]*0.5);
-    const totalStrength = p1x2[0] + p1x2[2];
-    let hxg = txg * (p1x2[0]/totalStrength);
-    let axg = txg * (p1x2[2]/totalStrength);
+    txg *= 1-(p1x2[2]*0.4); 
 
-    // GG Tuning
-    let rawGG = (1-poisson(0,hxg)) * (1-poisson(0,axg));
-    let error = (pGG - rawGG);
-    hxg += error * 0.8;
-    axg += error * 0.8;
-    hxg = Math.max(0.2, hxg);
-    axg = Math.max(0.2, axg);
-    txg = hxg + axg;
+    let hxg = txg * (p1x2[0]/(p1x2[0]+p1x2[2]));
+    let axg = txg * (p1x2[2]/(p1x2[0]+p1x2[2]));
 
-    const rho = ((pGG*100-50)*0.002) - (p1x2[1]*0.08) + ((txg-2.5)*0.01);
+    const rho = ((pGG*100-50)*0.002) - (p1x2[2]*0.05);
     let matrix = buildMatrix(hxg,axg,rho);
     let sumP = matrix.reduce((s, m) => s + m.prob, 0);
     matrix.forEach(m => m.prob /= sumP);
 
-    // Market Calculation
     const markets = [
-        { name: "Over 2.5", model: probability(matrix, m=>(m.home+m.away)>=3), odds: inputs.ov },
-        { name: "Under 2.5", model: probability(matrix, m=>(m.home+m.away)<=2), odds: inputs.un },
-        { name: "BTTS (GG)", model: probability(matrix, m=>(m.home>=1 && m.away>=1)), odds: inputs.gg },
-        { name: "Home Win", model: probability(matrix, m=>(m.home>m.away)), odds: inputs.h },
-        { name: "Away Win", model: probability(matrix, m=>(m.away>m.home)), odds: inputs.a },
-        { name: "Draw (X)", model: probability(matrix, m=>(m.home===m.away)), odds: inputs.d }
+        { name: "Over 2.5", model: probability(matrix, m=>(m.home+m.away)>=3), odds: ov },
+        { name: "Under 2.5", model: probability(matrix, m=>(m.home+m.away)<=2), odds: un },
+        { name: "BTTS (GG)", model: probability(matrix, m=>(m.home>=1 && m.away>=1)), odds: gg },
+        { name: "Home Win", model: probability(matrix, m=>(m.home>m.away)), odds: h },
+        { name: "Away Win", model: probability(matrix, m=>(m.away>m.home)), odds: a },
+        { name: "Draw (X)", model: probability(matrix, m=>(m.home===m.away)), odds: d }
     ];
 
-    // SORT BY HIGHEST EDGE (Expected Value)
-    markets.sort((a, b) => {
-        let edgeA = (a.model/100 * a.odds) - 1;
-        let edgeB = (b.model/100 * b.odds) - 1;
-        return edgeB - edgeA;
-    });
+    markets.sort((a, b) => ((b.model/100 * b.odds)-1) - ((a.model/100 * a.odds)-1));
 
-    // Update UI
     document.getElementById("hxg").innerText = hxg.toFixed(2);
     document.getElementById("axg").innerText = axg.toFixed(2);
-    document.getElementById("txg").innerText = txg.toFixed(2);
+    document.getElementById("txg").innerText = (hxg+axg).toFixed(2);
 
     const body = document.getElementById("marketBody");
     body.innerHTML = "";
     markets.forEach(m => {
         const ev = (m.model/100 * m.odds) - 1;
-        body.innerHTML += `
-            <tr>
-                <td>${m.name}</td>
-                <td class="center">${m.model.toFixed(1)}%</td>
-                <td class="right ${ev > 0 ? 'green' : 'red'}">${(ev*100).toFixed(1)}%</td>
-            </tr>`;
+        body.innerHTML += `<tr><td>${m.name}</td><td class="center">${m.model.toFixed(1)}%</td><td class="right ${ev > 0 ? 'green' : 'red'}">${(ev*100).toFixed(1)}%</td></tr>`;
     });
 
     matrix.sort((a,b) => b.prob - a.prob);
     const scoreGrid = document.getElementById("scoreGrid");
     scoreGrid.innerHTML = "";
     matrix.slice(0, 6).forEach(s => {
-        scoreGrid.innerHTML += `
-            <div class="scoreCard">
-                <div class="score">${s.score}</div>
-                <div class="scoreProb">${(s.prob*100).toFixed(1)}%</div>
-            </div>`;
+        scoreGrid.innerHTML += `<div class="scoreCard"><div class="score">${s.score}</div><div class="scoreProb">${(s.prob*100).toFixed(1)}%</div></div>`;
     });
 
     document.getElementById("results").style.display = "block";
@@ -449,12 +311,10 @@ function runAnalysis(){
 }
 
 function clearAll(){
-    const ids = ["homeOdds","awayOdds","overOdds","underOdds","drawOdds","ggOdds"];
-    ids.forEach(id => document.getElementById(id).value = "");
+    ["homeOdds","awayOdds","overOdds","underOdds","drawOdds","ggOdds"].forEach(id => document.getElementById(id).value = "");
     document.getElementById("results").style.display = "none";
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 </script>
-
 </body>
 </html>
