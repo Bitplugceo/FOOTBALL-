@@ -2,41 +2,58 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>vSoccer Probability Lab</title>
     <style>
         :root {
-            --bg: #121212;
-            --panel: #1e1e1e;
+            --bg: #0a0a0a;
+            --panel: #141414;
             --text: #e0e0e0;
             --accent: #d4af37;
             --win: #3a9c35;
             --loss: #c91920;
-            --border: #333;
+            --border: #222;
+            --header-grad: linear-gradient(90deg, #b91520 0%, #d91f26 100%);
+        }
+
+        /* Prevent horizontal overflow and fix padding issues */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            font-family: -apple-system, system-ui, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg);
             color: var(--text);
             margin: 0;
-            padding: 10px;
+            padding: 0;
+            overflow-x: hidden;
         }
 
         .header {
             text-align: center;
             padding: 15px;
-            background: linear-gradient(90deg, #b91520 0%, #d91f26 100%);
-            margin: -10px -10px 15px -10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            padding-top: max(15px, env(safe-area-inset-top));
+            background: var(--header-grad);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
         }
 
         .header h1 {
             margin: 0;
-            font-size: 18px;
-            letter-spacing: 1px;
+            font-size: 16px;
+            letter-spacing: 1.5px;
             color: white;
             text-transform: uppercase;
+            font-weight: 900;
+        }
+
+        /* Content Wrapper */
+        .wrapper {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 12px;
         }
 
         .section {
@@ -44,21 +61,25 @@
             border: 1px solid var(--border);
             padding: 15px;
             margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
 
         .section h3 {
-            margin: 0 0 12px 0;
-            font-size: 14px;
+            margin: 0 0 15px 0;
+            font-size: 11px;
             color: var(--accent);
             text-transform: uppercase;
             border-bottom: 1px solid var(--border);
-            padding-bottom: 5px;
+            padding-bottom: 6px;
+            letter-spacing: 1px;
+            font-weight: 800;
         }
 
+        /* 2-Column Responsive Grid */
         .grid-inputs {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px 15px;
         }
 
         .input-group {
@@ -67,81 +88,120 @@
         }
 
         label {
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 800;
-            margin-bottom: 4px;
-            color: #888;
+            margin-bottom: 5px;
+            color: #777;
+            text-transform: uppercase;
         }
 
         input {
-            background: #252525;
+            background: #1c1c1c;
             border: 1px solid var(--border);
             color: white;
-            padding: 8px;
-            font-size: 14px;
+            padding: 12px 10px;
+            font-size: 16px; /* Prevents iOS zoom on focus */
             font-weight: bold;
             outline: none;
+            width: 100%;
+            border-radius: 0;
         }
 
         input:focus {
             border-color: var(--accent);
+            background: #222;
         }
 
         button {
             width: 100%;
-            padding: 12px;
+            padding: 15px;
             background: var(--accent);
             color: black;
             border: none;
             font-weight: 900;
+            font-size: 13px;
             text-transform: uppercase;
-            margin-top: 10px;
+            margin-top: 15px;
             cursor: pointer;
+            letter-spacing: 0.5px;
         }
 
+        button:active {
+            opacity: 0.8;
+        }
+
+        /* Analysis Dashboard */
         .dashboard {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             text-align: center;
-            margin-top: 10px;
-            padding: 10px;
-            background: #151515;
-            border: 1px dashed var(--accent);
+            margin-top: 5px;
+            padding: 15px 5px;
+            background: #000;
+            border: 1px dashed #444;
         }
 
         .dash-val {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 900;
             color: white;
         }
 
         .dash-label {
-            font-size: 9px;
-            color: #888;
+            font-size: 8px;
+            color: #666;
             text-transform: uppercase;
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
         }
 
+        /* Results Table */
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
-            font-size: 12px;
         }
 
         th {
-            background: #333;
-            padding: 8px;
+            background: #1a1a1a;
+            padding: 10px 8px;
             text-align: left;
             color: var(--accent);
+            text-transform: uppercase;
+            font-size: 9px;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border);
         }
 
         td {
-            padding: 10px 8px;
+            padding: 14px 8px;
             border-bottom: 1px solid var(--border);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .prob-col {
+            text-align: center;
+            width: 80px;
+        }
+
+        .edge-col {
+            text-align: right;
+            color: #888;
+            font-size: 11px;
         }
 
         .val-high { color: var(--win); font-weight: 900; }
-        .val-med { color: #ffd700; font-weight: bold; }
+        .val-med { color: #ffd700; font-weight: 700; }
+
+        #resultsArea {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
@@ -150,74 +210,75 @@
         <h1>vSoccer Probability Lab ⚡</h1>
     </div>
 
-    <div class="section">
-        <h3>Algorithm Input (Core Odds)</h3>
-        <div class="grid-inputs">
-            <div class="input-group">
-                <label>HOME (1)</label>
-                <input type="number" id="homeOdds" step="0.01" placeholder="2.21">
-            </div>
-            <div class="input-group">
-                <label>DRAW (X)</label>
-                <input type="number" id="drawOdds" step="0.01" placeholder="3.71">
-            </div>
-            <div class="input-group">
-                <label>AWAY (2)</label>
-                <input type="number" id="awayOdds" step="0.01" placeholder="3.25">
-            </div>
-        </div>
-        <div class="grid-inputs" style="margin-top: 10px;">
-            <div class="input-group">
-                <label>OVER 2.5</label>
-                <input type="number" id="overOdds" step="0.01" placeholder="2.02">
-            </div>
-            <div class="input-group">
-                <label>UNDER 2.5</label>
-                <input type="number" id="underOdds" step="0.01" placeholder="1.84">
-            </div>
-            <div class="input-group">
-                <label>GG (Yes)</label>
-                <input type="number" id="ggOdds" step="0.01" placeholder="1.75">
-            </div>
-        </div>
-        <button onclick="runAnalysis()">Analyze RNG Pattern</button>
-    </div>
-
-    <div id="resultsArea" style="display: none;">
+    <div class="wrapper">
         <div class="section">
-            <h3>Projected Match Script</h3>
-            <div class="dashboard">
-                <div>
-                    <div class="dash-label">Home xG</div>
-                    <div class="dash-val" id="hxG">0.00</div>
+            <h3>Algorithm Input (Core Odds)</h3>
+            <div class="grid-inputs">
+                <div class="input-group">
+                    <label>HOME (1)</label>
+                    <input type="number" id="homeOdds" step="0.01" inputmode="decimal" placeholder="2.21">
                 </div>
-                <div>
-                    <div class="dash-label">Total Exp. Goals</div>
-                    <div class="dash-val" id="txG" style="color: var(--accent);">0.00</div>
+                <div class="input-group">
+                    <label>AWAY (2)</label>
+                    <input type="number" id="awayOdds" step="0.01" inputmode="decimal" placeholder="3.25">
                 </div>
-                <div>
-                    <div class="dash-label">Away xG</div>
-                    <div class="dash-val" id="axG">0.00</div>
+                <div class="input-group">
+                    <label>DRAW (X)</label>
+                    <input type="number" id="drawOdds" step="0.01" inputmode="decimal" placeholder="3.71">
+                </div>
+                <div class="input-group">
+                    <label>OVER 2.5</label>
+                    <input type="number" id="overOdds" step="0.01" inputmode="decimal" placeholder="2.02">
+                </div>
+                <div class="input-group">
+                    <label>UNDER 2.5</label>
+                    <input type="number" id="underOdds" step="0.01" inputmode="decimal" placeholder="1.84">
+                </div>
+                <div class="input-group">
+                    <label>GG (Both Score)</label>
+                    <input type="number" id="ggOdds" step="0.01" inputmode="decimal" placeholder="1.75">
                 </div>
             </div>
+            <button onclick="runAnalysis()">Analyze RNG Pattern</button>
         </div>
 
-        <div class="section">
-            <h3>Detailed Probability Matrix</h3>
-            <table id="matrix">
-                <thead>
-                    <tr>
-                        <th>Market</th>
-                        <th>True Prob.</th>
-                        <th>Algorithm Edge</th>
-                    </tr>
-                </thead>
-                <tbody id="matrixBody"></tbody>
-            </table>
+        <div id="resultsArea" style="display: none;">
+            <div class="section">
+                <h3>Projected Match Script</h3>
+                <div class="dashboard">
+                    <div>
+                        <div class="dash-label">Home xG</div>
+                        <div id="hxG" class="dash-val">0.00</div>
+                    </div>
+                    <div>
+                        <div class="dash-label">Exp. Total</div>
+                        <div id="txG" class="dash-val" style="color: var(--accent);">0.00</div>
+                    </div>
+                    <div>
+                        <div class="dash-label">Away xG</div>
+                        <div id="axG" class="dash-val">0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Detailed Probability Matrix</h3>
+                <table id="matrix">
+                    <thead>
+                        <tr>
+                            <th>Market</th>
+                            <th class="prob-col">True Prob.</th>
+                            <th class="edge-col">Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matrixBody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <script>
+        // Poisson Probability Mass Function
         function poisson(k, lambda) {
             return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
         }
@@ -229,14 +290,15 @@
             return res;
         }
 
+        // Search for the lambda (average goals) that results in the provided Under 2.5 probability
         function solveTotalLambda(pUnder25) {
-            let lambda = 2.5; // Start guess
-            for (let i = 0; i < 50; i++) {
+            let lambda = 2.0; 
+            for (let i = 0; i < 60; i++) {
                 let currentP = poisson(0, lambda) + poisson(1, lambda) + poisson(2, lambda);
-                if (currentP > pUnder25) lambda += 0.05;
-                else lambda -= 0.05;
+                if (currentP > pUnder25) lambda += 0.04;
+                else lambda -= 0.04;
             }
-            return lambda;
+            return Math.max(0.5, lambda);
         }
 
         function runAnalysis() {
@@ -246,18 +308,23 @@
             const ov = parseFloat(document.getElementById('overOdds').value);
             const un = parseFloat(document.getElementById('underOdds').value);
 
-            if (!h || !ov || !un) return alert("Please fill in core odds.");
+            if (isNaN(h) || isNaN(ov) || isNaN(un)) {
+                alert("Core inputs (1, 2, O/U 2.5) are required.");
+                return;
+            }
 
-            // 1. De-Vig
+            // 1. De-Vig Calculation
             const margin1X2 = (1/h) + (1/d) + (1/a);
             const probH = (1/h) / margin1X2;
             const probA = (1/a) / margin1X2;
+            const probD = (1/d) / margin1X2;
 
             const marginOU = (1/ov) + (1/un);
-            const trueProbUnder = (1/un) / marginOU;
+            const trueProbUnder25 = (1/un) / marginOU;
 
-            // 2. Solve for xG (Lambda)
-            const totalLambda = solveTotalLambda(trueProbUnder);
+            // 2. Derive Lambda (Expected Goals)
+            const totalLambda = solveTotalLambda(trueProbUnder25);
+            // Distribute goals based on win-market strength
             const hxG = totalLambda * (probH / (probH + probA));
             const axG = totalLambda * (probA / (probH + probA));
 
@@ -265,7 +332,7 @@
             document.getElementById('axG').innerText = axG.toFixed(2);
             document.getElementById('txG').innerText = totalLambda.toFixed(2);
 
-            // 3. Build Matrix
+            // 3. Build Results
             const matrixBody = document.getElementById('matrixBody');
             matrixBody.innerHTML = "";
 
@@ -273,25 +340,33 @@
             const p0A = poisson(0, axG);
             const probGG = (1 - p0H) * (1 - p0A) * 100;
 
-            const markets = [
+            const rows = [
                 { name: "Over 1.5 Goals", prob: (1 - (poisson(0, totalLambda) + poisson(1, totalLambda))) * 100 },
-                { name: "Under 1.5 Goals", prob: (poisson(0, totalLambda) + poisson(1, totalLambda)) * 100 },
                 { name: "Over 3.5 Goals", prob: (1 - (poisson(0, totalLambda) + poisson(1, totalLambda) + poisson(2, totalLambda) + poisson(3, totalLambda))) * 100 },
-                { name: "Both Teams To Score (GG)", prob: probGG },
-                { name: "Double Chance (1X)", prob: (probH + (1/d / margin1X2)) * 100 },
-                { name: "Double Chance (X2)", prob: (probA + (1/d / margin1X2)) * 100 }
+                { name: "Under 1.5 Goals", prob: (poisson(0, totalLambda) + poisson(1, totalLambda)) * 100 },
+                { name: "Under 3.5 Goals", prob: (poisson(0, totalLambda) + poisson(1, totalLambda) + poisson(2, totalLambda) + poisson(3, totalLambda)) * 100 },
+                { name: "GG (Both Score)", prob: probGG },
+                { name: "NG (One/Neither Score)", prob: 100 - probGG },
+                { name: "Home Double Chance (1X)", prob: (probH + probD) * 100 },
+                { name: "Away Double Chance (X2)", prob: (probA + probD) * 100 }
             ];
 
-            markets.forEach(m => {
-                const row = `<tr>
-                    <td>${m.name}</td>
-                    <td class="${m.prob > 60 ? 'val-high' : 'val-med'}">${m.prob.toFixed(1)}%</td>
-                    <td>${(m.prob/10).toFixed(1)} units</td>
-                </tr>`;
-                matrixBody.innerHTML += row;
+            rows.forEach(r => {
+                const probText = r.prob.toFixed(1) + "%";
+                const rating = r.prob > 75 ? "EXCELLENT" : r.prob > 60 ? "STRONG" : "NORMAL";
+                const probClass = r.prob > 70 ? 'val-high' : r.prob > 55 ? 'val-med' : '';
+
+                matrixBody.innerHTML += `
+                    <tr>
+                        <td>${r.name}</td>
+                        <td class="prob-col ${probClass}">${probText}</td>
+                        <td class="edge-col">${rating}</td>
+                    </tr>
+                `;
             });
 
             document.getElementById('resultsArea').style.display = "block";
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
     </script>
 </body>
