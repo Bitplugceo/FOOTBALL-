@@ -3,22 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport"
-content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<title>vSoccer Quantum Engine</title>
+<title>vSoccer Quantum AI Engine</title>
 
 <style>
 
 :root{
     --bg:#050505;
-    --panel:#121212;
-    --text:#e8e8e8;
+    --panel:#101010;
+    --border:#232323;
+    --text:#f1f1f1;
     --accent:#d4af37;
-    --green:#2dbd55;
-    --yellow:#ffcc33;
-    --red:#ff4d4d;
-    --border:#242424;
-    --header:linear-gradient(90deg,#0d2b18,#19763c);
+    --green:#35d07f;
+    --yellow:#ffd447;
+    --red:#ff6363;
 }
 
 *{
@@ -30,29 +29,26 @@ body{
     margin:0;
     background:var(--bg);
     color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    overflow-x:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 }
 
 .header{
-    background:var(--header);
-    padding:16px;
-    padding-top:max(16px,env(safe-area-inset-top));
+    padding:18px;
     text-align:center;
-    box-shadow:0 4px 15px rgba(0,0,0,.5);
+    background:linear-gradient(90deg,#0c2918,#1d7f46);
+    box-shadow:0 5px 15px rgba(0,0,0,.5);
 }
 
 .header h1{
     margin:0;
-    color:#fff;
     font-size:17px;
-    letter-spacing:1px;
     text-transform:uppercase;
+    letter-spacing:1px;
     font-weight:900;
 }
 
 .wrapper{
-    max-width:520px;
+    max-width:560px;
     margin:auto;
     padding:12px;
 }
@@ -66,9 +62,9 @@ body{
 
 .section h3{
     margin:0 0 14px 0;
+    color:var(--accent);
     font-size:11px;
     text-transform:uppercase;
-    color:var(--accent);
     border-bottom:1px solid var(--border);
     padding-bottom:6px;
     letter-spacing:1px;
@@ -94,7 +90,7 @@ label{
 }
 
 input{
-    background:#1a1a1a;
+    background:#181818;
     border:1px solid var(--border);
     color:#fff;
     padding:13px 10px;
@@ -105,7 +101,6 @@ input{
 
 input:focus{
     border-color:var(--accent);
-    background:#222;
 }
 
 .btns{
@@ -119,7 +114,6 @@ button{
     border:none;
     padding:15px;
     font-weight:900;
-    font-size:13px;
     text-transform:uppercase;
     cursor:pointer;
 }
@@ -138,37 +132,36 @@ button{
     display:grid;
     grid-template-columns:1fr 1fr 1fr;
     gap:10px;
+    text-align:center;
     background:#000;
     border:1px dashed #444;
     padding:15px;
-    text-align:center;
 }
 
-.dashLabel{
+.metricLabel{
     font-size:8px;
     color:#777;
     text-transform:uppercase;
 }
 
-.dashVal{
+.metricValue{
+    margin-top:5px;
     font-size:21px;
     font-weight:900;
-    margin-top:5px;
 }
 
 table{
     width:100%;
     border-collapse:collapse;
-    margin-top:8px;
 }
 
 th{
-    background:#1a1a1a;
+    background:#171717;
     padding:10px 8px;
+    text-align:left;
     font-size:9px;
     color:var(--accent);
     text-transform:uppercase;
-    text-align:left;
 }
 
 td{
@@ -186,15 +179,15 @@ td{
     text-align:right;
 }
 
-.high{
+.green{
     color:var(--green);
 }
 
-.medium{
+.yellow{
     color:var(--yellow);
 }
 
-.low{
+.red{
     color:var(--red);
 }
 
@@ -202,50 +195,51 @@ td{
     display:grid;
     grid-template-columns:repeat(3,1fr);
     gap:10px;
-    margin-top:12px;
 }
 
 .scoreCard{
-    background:#0d0d0d;
-    border:1px solid #1f1f1f;
+    background:#0b0b0b;
+    border:1px solid #1d1d1d;
     padding:12px;
     text-align:center;
 }
 
 .score{
+    color:var(--accent);
     font-size:18px;
     font-weight:900;
-    color:var(--accent);
 }
 
 .scoreProb{
-    margin-top:4px;
+    margin-top:5px;
     font-size:11px;
     color:#aaa;
 }
 
 .badge{
     display:inline-block;
-    padding:5px 9px;
+    padding:5px 10px;
+    border-radius:20px;
     font-size:10px;
     font-weight:900;
-    border-radius:20px;
-    margin-top:8px;
 }
 
-.green{
-    background:#133d22;
-    color:#6fff95;
+.badge.green{
+    background:#153924;
 }
 
-.yellow{
-    background:#4a3b10;
-    color:#ffd84d;
+.badge.yellow{
+    background:#493c13;
 }
 
-.red{
-    background:#4a1616;
-    color:#ff7c7c;
+.badge.red{
+    background:#4a1a1a;
+}
+
+.small{
+    font-size:12px;
+    color:#aaa;
+    line-height:1.5;
 }
 
 #results{
@@ -270,7 +264,7 @@ td{
 <body>
 
 <div class="header">
-    <h1>vSoccer Quantum Engine ⚽</h1>
+    <h1>vSoccer Quantum AI Engine ⚽</h1>
 </div>
 
 <div class="wrapper">
@@ -283,38 +277,38 @@ td{
 
 <div class="group">
 <label>HOME (1)</label>
-<input type="number" id="homeOdds" step="0.01" placeholder="2.10">
-</div>
-
-<div class="group">
-<label>AWAY (2)</label>
-<input type="number" id="awayOdds" step="0.01" placeholder="3.40">
+<input type="number" id="homeOdds" step="0.01">
 </div>
 
 <div class="group">
 <label>DRAW (X)</label>
-<input type="number" id="drawOdds" step="0.01" placeholder="3.20">
+<input type="number" id="drawOdds" step="0.01">
+</div>
+
+<div class="group">
+<label>AWAY (2)</label>
+<input type="number" id="awayOdds" step="0.01">
 </div>
 
 <div class="group">
 <label>OVER 2.5</label>
-<input type="number" id="overOdds" step="0.01" placeholder="1.95">
+<input type="number" id="overOdds" step="0.01">
 </div>
 
 <div class="group">
 <label>UNDER 2.5</label>
-<input type="number" id="underOdds" step="0.01" placeholder="1.85">
+<input type="number" id="underOdds" step="0.01">
 </div>
 
 <div class="group">
 <label>GG / BTTS</label>
-<input type="number" id="ggOdds" step="0.01" placeholder="1.72">
+<input type="number" id="ggOdds" step="0.01">
 </div>
 
 </div>
 
 <div class="btns">
-<button id="analyzeBtn" onclick="runAnalysis()">Analyze Match</button>
+<button id="analyzeBtn" onclick="runAnalysis()">Run Quantum Analysis</button>
 <button id="clearBtn" onclick="clearAll()">Clear</button>
 </div>
 
@@ -324,23 +318,23 @@ td{
 
 <div class="section">
 
-<h3>xG Projection</h3>
+<h3>Expected Goals Engine</h3>
 
 <div class="dashboard">
 
 <div>
-<div class="dashLabel">Home xG</div>
-<div class="dashVal" id="hxg">0.00</div>
+<div class="metricLabel">Home xG</div>
+<div id="hxg" class="metricValue">0.00</div>
 </div>
 
 <div>
-<div class="dashLabel">Total xG</div>
-<div class="dashVal" id="txg" style="color:var(--accent)">0.00</div>
+<div class="metricLabel">Total xG</div>
+<div id="txg" class="metricValue" style="color:var(--accent)">0.00</div>
 </div>
 
 <div>
-<div class="dashLabel">Away xG</div>
-<div class="dashVal" id="axg">0.00</div>
+<div class="metricLabel">Away xG</div>
+<div id="axg" class="metricValue">0.00</div>
 </div>
 
 </div>
@@ -349,7 +343,7 @@ td{
 
 <div class="section">
 
-<h3>Market Matrix</h3>
+<h3>Market Edge Matrix</h3>
 
 <table>
 
@@ -362,7 +356,7 @@ td{
 </tr>
 </thead>
 
-<tbody id="matrixBody"></tbody>
+<tbody id="marketBody"></tbody>
 
 </table>
 
@@ -370,17 +364,17 @@ td{
 
 <div class="section">
 
-<h3>Top Correct Scores</h3>
+<h3>Most Likely Scores</h3>
 
-<div class="scoreGrid" id="scoreGrid"></div>
+<div id="scoreGrid" class="scoreGrid"></div>
 
 </div>
 
 <div class="section">
 
-<h3>Regime Detection</h3>
+<h3>Entropy & Regime Engine</h3>
 
-<div id="regime"></div>
+<div id="regimeOutput"></div>
 
 </div>
 
@@ -436,23 +430,34 @@ function solveLambda(pUnder){
     return (low+high)/2;
 }
 
+function dynamicRho(gg,draw,xg){
+
+    return (
+        ((gg-50)*0.0025)
+        -
+        (draw*0.09)
+        +
+        ((xg-2.5)*0.015)
+    );
+}
+
 function dixonColes(h,a,rho){
 
-    if(h===0 && a===0) return 1-(rho);
-    if(h===0 && a===1) return 1+(rho);
-    if(h===1 && a===0) return 1+(rho);
-    if(h===1 && a===1) return 1-(rho);
+    if(h===0 && a===0) return 1-rho;
+    if(h===0 && a===1) return 1+rho;
+    if(h===1 && a===0) return 1+rho;
+    if(h===1 && a===1) return 1-rho;
 
     return 1;
 }
 
 function buildMatrix(hxg,axg,rho){
 
-    let scores=[];
+    let matrix=[];
 
-    for(let h=0;h<=5;h++){
+    for(let h=0;h<=6;h++){
 
-        for(let a=0;a<=5;a++){
+        for(let a=0;a<=6;a++){
 
             let p=
                 poisson(h,hxg)*
@@ -460,19 +465,63 @@ function buildMatrix(hxg,axg,rho){
 
             p*=dixonColes(h,a,rho);
 
-            scores.push({
-                score:`${h}-${a}`,
+            matrix.push({
                 home:h,
                 away:a,
+                score:`${h}-${a}`,
                 prob:p
             });
         }
     }
 
+    return matrix;
+}
+
+function monteCarlo(hxg,axg,rho,iterations=20000){
+
+    let scores=[];
+
+    for(let i=0;i<iterations;i++){
+
+        let h=0;
+        let a=0;
+
+        let hCum=0;
+        let aCum=0;
+
+        let r1=Math.random();
+        let r2=Math.random();
+
+        for(let k=0;k<7;k++){
+
+            hCum+=poisson(k,hxg);
+
+            if(r1<=hCum){
+                h=k;
+                break;
+            }
+        }
+
+        for(let k=0;k<7;k++){
+
+            aCum+=poisson(k,axg);
+
+            if(r2<=aCum){
+                a=k;
+                break;
+            }
+        }
+
+        scores.push({
+            home:h,
+            away:a
+        });
+    }
+
     return scores;
 }
 
-function probabilityFromMatrix(matrix,condition){
+function probability(matrix,condition){
 
     let total=0;
 
@@ -483,44 +532,63 @@ function probabilityFromMatrix(matrix,condition){
     return total*100;
 }
 
-function classifyMatch(txg,gg,draw){
+function entropy(matrix){
 
-    if(txg<2.1 && draw>0.29){
-        return {
-            type:"DEAD MATCH",
-            color:"red",
-            text:"Low tempo. Defensive compression likely."
-        };
-    }
+    let e=0;
 
-    if(txg>3 && gg>62){
+    matrix.forEach(m=>{
+
+        if(m.prob>0){
+            e+=-(m.prob*Math.log2(m.prob));
+        }
+    });
+
+    return e;
+}
+
+function classify(entropyVal,txg,draw){
+
+    if(entropyVal<4){
         return {
-            type:"CHAOS MATCH",
+            type:"LOW ENTROPY",
             color:"green",
-            text:"Open game. High volatility detected."
+            text:"Stable score concentration detected."
         };
     }
 
-    if(draw>0.31 && gg<52){
+    if(entropyVal>5.3 && txg>3){
         return {
-            type:"CONTROLLED MATCH",
+            type:"CHAOTIC REGIME",
+            color:"red",
+            text:"High variance and explosive scoring environment."
+        };
+    }
+
+    if(draw>0.30){
+        return {
+            type:"DRAW COMPRESSION",
             color:"yellow",
-            text:"Balanced tactical pacing expected."
+            text:"Tactical pacing and defensive equilibrium detected."
         };
     }
 
     return {
-        type:"BALANCED MATCH",
+        type:"BALANCED REGIME",
         color:"yellow",
-        text:"No extreme market conditions detected."
+        text:"Moderate variance environment."
     };
 }
 
 function edgeClass(edge){
 
-    if(edge>=7) return "high";
-    if(edge>=3) return "medium";
-    return "low";
+    if(edge>=7) return "green";
+    if(edge>=3) return "yellow";
+    return "red";
+}
+
+function EV(prob,odds){
+
+    return ((prob/100)*odds)-1;
 }
 
 function runAnalysis(){
@@ -542,114 +610,122 @@ function runAnalysis(){
         isNaN(un)||
         isNaN(gg)
     ){
-        alert("All odds are required.");
+        alert("All odds required.");
         return;
     }
 
-    // 1X2
-    const probs1x2=removeMargin([h,d,a]);
+    // Market normalization
+    const p1x2=removeMargin([h,d,a]);
 
-    const pHome=probs1x2[0];
-    const pDraw=probs1x2[1];
-    const pAway=probs1x2[2];
+    const pHome=p1x2[0];
+    const pDraw=p1x2[1];
+    const pAway=p1x2[2];
 
-    // O/U
-    const probsOU=removeMargin([ov,un]);
+    const pou=removeMargin([ov,un]);
 
-    const pOver25=probsOU[0];
-    const pUnder25=probsOU[1];
+    const pOver25=pou[0];
+    const pUnder25=pou[1];
 
-    // GG
-    const probsGG=removeMargin([gg,2.05]);
+    // GG estimation
+    const pGG=(1/gg)/((1/gg)+(1/2.05));
 
-    const marketGG=probsGG[0]*100;
-
-    // Total lambda
-    let totalLambda=solveLambda(pUnder25);
+    // Base lambda
+    let txg=solveLambda(pUnder25);
 
     // Draw compression
-    const drawCompression=(1-(pDraw*0.55));
+    txg*=1-(pDraw*0.5);
 
-    totalLambda*=drawCompression;
+    // Split strength
+    const totalStrength=pHome+pAway;
 
-    // Split xG
-    let strength=(pHome+pAway);
-
-    let hxg=totalLambda*(pHome/strength);
-    let axg=totalLambda*(pAway/strength);
+    let hxg=txg*(pHome/totalStrength);
+    let axg=txg*(pAway/totalStrength);
 
     // GG calibration
-    const rawGG=(1-poisson(0,hxg))*(1-poisson(0,axg))*100;
+    let rawGG=
+        (1-poisson(0,hxg))*
+        (1-poisson(0,axg));
 
-    const ggError=marketGG-rawGG;
+    let ggError=(pGG-rawGG);
 
-    hxg+=ggError*0.0035;
-    axg+=ggError*0.0035;
+    hxg+=ggError*0.9;
+    axg+=ggError*0.9;
 
     hxg=Math.max(.15,hxg);
     axg=Math.max(.15,axg);
 
-    totalLambda=hxg+axg;
+    txg=hxg+axg;
 
-    // Correlation
-    let rho=0.06;
-
-    if(marketGG>60) rho=0.12;
-    if(pDraw>0.30) rho=0.03;
+    // Dynamic correlation
+    const rho=dynamicRho(
+        pGG*100,
+        pDraw,
+        txg
+    );
 
     // Matrix
-    const matrix=buildMatrix(hxg,axg,rho);
+    let matrix=buildMatrix(hxg,axg,rho);
 
-    matrix.sort((a,b)=>b.prob-a.prob);
+    // Normalize matrix
+    let totalProb=0;
 
-    // Display xG
-    document.getElementById("hxg").innerText=hxg.toFixed(2);
-    document.getElementById("axg").innerText=axg.toFixed(2);
-    document.getElementById("txg").innerText=totalLambda.toFixed(2);
+    matrix.forEach(m=>{
+        totalProb+=m.prob;
+    });
 
-    // Market table
+    matrix.forEach(m=>{
+        m.prob/=totalProb;
+    });
+
+    // Entropy
+    const entropyVal=entropy(matrix);
+
+    // Monte Carlo
+    monteCarlo(hxg,axg,rho);
+
+    // Markets
     const markets=[
 
         {
-            name:"Over 1.5",
-            model:probabilityFromMatrix(matrix,m=>(m.home+m.away)>=2),
-            market:(1/1.30)*100
-        },
-
-        {
             name:"Over 2.5",
-            model:probabilityFromMatrix(matrix,m=>(m.home+m.away)>=3),
-            market:pOver25*100
+            model:probability(matrix,m=>(m.home+m.away)>=3),
+            market:pOver25*100,
+            odds:ov
         },
 
         {
             name:"Under 2.5",
-            model:probabilityFromMatrix(matrix,m=>(m.home+m.away)<=2),
-            market:pUnder25*100
+            model:probability(matrix,m=>(m.home+m.away)<=2),
+            market:pUnder25*100,
+            odds:un
         },
 
         {
             name:"BTTS",
-            model:probabilityFromMatrix(matrix,m=>(m.home>=1 && m.away>=1)),
-            market:marketGG
+            model:probability(matrix,m=>(m.home>=1 && m.away>=1)),
+            market:pGG*100,
+            odds:gg
         },
 
         {
             name:"Home Win",
-            model:probabilityFromMatrix(matrix,m=>(m.home>m.away)),
-            market:pHome*100
+            model:probability(matrix,m=>(m.home>m.away)),
+            market:pHome*100,
+            odds:h
         },
 
         {
             name:"Draw",
-            model:probabilityFromMatrix(matrix,m=>(m.home===m.away)),
-            market:pDraw*100
+            model:probability(matrix,m=>(m.home===m.away)),
+            market:pDraw*100,
+            odds:d
         },
 
         {
             name:"Away Win",
-            model:probabilityFromMatrix(matrix,m=>(m.away>m.home)),
-            market:pAway*100
+            model:probability(matrix,m=>(m.away>m.home)),
+            market:pAway*100,
+            odds:a
         }
 
     ];
@@ -659,13 +735,21 @@ function runAnalysis(){
         Math.abs(a.model-a.market)
     );
 
-    const body=document.getElementById("matrixBody");
+    // xG output
+    document.getElementById("hxg").innerText=hxg.toFixed(2);
+    document.getElementById("axg").innerText=axg.toFixed(2);
+    document.getElementById("txg").innerText=txg.toFixed(2);
+
+    // Table
+    const body=document.getElementById("marketBody");
 
     body.innerHTML="";
 
     markets.forEach(m=>{
 
-        const edge=(m.model-m.market);
+        const edge=m.model-m.market;
+
+        const ev=EV(m.model,m.odds);
 
         body.innerHTML+=`
 
@@ -681,7 +765,7 @@ function runAnalysis(){
             ${m.market.toFixed(1)}%
         </td>
 
-        <td class="right ${edge>0?'high':'low'}">
+        <td class="right ${ev>0?'green':'red'}">
             ${edge>0?'+':''}${edge.toFixed(1)}%
         </td>
 
@@ -690,20 +774,24 @@ function runAnalysis(){
         `;
     });
 
-    // Correct scores
-    const topScores=matrix.slice(0,6);
+    // Scores
+    matrix.sort((a,b)=>b.prob-a.prob);
+
+    const top=matrix.slice(0,6);
 
     const scoreGrid=document.getElementById("scoreGrid");
 
     scoreGrid.innerHTML="";
 
-    topScores.forEach(s=>{
+    top.forEach(s=>{
 
         scoreGrid.innerHTML+=`
 
         <div class="scoreCard">
 
-            <div class="score">${s.score}</div>
+            <div class="score">
+                ${s.score}
+            </div>
 
             <div class="scoreProb">
                 ${(s.prob*100).toFixed(1)}%
@@ -715,20 +803,30 @@ function runAnalysis(){
     });
 
     // Regime
-    const regime=classifyMatch(
-        totalLambda,
-        marketGG,
+    const regime=classify(
+        entropyVal,
+        txg,
         pDraw
     );
 
-    document.getElementById("regime").innerHTML=`
+    document.getElementById("regimeOutput").innerHTML=`
 
         <div class="badge ${regime.color}">
             ${regime.type}
         </div>
 
-        <p style="margin-top:10px;color:#aaa;font-size:13px;line-height:1.5">
+        <p class="small">
             ${regime.text}
+        </p>
+
+        <p class="small">
+            Entropy Score:
+            <strong>${entropyVal.toFixed(2)}</strong>
+        </p>
+
+        <p class="small">
+            Dynamic Correlation:
+            <strong>${rho.toFixed(3)}</strong>
         </p>
 
     `;
@@ -745,8 +843,8 @@ function clearAll(){
 
     [
         "homeOdds",
-        "awayOdds",
         "drawOdds",
+        "awayOdds",
         "overOdds",
         "underOdds",
         "ggOdds"
