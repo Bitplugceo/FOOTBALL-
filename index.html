@@ -1977,8 +1977,7 @@ body.dark-mode .tracker-bar-stage {
   display: block !important;
 }
 
-.tracker-panel:not(.analytics-view) #trackerAnalyticsPanel,
-.tracker-panel:not(.analytics-view) #trackerCopyDataBtn {
+.tracker-panel:not(.analytics-view) #trackerAnalyticsPanel {
   display: none !important;
 }
 
@@ -2596,7 +2595,7 @@ body.dark-mode .tracker-analytics-section-head {
  <header class="app-header">
   <span class="brand-name">TheBetCeo ⚡️</span>
 
-  <button class="header-error-btn" type="button" id="headerErrorBtn" title="Show fetch/input issues">⚠️</button>
+
 
   <span class="brand-right">
     <button class="theme-toggle" type="button" id="themeToggleBtn" title="Toggle dark/light mode">⚽</button>
@@ -2606,15 +2605,6 @@ body.dark-mode .tracker-analytics-section-head {
 </header>
 
     <div class="wrapper">
-      <div style="background:#111; border:1px solid #333; border-left:4px solid #d4af37; border-radius:6px; margin-bottom:12px; display:flex; flex-direction:column; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-        <div style="padding:8px 12px; background:#1a1a1a; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center; border-radius:6px 6px 0 0;">
-          <span style="color:#d4af37; font-size:11px; font-weight:900; letter-spacing:1px; text-transform:uppercase;">⚙️ Live Engine Console</span>
-          <button onclick="clearUiLog()" style="background:#333; color:#fff; border:none; padding:4px 8px; font-size:9px; font-weight:bold; cursor:pointer; border-radius:4px;">CLEAR</button>
-        </div>
-        <div id="liveEngineDebugger" style="background:#050505; color:#aaa; padding:10px; font-family: ui-monospace, monospace; font-size:10px; height:160px; overflow-y:auto; word-break:break-word; border-radius:0 0 6px 6px;">
-           <div style="color:#555; font-weight:bold; margin-bottom:5px;">[SYSTEM] Console ready. Waiting for execution...</div>
-        </div>
-      </div>
 
 
         <div class="section" id="leagueSection">
@@ -2812,7 +2802,6 @@ body.dark-mode .tracker-analytics-section-head {
       <div class="tracker-head">
         <span id="trackerHeadTitle">Tracked Picks</span>
         <div class="tracker-head-actions">
-          <button type="button" id="trackerCopyDataBtn" class="tracker-insights-btn" title="Copy tracker data to clipboard">📑</button>
           <button type="button" id="trackerCloseBtn" class="tracker-close">✕</button>
         </div>
       </div>
@@ -2847,140 +2836,13 @@ body.dark-mode .tracker-analytics-section-head {
 </div>
 </div>
 
-<script>
-/**
- * 🛡️ BET-CEO UNKILLABLE GOD-MODE WATCHDOG
- * Detects: Syntax Errors, Typos (!!!), CORS Blocks, and Boot Failures.
- */
-(function () {
-  if (window.__BETCEO_WATCHDOG_LOADED) return;
-  window.__BETCEO_WATCHDOG_LOADED = true;
-  window.__BETCEO_ENGINE_BOOT_SEEN = false;
 
-  // 1. FATAL TERMINAL UI (Hijacks screen on crash)
-  function spawnFatalTerminal(msg, file, line, col, stack) {
-    if (document.getElementById("fatalGodModeTerminal")) return;
-    const t = document.createElement("div");
-    t.id = "fatalGodModeTerminal";
-    t.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.98); z-index:1000000; padding:20px; box-sizing:border-box; overflow-y:auto; font-family: ui-monospace, Consolas, monospace; color: #0f0;";
-    
-       t.innerHTML = `
-      <div style="border:2px solid #ff5c61; background:#111; max-width:900px; margin:20px auto; box-shadow: 0 0 50px rgba(255, 0, 0, 0.3);">
-        <div style="background:#3b0000; color:#ff5c61; padding:15px; font-size:16px; font-weight:900; border-bottom:2px solid #ff5c61; display:flex; justify-content:space-between; text-transform:uppercase;">
-          <span>🚨 FATAL ENGINE CRASH</span>
-          <span>[SYSTEM LOCK]</span>
-        </div>
-        <div style="padding:25px;">
-          <div style="color:#ffcf73; margin-bottom:20px; font-size:14px; border-left: 3px solid #ffcf73; padding-left: 15px; font-weight:800;">
-            CATASTROPHIC ERROR: The engine parser died. The UI is disabled to protect your data.
-          </div>
-          <div style="display:grid; gap:12px; margin-bottom:25px;">
-            <div><strong style="color:#fff; text-transform:uppercase; font-size:11px;">Error Message:</strong><br><span style="color:#ff5c61; font-size:15px; font-weight:bold;">${msg}</span></div>
-            <div style="display:flex; gap:30px;">
-                <div><strong style="color:#fff; text-transform:uppercase; font-size:11px;">Line:</strong><br><span style="color:#0f0; font-size:18px; font-weight:900;">${line}</span></div>
-                <div><strong style="color:#fff; text-transform:uppercase; font-size:11px;">Column:</strong><br><span style="color:#0f0; font-size:18px; font-weight:900;">${col}</span></div>
-                <div><strong style="color:#fff; text-transform:uppercase; font-size:11px;">Source:</strong><br><span style="color:#aaa; font-size:13px;">${file}</span></div>
-            </div>
-          </div>
-          <strong style="color:#777; text-transform:uppercase; font-size:11px;">Debug Stack Trace:</strong>
-          <div style="background:#000; border: 1px solid #222; padding:15px; color:#555; margin-top:8px; white-space:pre-wrap; overflow-x:auto; font-size:11px; line-height:1.4;">${stack || 'Syntax Error: No trace available for parser death.'}</div>
-          <button onclick="location.reload()" style="margin-top:25px; background:#ff5c61; color:#fff; border:none; padding:12px 24px; font-weight:900; cursor:pointer; font-family:inherit; text-transform:uppercase;">Try Reboot</button>
-        </div>
-      </div>
-    `;
-
-    document.body ? document.body.appendChild(t) : document.documentElement.appendChild(t);
-  }
-
-  // 2. CATCH GLOBAL RUNTIME ERRORS
-  window.addEventListener("error", function (e) {
-    spawnFatalTerminal(e.message, e.filename, e.lineno, e.colno, e.error?.stack);
-  });
-
-  // 3. NETWORK & PROMISE INTERCEPTOR
-  window.addEventListener("unhandledrejection", function (e) {
-    const reason = e.reason?.message || String(e.reason);
-    if (typeof window.engineDebug === "function") {
-        window.engineDebug("NETWORK/PROMISE ERROR", { detail: reason });
-    }
-    if (reason.includes("fetch") || reason.includes("Load failed")) {
-        if (typeof window.triggerGlobalEngineAlert === "function") {
-            window.triggerGlobalEngineAlert("Watchdog: Network connection to Cloudflare was blocked.");
-        }
-    }
-  });
-
-  // 4. GOD-MODE FETCH PROXY
-  const originalFetch = window.fetch;
-  window.fetch = async function(...args) {
-    try {
-      const response = await originalFetch.apply(this, args);
-      if (!response.ok && typeof window.engineDebug === "function") {
-        window.engineDebug(`API ERROR: HTTP ${response.status}`, { url: args[0] });
-      }
-      return response;
-    } catch (err) {
-      if (typeof window.engineDebug === "function") {
-        window.engineDebug("CRITICAL NETWORK BLOCK", { url: args[0], error: err.message });
-      }
-      throw err;
-    }
-  };
-
-  // 5. ENGINE BOOT PROTECTION
-  window.addEventListener("load", function () {
-    setTimeout(function () {
-      if (!window.__BETCEO_ENGINE_BOOT_SEEN) {
-        spawnFatalTerminal("Initialization Failure", "Core Logic", "Check Syntax", "N/A", "The script stopped running immediately after load. Check for missing '}' or illegal characters like '!!!' in the code.");
-      }
-    }, 5000);
-  });
-})();
-</script>
 
 
 
 <script>
 window.__BETCEO_ENGINE_BOOT_SEEN = true;
-// Unique ID to identify this specific browser session/tab
 window.__BETCEO_SESSION_ID = "sess_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9);
-
-// --- GOD-MODE WATCHDOG CORE ---
-
-const ENGINE_INTEGRITY_SHIELD = {
-  // Golden Hashes of core logic (prevents "thief in the night" code changes)
-  expectedFingerprints: {
-    math: "v1_calibrated",
-    storage: "indexed_db_v1"
-  },
-  
-  audit: function() {
-    const issues = [];
-    
-    // 1. Check for missing global variables
-try {
-  if (typeof MODEL_CONFIG === 'undefined') issues.push("CRITICAL: MODEL_CONFIG variable is missing.");
-} catch(e) {
-  issues.push("CRITICAL: MODEL_CONFIG access blocked.");
-}
-
-    if (typeof getDynamicWeights !== 'function') issues.push("CRITICAL: getDynamicWeights logic is missing.");
-    if (typeof runMassacreMonteCarlo !== 'function') issues.push("CRITICAL: Monte Carlo Worker bridge is broken.");
-
-    // 2. Structural Test: Try to run a fake calculation to see if math is 'sane'
-    try {
-      const testWeight = getDynamicWeights("full", 0.5, "eng.1");
-      if (testWeight.teamWeight !== 0.65) issues.push("INTEGRITY: Math logic has been altered (Weight Mismatch).");
-    } catch(e) {
-      issues.push("INTEGRITY: Math engine failed internal sanity test.");
-    }
-
-    // 3. Environment Check
-    if (!window.indexedDB) issues.push("ENV: Browser IndexedDB is disabled. Data loss imminent.");
-
-    return issues;
-  }
-};
 
 
 /*
@@ -4490,18 +4352,7 @@ function isTrackerDebugView() {
   return g_trackerModalView === "debug";
 }
 
-function trackerDebug(message, extra = null) {
-  try {
-    const stamp = new Date().toLocaleTimeString([], { hour12: false });
-    let detail = "";
-    if (extra !== null && extra !== undefined) {
-      if (typeof extra === "string") { detail = extra; }
-      else if (extra instanceof Error) { detail = `${extra.message} | Stack: ${extra.stack}`; }
-      else {
-        const copy = Array.isArray(extra) ? [...extra] : { ...extra };
-        for (const k in copy) { if (copy[k] instanceof Error) copy[k] = `${copy[k].message} | Stack: ${copy[k].stack}`; }
-        try { detail = JSON.stringify(copy); } catch (err) { detail = String(extra); }
-      }
+function trackerDebug(message, extra = null) {}
     }
     const line = detail ? `[${stamp}] ${message} | ${detail}` : `[${stamp}] ${message}`;
     g_trackerDebugLog.unshift(line);
@@ -4526,18 +4377,7 @@ function renderTrackerDebugPanel() {
 const ENGINE_DEBUG_LIMIT = 180;
 let g_engineDebugLog = [];
 
-function engineDebug(message, extra = null) {
-  try {
-    const stamp = new Date().toLocaleTimeString([], { hour12: false });
-    let detail = "";
-    if (extra !== null && extra !== undefined) {
-      if (typeof extra === "string") { detail = extra; }
-      else if (extra instanceof Error) { detail = `${extra.message} | Stack: ${extra.stack}`; }
-      else {
-        const copy = Array.isArray(extra) ? [...extra] : { ...extra };
-        for (const k in copy) { if (copy[k] instanceof Error) copy[k] = `${copy[k].message} | Stack: ${copy[k].stack}`; }
-        try { detail = JSON.stringify(copy); } catch (err) { detail = String(extra); }
-      }
+function engineDebug(message, extra = null) {}
     }
     const line = detail ? `[${stamp}] ${message} | ${detail}` : `[${stamp}] ${message}`;
     g_engineDebugLog.unshift(line);
@@ -4571,17 +4411,24 @@ function applyGlobalEngineAlertState() {
 
 function triggerGlobalEngineAlert(line = "") {
   if (line) g_engineAlertLastLine = String(line);
-  g_engineAlertNeedsReview = true;
+  if (!isTrackerDebugView()) {
+    g_engineAlertNeedsReview = true;
+  }
   applyGlobalEngineAlertState();
 
-  // 🛡️ AFDB AUTO-WAKE TRIGGER
+  // 🛡️ GOD FATHER AUTO-WAKE TRIGGER
   const errLower = String(line).toLowerCase();
   const isCritical = errLower.includes("fail") || errLower.includes("error") || 
                      errLower.includes("critical") || errLower.includes("breakdown") || 
                      errLower.includes("watchdog");
 
-  if (isCritical && typeof AFDB !== 'undefined') {
-    AFDB.open();
+  if (isCritical) {
+    if (typeof openTrackerModal === "function") {
+      openTrackerModal();
+      setTrackerModalView("debug");
+      // Force instant refresh so the red box jumps to the top immediately
+      renderTrackerAnalytics(); 
+    }
   }
 }
 
@@ -4968,16 +4815,54 @@ function isTrackerStateWorseThan(candidateState, baselineState) {
 }
 
 function updateTrackerInsightsButton() {
-  const copyBtn = document.getElementById("trackerCopyDataBtn");
-  const titleEl = document.getElementById("trackerHeadTitle");
+  const reportBtn = document.getElementById("trackerInsightsBtn");
+  const debugBtn = document.getElementById("trackerDebugBtn");
+  const state = getDebugButtonState();
 
-  if (titleEl) {
-    if (isTrackerPicksView()) titleEl.textContent = "Tracked Picks";
-    else if (isTrackerReportView()) titleEl.textContent = "Engine Report";
+  if (reportBtn) {
+    reportBtn.classList.remove("active", "state-good", "state-error", "state-idle");
+    reportBtn.classList.add("state-idle");
+
+    if (isTrackerPicksView()) {
+      reportBtn.textContent = "📊 Report";
+      reportBtn.setAttribute("title", "Open report");
+      reportBtn.setAttribute("aria-label", "Open report");
+      reportBtn.setAttribute("aria-pressed", "false");
+    } else if (isTrackerReportView()) {
+      reportBtn.textContent = "← Picks";
+      reportBtn.setAttribute("title", "Return to tracked picks");
+      reportBtn.setAttribute("aria-label", "Return to tracked picks");
+      reportBtn.setAttribute("aria-pressed", "true");
+    } else {
+      reportBtn.textContent = "📊 Report";
+      reportBtn.setAttribute("title", "Return to report");
+      reportBtn.setAttribute("aria-label", "Return to report");
+      reportBtn.setAttribute("aria-pressed", "true");
+    }
   }
 
-  if (copyBtn) {
-    copyBtn.style.display = isTrackerReportView() ? "" : "none";
+  if (debugBtn) {
+    debugBtn.style.display = isTrackerPicksView() ? "none" : "";
+    debugBtn.classList.remove("active", "state-good", "state-error", "state-idle");
+
+    if (isTrackerDebugView()) {
+      debugBtn.textContent = "←";
+      debugBtn.classList.add("state-idle", "active");
+      debugBtn.setAttribute("title", "Return to report");
+      debugBtn.setAttribute("aria-label", "Return to report");
+      debugBtn.setAttribute("aria-pressed", "true");
+    } else {
+      debugBtn.textContent = "🐞";
+      debugBtn.classList.add(`state-${state}`);
+      const closedTitle = state === "error"
+        ? "Open debug. A real engine issue needs review."
+        : state === "good"
+          ? "Open debug. Useful results and feedback are ready."
+          : "Open debug";
+      debugBtn.setAttribute("title", closedTitle);
+      debugBtn.setAttribute("aria-label", closedTitle);
+      debugBtn.setAttribute("aria-pressed", "false");
+    }
   }
 }
 
@@ -7573,20 +7458,11 @@ function buildGodFatherDebugHtml() {
 }
 
 function renderTrackerAnalytics() {
-
   const panel = document.getElementById("trackerAnalyticsPanel");
   if (!panel) return;
-
-  const currentView = g_trackerModalView;
-
-  if (currentView === "picks") {
-    syncTrackerModalView();
-    panel.classList.add("tracker-hidden");
-    panel.style.display = "none";
-    panel.innerHTML = "";
-    g_lastRenderedTrackerView = currentView;
-    return;
-  }
+  panel.style.display = "none";
+  panel.innerHTML = "";
+}
 
   if (g_lastRenderedTrackerVersion === g_trackerState.updatedAt && g_lastRenderedTrackerView === currentView) {
      syncTrackerModalView();
@@ -8255,11 +8131,58 @@ function renderTrackerAnalytics() {
         ${reportBodyHtml}
       </div>
     `;
-        } else {
-        panel.innerHTML = "";
-      }
-      updateTrackerInsightsButton();
-    }
+  } else if (currentView === "debug") {
+    const godFatherDebugHtml = buildGodFatherDebugHtml();
+    
+    // We pass our live logs into the newly standardized Report cards
+    const engineErrorsHtml = buildReportDebugCard("Important Engine Errors", importantEngineLines, 6, "No active engine errors. The watchdog is quiet.");
+    const trackerErrorsHtml = buildReportDebugCard("Important Tracker Errors", importantTrackerLines, 6, "No active tracker errors. Nothing urgent needs review.");
+
+    panel.innerHTML = `
+      <style>
+        #godfatherGrid { display: flex; flex-direction: column; gap: 12px; padding: 12px; padding-bottom: 30px; }
+        .godfather-box { order: 5; transition: box-shadow 0.2s ease, border-color 0.2s ease; }
+        /* The Auto-Sort Magic: Any box with an error instantly moves to order 1 (top of page) */
+        .godfather-box[data-has-error="true"] { 
+          order: 1; 
+          box-shadow: 0 0 15px rgba(244, 67, 54, 0.15); 
+        }
+        .godfather-box:hover { border-color: #666 !important; }
+        .godfather-box[data-has-error="true"]:hover { border-color: #ff5c61 !important; }
+      </style>
+
+      <div class="tracker-analytics-shell" style="height:100%; display:flex; flex-direction:column; overflow:hidden;">
+        <div class="tracker-analytics-topbar" style="padding:12px; border-bottom:1px solid #333; background:#1a1a1a; z-index:2; position:sticky; top:0;">
+          <div class="tracker-analytics-heading" style="margin-bottom:10px;">
+            <div class="tracker-analytics-kicker" style="color:#f44336;">Immune System</div>
+            <div class="tracker-analytics-title" style="color:#fff;">God Father 🛡️</div>
+            <div class="tracker-analytics-subtitle" style="color:#888;">Core engine diagnostics and auto-sorting health checks.</div>
+          </div>
+          
+          <input type="text" placeholder="🔍 Search diagnostics (e.g. 'queue', 'error', 'espn')..." 
+            oninput="
+              const q = this.value.toLowerCase().trim();
+              document.querySelectorAll('.godfather-box').forEach(b => {
+                const txt = (b.dataset.keywords + ' ' + b.innerText).toLowerCase();
+                b.style.display = (!q || txt.includes(q)) ? 'flex' : 'none';
+              });
+            "
+            style="width:100%; background:#0a0a0a; color:#fff; border:1px solid #444; padding:10px 12px; border-radius:6px; font-size:12px; font-family:monospace; outline:none;" autocomplete="off" spellcheck="false">
+        </div>
+        
+        <div id="godfatherGrid" style="flex:1; overflow-y:auto;">
+          ${godFatherDebugHtml}
+          ${engineErrorsHtml}
+          ${trackerErrorsHtml}
+        </div>
+      </div>
+    `;
+
+  } else {
+    panel.innerHTML = "";
+  }
+  updateTrackerInsightsButton();
+}
 
 
 
@@ -10980,26 +10903,19 @@ async function runMassacreMonteCarlo(projA, projB, line) {
 // --- BATCH 1: UNIVERSAL FOOTBALL FETCHING & A-Z LEAGUES ---
 
 // --- LIVE UI LOGGER ---
-function uiLog(msg, isErr = false, extra = null) {
+function uiLog(msg, isErr = false) {
   const el = document.getElementById("liveEngineDebugger");
   if(el) {
     const color = isErr ? "#ff5c61" : "#49d45f";
-    let extraHtml = "";
-    if (extra) {
-      try {
-        const str = typeof extra === 'object' ? JSON.stringify(extra) : String(extra);
-        extraHtml = `<div style="color:#666; font-size:9px; margin-top:2px; padding-left:10px;">${safeText(str)}</div>`;
-      } catch(e){}
-    }
-    el.innerHTML += `<div style="margin-top:6px; border-bottom:1px solid #1a1a1a; padding-bottom:4px;"><span style="color:${color}; font-weight:bold;">&gt; ${safeText(msg)}</span>${extraHtml}</div>`;
+    el.innerHTML += `<div style="color:${color}; margin-top:4px;">&gt; ${safeText(msg)}</div>`;
     el.scrollTop = el.scrollHeight;
   }
-  console.log("[LOG]", msg, extra);
+  console.log("[FETCH]", msg);
 }
 
 function clearUiLog() {
   const el = document.getElementById("liveEngineDebugger");
-  if (el) el.innerHTML = "<div style='color:#555; font-weight:bold; margin-bottom:5px;'>[SYSTEM] Console cleared.</div>";
+  if (el) el.innerHTML = "<div style='color:#aaa; font-weight:bold; margin-bottom:5px;'>[SYSTEM] Live Auto-Fetch Monitor Active...</div>";
 }
 
 
@@ -11596,21 +11512,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("themeToggleBtn")?.addEventListener("click", toggleTheme);
   document.getElementById("trackerToggleBtn")?.addEventListener("click", openTrackerModal);
   document.getElementById("trackerCloseBtn")?.addEventListener("click", closeTrackerModal);
-  
-  document.getElementById("headerErrorBtn")?.addEventListener("click", () => {
-    if (typeof AFDB !== 'undefined') AFDB.open();
-    acknowledgeGlobalEngineAlert();
-  });
-
-  document.getElementById("trackerCopyDataBtn")?.addEventListener("click", copyTrackerData);
-  
-  const trackerHeadTitle = document.getElementById("trackerHeadTitle");
-  if (trackerHeadTitle) {
-    trackerHeadTitle.addEventListener("click", () => {
-      if (!isTrackerPicksView()) setTrackerModalView("picks");
-    });
-  }
-
+  document.getElementById("trackerInsightsBtn")?.addEventListener("click", toggleTrackerInsights);
+  document.getElementById("trackerDebugBtn")?.addEventListener("click", toggleTrackerDebugView);
+  document.getElementById("headerErrorBtn")?.addEventListener("click", showFetchInputErrors);
   document.getElementById("uiDateBtn")?.addEventListener("click", () => openProModal("date"));
   document.getElementById("uiLeagueBtn")?.addEventListener("click", () => openProModal("league"));
   document.getElementById("uiSortBtn")?.addEventListener("click", () => openProModal("sort"));
