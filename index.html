@@ -2601,14 +2601,19 @@ body.dark-mode .tracker-analytics-section-head {
   <span class="brand-right">
     <button class="theme-toggle" type="button" id="themeToggleBtn" title="Toggle dark/light mode">⚽</button>
     <button class="theme-toggle" type="button" id="trackerToggleBtn" title="Open tracked picks">📊</button>
-    <button class="theme-toggle" type="button" id="afdbBtn" title="Auto-Fetch Debugger" onclick="if(typeof AFDB !== 'undefined') AFDB.open()">🔬</button>
     PREDICTIONS
   </span>
 </header>
 
     <div class="wrapper">
-      <div id="liveEngineDebugger" style="background:#050505; color:#49d45f; padding:10px; font-family: ui-monospace, monospace; font-size:11px; margin-bottom:10px; border:1px solid #333; border-left: 4px solid #49d45f; max-height:250px; overflow-y:auto; word-break:break-word;">
-         <div style="color:#aaa; font-weight:bold; margin-bottom:5px;">[SYSTEM] Live Auto-Fetch Monitor Active...</div>
+      <div style="background:#111; border:1px solid #333; border-left:4px solid #d4af37; border-radius:6px; margin-bottom:12px; display:flex; flex-direction:column; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+        <div style="padding:8px 12px; background:#1a1a1a; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center; border-radius:6px 6px 0 0;">
+          <span style="color:#d4af37; font-size:11px; font-weight:900; letter-spacing:1px; text-transform:uppercase;">⚙️ Live Engine Console</span>
+          <button onclick="clearUiLog()" style="background:#333; color:#fff; border:none; padding:4px 8px; font-size:9px; font-weight:bold; cursor:pointer; border-radius:4px;">CLEAR</button>
+        </div>
+        <div id="liveEngineDebugger" style="background:#050505; color:#aaa; padding:10px; font-family: ui-monospace, monospace; font-size:10px; height:160px; overflow-y:auto; word-break:break-word; border-radius:0 0 6px 6px;">
+           <div style="color:#555; font-weight:bold; margin-bottom:5px;">[SYSTEM] Console ready. Waiting for execution...</div>
+        </div>
       </div>
 
 
@@ -10975,19 +10980,26 @@ async function runMassacreMonteCarlo(projA, projB, line) {
 // --- BATCH 1: UNIVERSAL FOOTBALL FETCHING & A-Z LEAGUES ---
 
 // --- LIVE UI LOGGER ---
-function uiLog(msg, isErr = false) {
+function uiLog(msg, isErr = false, extra = null) {
   const el = document.getElementById("liveEngineDebugger");
   if(el) {
     const color = isErr ? "#ff5c61" : "#49d45f";
-    el.innerHTML += `<div style="color:${color}; margin-top:4px;">&gt; ${safeText(msg)}</div>`;
+    let extraHtml = "";
+    if (extra) {
+      try {
+        const str = typeof extra === 'object' ? JSON.stringify(extra) : String(extra);
+        extraHtml = `<div style="color:#666; font-size:9px; margin-top:2px; padding-left:10px;">${safeText(str)}</div>`;
+      } catch(e){}
+    }
+    el.innerHTML += `<div style="margin-top:6px; border-bottom:1px solid #1a1a1a; padding-bottom:4px;"><span style="color:${color}; font-weight:bold;">&gt; ${safeText(msg)}</span>${extraHtml}</div>`;
     el.scrollTop = el.scrollHeight;
   }
-  console.log("[FETCH]", msg);
+  console.log("[LOG]", msg, extra);
 }
 
 function clearUiLog() {
   const el = document.getElementById("liveEngineDebugger");
-  if (el) el.innerHTML = "<div style='color:#aaa; font-weight:bold; margin-bottom:5px;'>[SYSTEM] Live Auto-Fetch Monitor Active...</div>";
+  if (el) el.innerHTML = "<div style='color:#555; font-weight:bold; margin-bottom:5px;'>[SYSTEM] Console cleared.</div>";
 }
 
 
