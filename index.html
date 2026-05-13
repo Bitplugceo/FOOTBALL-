@@ -4353,20 +4353,6 @@ function isTrackerDebugView() {
 }
 
 function trackerDebug(message, extra = null) {}
-    }
-    const line = detail ? `[${stamp}] ${message} | ${detail}` : `[${stamp}] ${message}`;
-    g_trackerDebugLog.unshift(line);
-    if (g_trackerDebugLog.length > TRACKER_DEBUG_LIMIT) g_trackerDebugLog = g_trackerDebugLog.slice(0, TRACKER_DEBUG_LIMIT);
-    
-    if (getDebugSeverity(line) === "error") {
-      triggerGlobalEngineAlert(line);
-    }
-    renderTrackerDebugPanel();
-    updateTrackerInsightsButton();
-  } catch (err) {
-    console.error("[BB Engine] trackerDebug failed", err);
-  }
-}
 
 function renderTrackerDebugPanel() {
   if (!isTrackerPicksView()) {
@@ -4378,20 +4364,6 @@ const ENGINE_DEBUG_LIMIT = 180;
 let g_engineDebugLog = [];
 
 function engineDebug(message, extra = null) {}
-    }
-    const line = detail ? `[${stamp}] ${message} | ${detail}` : `[${stamp}] ${message}`;
-    g_engineDebugLog.unshift(line);
-    if (g_engineDebugLog.length > ENGINE_DEBUG_LIMIT) g_engineDebugLog = g_engineDebugLog.slice(0, ENGINE_DEBUG_LIMIT);
-    
-    if (getDebugSeverity(line) === "error") {
-      triggerGlobalEngineAlert(line);
-    }
-    renderEngineDebugPanel();
-    updateTrackerInsightsButton();
-  } catch (err) {
-    console.error("[BB Engine] engineDebug failed", err);
-  }
-}
 
 
 function renderEngineDebugPanel() {
