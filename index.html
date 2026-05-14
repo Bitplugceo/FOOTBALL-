@@ -3142,23 +3142,66 @@ const PICK_RULES = {
 };
 
 const LEAGUE_BASES = {
-  "eng.1": 1.35, "esp.1": 1.35, "ger.1": 1.55, "ita.1": 1.25,
-  "fra.1": 1.30, "ned.1": 1.65, "por.1": 1.45, "tur.1": 1.50,
-  "sco.1": 1.45, "bel.1": 1.55, "usa.1": 1.45, "mex.1": 1.35,
-  "bra.1": 1.30, "arg.1": 1.30, "col.1": 1.25, "ksa.1": 1.45,
-  "jpn.1": 1.35, "aus.1": 1.40, "chn.1": 1.30, "kor.1": 1.35,
-  "gre.1": 1.25, "aut.1": 1.55, "sui.1": 1.50, "den.1": 1.55,
+  "eng.1": 1.35, "eng.2": 1.30, "eng.3": 1.25, "eng.4": 1.20,
+  "esp.1": 1.35, "esp.2": 1.25,
+  "ger.1": 1.55, "ger.2": 1.45, "ger.3": 1.35,
+  "ita.1": 1.25, "ita.2": 1.20,
+  "fra.1": 1.30, "fra.2": 1.22,
+  "ned.1": 1.65, "ned.2": 1.45,
+  "por.1": 1.45, "por.2": 1.30,
+  "tur.1": 1.50, "tur.2": 1.35,
+  "sco.1": 1.45, "sco.2": 1.30,
+  "bel.1": 1.55, "bel.2": 1.35,
+  "nor.1": 1.50, "swe.1": 1.45, "den.1": 1.55, "fin.1": 1.40,
+  "aut.1": 1.55, "sui.1": 1.50, "gre.1": 1.25,
+  "pol.1": 1.30, "cze.1": 1.35, "rom.1": 1.25, "hun.1": 1.25,
+  "bul.1": 1.20, "srb.1": 1.25, "hrv.1": 1.30, "svk.1": 1.20, "svn.1": 1.20,
+  "ukr.1": 1.25, "isr.1": 1.25, "cyp.1": 1.20, "irl.1": 1.20,
+  "usa.1": 1.45, "usa.2": 1.30,
+  "mex.1": 1.35, "mex.2": 1.20,
+  "bra.1": 1.30, "bra.2": 1.22,
+  "arg.1": 1.30, "col.1": 1.25, "chi.1": 1.20,
+  "ecu.1": 1.20, "per.1": 1.18, "uru.1": 1.25,
+  "ven.1": 1.18, "bol.1": 1.15, "par.1": 1.18,
+  "ksa.1": 1.45, "qat.1": 1.35, "uae.1": 1.35,
+  "jpn.1": 1.35, "jpn.2": 1.25, "kor.1": 1.35, "kor.2": 1.25,
+  "chn.1": 1.30, "ind.1": 1.25, "aus.1": 1.40,
+  "tha.1": 1.22, "mys.1": 1.18, "idn.1": 1.18,
+  "egy.1": 1.20, "mar.1": 1.18, "rsa.1": 1.20, "tun.1": 1.18,
   "uefa.champions": 1.55, "uefa.europa": 1.45,
-  "uefa.europa.conf": 1.35, "conmebol.libertadores": 1.25,
+  "uefa.europa.conf": 1.35, "uefa.nations": 1.40,
+  "conmebol.libertadores": 1.25, "conmebol.sudamericana": 1.20,
+  "concacaf.champions": 1.30, "afc.champions": 1.25,
+  "caf.champions": 1.20, "fifa.cwc": 1.50,
   unknown: 1.35
 };
 
 const LEAGUE_VOL_LIMITS = {
-  "eng.1": 1.4, "esp.1": 1.4, "ger.1": 1.6, "ita.1": 1.3,
-  "fra.1": 1.4, "ned.1": 1.7, "por.1": 1.5, "tur.1": 1.5,
-  "sco.1": 1.5, "bel.1": 1.6, "usa.1": 1.5, "mex.1": 1.4,
-  "bra.1": 1.4, "arg.1": 1.4, "uefa.champions": 1.5,
-  "uefa.europa": 1.5, unknown: 1.4
+  "eng.1": 1.4, "eng.2": 1.5, "eng.3": 1.6, "eng.4": 1.6,
+  "esp.1": 1.4, "esp.2": 1.5,
+  "ger.1": 1.6, "ger.2": 1.6, "ger.3": 1.7,
+  "ita.1": 1.3, "ita.2": 1.4,
+  "fra.1": 1.4, "fra.2": 1.5,
+  "ned.1": 1.7, "ned.2": 1.7,
+  "por.1": 1.5, "por.2": 1.5,
+  "tur.1": 1.5, "tur.2": 1.6,
+  "sco.1": 1.5, "bel.1": 1.6,
+  "nor.1": 1.5, "swe.1": 1.5, "den.1": 1.5, "fin.1": 1.5,
+  "aut.1": 1.5, "sui.1": 1.5, "gre.1": 1.4,
+  "pol.1": 1.4, "cze.1": 1.4, "rom.1": 1.4, "hun.1": 1.4,
+  "bul.1": 1.4, "srb.1": 1.4, "hrv.1": 1.4,
+  "ukr.1": 1.4, "isr.1": 1.4,
+  "usa.1": 1.5, "usa.2": 1.6,
+  "mex.1": 1.4, "mex.2": 1.5,
+  "bra.1": 1.4, "bra.2": 1.5,
+  "arg.1": 1.4, "col.1": 1.4, "chi.1": 1.4,
+  "jpn.1": 1.4, "jpn.2": 1.5,
+  "kor.1": 1.4, "kor.2": 1.5,
+  "chn.1": 1.4, "aus.1": 1.5,
+  "ksa.1": 1.5, "qat.1": 1.5, "uae.1": 1.5,
+  "uefa.champions": 1.5, "uefa.europa": 1.5,
+  "conmebol.libertadores": 1.4,
+  unknown: 1.4
 };
 
 const TRACKER_POLICY = {
@@ -3221,9 +3264,22 @@ const ANCHOR_RULES = {
 };
 
 const LEAGUE_TRUST_PROFILES = {
-  trusted:  ["eng.1", "esp.1", "ger.1", "ita.1", "fra.1", "uefa.champions"],
-  advisory: ["eng.2", "usa.1", "ned.1", "por.1", "bra.1", "mex.1"],
-  blocked:  ["unknown"]
+  trusted: [
+    "eng.1", "esp.1", "ger.1", "ita.1", "fra.1",
+    "ned.1", "por.1", "tur.1", "sco.1", "bel.1",
+    "uefa.champions", "uefa.europa"
+  ],
+  advisory: [
+    "eng.2", "eng.3", "ger.2", "ita.2", "fra.2", "esp.2",
+    "nor.1", "swe.1", "den.1", "aut.1", "sui.1", "gre.1",
+    "pol.1", "cze.1", "rom.1", "hrv.1", "srb.1",
+    "usa.1", "usa.2", "mex.1", "bra.1", "bra.2",
+    "arg.1", "col.1", "chi.1", "uru.1",
+    "jpn.1", "kor.1", "chn.1", "aus.1", "ksa.1",
+    "qat.1", "uae.1", "ind.1",
+    "uefa.europa.conf", "conmebol.libertadores", "conmebol.sudamericana"
+  ],
+  blocked: ["unknown"]
 };
 
 function normalizeLeagueTrustKey(league) {
@@ -10543,41 +10599,144 @@ const cls =
 }
 
 const SOCCER_TAXONOMY = [
-  { cat: "Elite Europe", leagues: [
+  { cat: "England", leagues: [
     { name: "Premier League", slug: "eng.1" },
-    { name: "Spanish LALIGA", slug: "esp.1" },
-    { name: "German Bundesliga", slug: "ger.1" },
-    { name: "Italian Serie A", slug: "ita.1" },
-    { name: "French Ligue 1", slug: "fra.1" },
-    { name: "Dutch Eredivisie", slug: "ned.1" },
-    { name: "Portuguese Primeira Liga", slug: "por.1" },
-    { name: "Turkish Super Lig", slug: "tur.1" },
-    { name: "Scottish Premiership", slug: "sco.1" },
-    { name: "Belgian Pro League", slug: "bel.1" }
+    { name: "Championship", slug: "eng.2" },
+    { name: "League One", slug: "eng.3" },
+    { name: "League Two", slug: "eng.4" },
+    { name: "FA Cup", slug: "eng.fa_cup" },
+    { name: "League Cup (Carabao)", slug: "eng.league_cup" }
   ]},
-  { cat: "Major Americas", leagues: [
-    { name: "USA MLS", slug: "usa.1" },
-    { name: "Mexican Liga MX", slug: "mex.1" },
-    { name: "Brazilian Serie A", slug: "bra.1" },
-    { name: "Argentine Liga Prof.", slug: "arg.1" },
-    { name: "Colombian Primera A", slug: "col.1" }
+  { cat: "Spain", leagues: [
+    { name: "La Liga", slug: "esp.1" },
+    { name: "Segunda Division", slug: "esp.2" },
+    { name: "Copa del Rey", slug: "esp.copa_del_rey" }
   ]},
-  { cat: "Global Expansion", leagues: [
-    { name: "Saudi Pro League", slug: "ksa.1" },
-    { name: "Japanese J1 League", slug: "jpn.1" },
-    { name: "Australian A-League", slug: "aus.1" },
-    { name: "Chinese Super League", slug: "chn.1" },
-    { name: "South Korean K-League", slug: "kor.1" },
-    { name: "Greek Super League", slug: "gre.1" },
+  { cat: "Germany", leagues: [
+    { name: "Bundesliga", slug: "ger.1" },
+    { name: "2. Bundesliga", slug: "ger.2" },
+    { name: "3. Liga", slug: "ger.3" },
+    { name: "DFB Pokal", slug: "ger.dfb_pokal" }
+  ]},
+  { cat: "Italy", leagues: [
+    { name: "Serie A", slug: "ita.1" },
+    { name: "Serie B", slug: "ita.2" },
+    { name: "Coppa Italia", slug: "ita.coppa_italia" }
+  ]},
+  { cat: "France", leagues: [
+    { name: "Ligue 1", slug: "fra.1" },
+    { name: "Ligue 2", slug: "fra.2" },
+    { name: "Coupe de France", slug: "fra.coupe_de_france" }
+  ]},
+  { cat: "Netherlands", leagues: [
+    { name: "Eredivisie", slug: "ned.1" },
+    { name: "Eerste Divisie", slug: "ned.2" },
+    { name: "KNVB Cup", slug: "ned.knvb_cup" }
+  ]},
+  { cat: "Portugal", leagues: [
+    { name: "Primeira Liga", slug: "por.1" },
+    { name: "Segunda Liga", slug: "por.2" },
+    { name: "Taca de Portugal", slug: "por.taca_de_portugal" }
+  ]},
+  { cat: "Turkey", leagues: [
+    { name: "Super Lig", slug: "tur.1" },
+    { name: "TFF First League", slug: "tur.2" }
+  ]},
+  { cat: "Scotland", leagues: [
+    { name: "Premiership", slug: "sco.1" },
+    { name: "Championship", slug: "sco.2" },
+    { name: "Scottish FA Cup", slug: "sco.fa_cup" },
+    { name: "Scottish League Cup", slug: "sco.league_cup" }
+  ]},
+  { cat: "Belgium", leagues: [
+    { name: "Pro League First A", slug: "bel.1" },
+    { name: "First Amateur", slug: "bel.2" },
+    { name: "Belgian Cup", slug: "bel.cup" }
+  ]},
+  { cat: "Scandinavia", leagues: [
+    { name: "Norwegian Eliteserien", slug: "nor.1" },
+    { name: "Swedish Allsvenskan", slug: "swe.1" },
+    { name: "Danish Superliga", slug: "den.1" },
+    { name: "Finnish Veikkausliiga", slug: "fin.1" }
+  ]},
+  { cat: "Central Europe", leagues: [
     { name: "Austrian Bundesliga", slug: "aut.1" },
     { name: "Swiss Super League", slug: "sui.1" },
-    { name: "Danish Superliga", slug: "den.1" }
+    { name: "Greek Super League", slug: "gre.1" }
+  ]},
+  { cat: "Eastern Europe", leagues: [
+    { name: "Polish Ekstraklasa", slug: "pol.1" },
+    { name: "Czech First League", slug: "cze.1" },
+    { name: "Romanian Liga I", slug: "rom.1" },
+    { name: "Hungarian OTP Bank Liga", slug: "hun.1" },
+    { name: "Bulgarian First League", slug: "bul.1" },
+    { name: "Serbian SuperLiga", slug: "srb.1" },
+    { name: "Croatian HNL", slug: "hrv.1" },
+    { name: "Slovak Super Liga", slug: "svk.1" },
+    { name: "Slovenian PrvaLiga", slug: "svn.1" }
+  ]},
+  { cat: "Other Europe", leagues: [
+    { name: "Ukrainian Premier League", slug: "ukr.1" },
+    { name: "Israeli Premier League", slug: "isr.1" },
+    { name: "Cypriot First Division", slug: "cyp.1" },
+    { name: "Irish League of Ireland", slug: "irl.1" }
+  ]},
+  { cat: "North America", leagues: [
+    { name: "USA MLS", slug: "usa.1" },
+    { name: "USA USL Championship", slug: "usa.2" },
+    { name: "US Open Cup", slug: "usa.open" },
+    { name: "Mexican Liga MX", slug: "mex.1" },
+    { name: "Mexican Liga Expansion", slug: "mex.2" }
+  ]},
+  { cat: "South America", leagues: [
+    { name: "Brazilian Serie A", slug: "bra.1" },
+    { name: "Brazilian Serie B", slug: "bra.2" },
+    { name: "Argentine Liga Prof.", slug: "arg.1" },
+    { name: "Colombian Primera A", slug: "col.1" },
+    { name: "Chilean Primera Division", slug: "chi.1" },
+    { name: "Ecuadorian Serie A", slug: "ecu.1" },
+    { name: "Peruvian Liga 1", slug: "per.1" },
+    { name: "Uruguayan Primera Division", slug: "uru.1" },
+    { name: "Venezuelan Primera Division", slug: "ven.1" },
+    { name: "Bolivian Division Profesional", slug: "bol.1" },
+    { name: "Paraguayan Division Prof.", slug: "par.1" }
+  ]},
+  { cat: "Middle East", leagues: [
+    { name: "Saudi Pro League", slug: "ksa.1" },
+    { name: "Qatar Stars League", slug: "qat.1" },
+    { name: "UAE Pro League", slug: "uae.1" }
+  ]},
+  { cat: "East Asia", leagues: [
+    { name: "Japanese J1 League", slug: "jpn.1" },
+    { name: "Japanese J2 League", slug: "jpn.2" },
+    { name: "South Korean K League 1", slug: "kor.1" },
+    { name: "South Korean K League 2", slug: "kor.2" },
+    { name: "Chinese Super League", slug: "chn.1" }
+  ]},
+  { cat: "South & SE Asia / Pacific", leagues: [
+    { name: "Indian Super League", slug: "ind.1" },
+    { name: "Australian A-League Men", slug: "aus.1" },
+    { name: "Thai League 1", slug: "tha.1" },
+    { name: "Malaysian Super League", slug: "mys.1" },
+    { name: "Indonesian Liga 1", slug: "idn.1" }
+  ]},
+  { cat: "Africa", leagues: [
+    { name: "Egyptian Premier League", slug: "egy.1" },
+    { name: "Moroccan Botola Pro", slug: "mar.1" },
+    { name: "South African PSL", slug: "rsa.1" },
+    { name: "Tunisian Ligue Pro 1", slug: "tun.1" }
   ]},
   { cat: "International Cups", leagues: [
     { name: "UEFA Champions League", slug: "uefa.champions" },
     { name: "UEFA Europa League", slug: "uefa.europa" },
     { name: "UEFA Conference League", slug: "uefa.europa.conf" },
-    { name: "CONMEBOL Libertadores", slug: "conmebol.libertadores" }
+    { name: "UEFA Nations League", slug: "uefa.nations" },
+    { name: "CONMEBOL Libertadores", slug: "conmebol.libertadores" },
+    { name: "CONMEBOL Sudamericana", slug: "conmebol.sudamericana" },
+    { name: "CONCACAF Champions Cup", slug: "concacaf.champions" },
+    { name: "AFC Champions League", slug: "afc.champions" },
+    { name: "CAF Champions League", slug: "caf.champions" },
+    { name: "FIFA Club World Cup", slug: "fifa.cwc" }
   ]}
 ];
 
@@ -10732,7 +10891,10 @@ async function loadFixtures(timeFilter = 'all') {
           try {
             const base = getLeagueBase(sl);
             const d = await proxyFetch(`${base}/scoreboard?dates=${dParam}&limit=200`);
-            return (d?.events || []).filter(ev => ev.status?.type?.state === "pre").map(ev => ({...ev, _slug: sl}));
+            return (d?.events || []).filter(ev => {
+              const state = ev.status?.type?.state;
+              return state === "pre" || state === "in";
+            }).map(ev => ({...ev, _slug: sl}));
           } catch(e) { return []; }
         }));
         results.forEach(r => allEvents.push(...r));
@@ -10743,7 +10905,10 @@ async function loadFixtures(timeFilter = 'all') {
       const base = getLeagueBase(league);
       const data = await proxyFetch(`${base}/scoreboard?dates=${dParam}&limit=800`);
       if (myToken !== _fixtureLoadToken) return;
-      allEvents = (data?.events || []).filter(ev => ev.status?.type?.state === "pre").map(ev => ({...ev, _slug: league}));
+      allEvents = (data?.events || []).filter(ev => {
+        const state = ev.status?.type?.state;
+        return state === "pre" || state === "in";
+      }).map(ev => ({...ev, _slug: league}));
     }
 
     if (!allEvents.length) {
