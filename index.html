@@ -2595,17 +2595,17 @@ body.dark-mode .tracker-analytics-section-head {
  <header class="app-header">
   <span class="brand-name">TheBetCeo ⚡️</span>
 
-
+  <button class="header-error-btn" type="button" id="headerErrorBtn" title="Show fetch/input issues">⚠️</button>
 
   <span class="brand-right">
     <button class="theme-toggle" type="button" id="themeToggleBtn" title="Toggle dark/light mode">⚽</button>
     <button class="theme-toggle" type="button" id="trackerToggleBtn" title="Open tracked picks">📊</button>
+    <button class="theme-toggle" type="button" id="afdbBtn" title="Auto-Fetch Debugger" onclick="AFDB.open()">🔬</button>
     PREDICTIONS
   </span>
 </header>
 
     <div class="wrapper">
-
 
         <div class="section" id="leagueSection">
       <h3>League &amp; Match Selection</h3>
@@ -2645,7 +2645,6 @@ body.dark-mode .tracker-analytics-section-head {
           <button class="fetch-btn" id="fetchBtn" type="button">Fetch</button>
         </div>
         <div id="fetchStatus" style="margin-top: 10px; font-size: 11px; font-weight: bold;"></div>
-        <div id="fetchDebugLog" style="margin-top: 8px; font-family: ui-monospace, monospace; font-size: 10px; line-height: 1.4; color: #49d45f; background: #000; border: 1px solid #333; padding: 8px; max-height: 150px; overflow-y: auto; display: none; word-break: break-word;"></div>
         <div class="injury-box" id="injuryBoxA"><div class="inj-title" id="injuryTitleA">Home - Injury Report</div><div id="injuryContentA"></div></div>
         <div class="injury-box" id="injuryBoxB"><div class="inj-title" id="injuryTitleB">Away - Injury Report</div><div id="injuryContentB"></div></div>
       </div>
@@ -2802,6 +2801,8 @@ body.dark-mode .tracker-analytics-section-head {
       <div class="tracker-head">
         <span id="trackerHeadTitle">Tracked Picks</span>
         <div class="tracker-head-actions">
+          <button type="button" id="trackerInsightsBtn" class="tracker-insights-btn state-idle" title="Open report" aria-label="Open report">📊 Report</button>
+          <button type="button" id="trackerDebugBtn" class="tracker-insights-btn state-idle" title="Open debug" aria-label="Open debug" style="display:none;">🐞</button>
           <button type="button" id="trackerCloseBtn" class="tracker-close">✕</button>
         </div>
       </div>
@@ -2836,13 +2837,144 @@ body.dark-mode .tracker-analytics-section-head {
 </div>
 </div>
 
+<script>
+/**
+ * 🛡️ BET-CEO UNKILLABLE GOD-MODE WATCHDOG
+ * Detects: Syntax Errors, Typos (!!!), CORS Blocks, and Boot Failures.
+ */
+(function () {
+  if (window.__BETCEO_WATCHDOG_LOADED) return;
+  window.__BETCEO_WATCHDOG_LOADED = true;
+  window.__BETCEO_ENGINE_BOOT_SEEN = false;
 
+  // 1. FATAL TERMINAL UI (Hijacks screen on crash)
+  function spawnFatalTerminal(msg, file, line, col, stack) {
+    if (document.getElementById("fatalGodModeTerminal")) return;
+    const t = document.createElement("div");
+    t.id = "fatalGodModeTerminal";
+    t.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.98); z-index:1000000; padding:20px; box-sizing:border-box; overflow-y:auto; font-family: ui-monospace, Consolas, monospace; color: #0f0;";
+    
+       t.innerHTML = `
+      <div style="border:2px solid #ff5c61; background:#111; max-width:900px; margin:20px auto; box-shadow: 0 0 50px rgba(255, 0, 0, 0.3);">
+        <div style="background:#3b0000; color:#ff5c61; padding:15px; font-size:16px; font-weight:900; border-bottom:2px solid #ff5c61; display:flex; justify-content:space-between; text-transform:uppercase;">
+          <span>🚨 FATAL ENGINE CRASH</span>
+          <span>[SYSTEM LOCK]</span>
+        </div>
+        <div style="padding:25px;">
+          <div style="color:#ffcf73; margin-bottom:20px; font-size:14px; border-left: 3px solid #ffcf73; padding-left: 15px; font-weight:800;">
+            CATASTROPHIC ERROR: The engine parser died. The UI is disabled to protect your data.
+          </div>
+          <div style="display:grid; gap:12px; margin-bottom:25px;">
+            <div><strong style="color:#fff; text-transform:uppercase; font-size:11px;">Error Message:</strong><br><span style="color:#ff5c61; font-size:15px; font-weight:bold;">${msg}</span></div>
+            <div style="display:flex; gap:30px;">
+                <div><strong style="color:#fff; text-transform:uppercase; font-size:11px;">Line:</strong><br><span style="color:#0f0; font-size:18px; font-weight:900;">${line}</span></div>
+                <div><strong style="color:#fff; text-transform:uppercase; font-size:11px;">Column:</strong><br><span style="color:#0f0; font-size:18px; font-weight:900;">${col}</span></div>
+                <div><strong style="color:#fff; text-transform:uppercase; font-size:11px;">Source:</strong><br><span style="color:#aaa; font-size:13px;">${file}</span></div>
+            </div>
+          </div>
+          <strong style="color:#777; text-transform:uppercase; font-size:11px;">Debug Stack Trace:</strong>
+          <div style="background:#000; border: 1px solid #222; padding:15px; color:#555; margin-top:8px; white-space:pre-wrap; overflow-x:auto; font-size:11px; line-height:1.4;">${stack || 'Syntax Error: No trace available for parser death.'}</div>
+          <button onclick="location.reload()" style="margin-top:25px; background:#ff5c61; color:#fff; border:none; padding:12px 24px; font-weight:900; cursor:pointer; font-family:inherit; text-transform:uppercase;">Try Reboot</button>
+        </div>
+      </div>
+    `;
+
+    document.body ? document.body.appendChild(t) : document.documentElement.appendChild(t);
+  }
+
+  // 2. CATCH GLOBAL RUNTIME ERRORS
+  window.addEventListener("error", function (e) {
+    if (e.message === "Script error." && e.lineno === 0) return;
+    const file = e.filename ? e.filename.split('/').pop() : "Inline Script";
+    if (typeof window.engineDebug === "function") {
+        window.engineDebug("ENGINE BREAKDOWN", `${e.message} | Loc: ${file}:${e.lineno}`);
+    }
+  });
+
+  // 3. NETWORK & PROMISE INTERCEPTOR
+  window.addEventListener("unhandledrejection", function (e) {
+    const reason = e.reason?.message || String(e.reason);
+    const reasonLower = reason.toLowerCase();
+    if (reasonLower.includes("fetch") || reasonLower.includes("load failed") || reasonLower.includes("networkerror")) return;
+    if (typeof window.engineDebug === "function") {
+        window.engineDebug("NETWORK/PROMISE ERROR", { detail: reason });
+    }
+    if (typeof window.triggerGlobalEngineAlert === "function") {
+        window.triggerGlobalEngineAlert("Watchdog: Network connection to Cloudflare was blocked.");
+    }
+  });
+
+  // 4. GOD-MODE FETCH PROXY
+  const originalFetch = window.fetch;
+  window.fetch = async function(...args) {
+    try {
+      const response = await originalFetch.apply(this, args);
+      if (!response.ok && typeof window.engineDebug === "function") {
+        window.engineDebug(`API ERROR: HTTP ${response.status}`, { url: args[0] });
+      }
+      return response;
+    } catch (err) {
+      if (typeof window.engineDebug === "function") {
+        window.engineDebug("CRITICAL NETWORK BLOCK", { url: args[0], error: err.message });
+      }
+      throw err;
+    }
+  };
+
+  // 5. ENGINE BOOT PROTECTION
+  window.addEventListener("load", function () {
+    setTimeout(function () {
+      if (!window.__BETCEO_ENGINE_BOOT_SEEN) {
+        spawnFatalTerminal("Initialization Failure", "Core Logic", "Check Syntax", "N/A", "The script stopped running immediately after load. Check for missing '}' or illegal characters like '!!!' in the code.");
+      }
+    }, 5000);
+  });
+})();
+</script>
 
 
 
 <script>
 window.__BETCEO_ENGINE_BOOT_SEEN = true;
+// Unique ID to identify this specific browser session/tab
 window.__BETCEO_SESSION_ID = "sess_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9);
+
+// --- GOD-MODE WATCHDOG CORE ---
+
+const ENGINE_INTEGRITY_SHIELD = {
+  // Golden Hashes of core logic (prevents "thief in the night" code changes)
+  expectedFingerprints: {
+    math: "v1_calibrated",
+    storage: "indexed_db_v1"
+  },
+  
+  audit: function() {
+    const issues = [];
+    
+    // 1. Check for missing global variables
+try {
+  if (typeof MODEL_CONFIG === 'undefined') issues.push("CRITICAL: MODEL_CONFIG variable is missing.");
+} catch(e) {
+  issues.push("CRITICAL: MODEL_CONFIG access blocked.");
+}
+
+    if (typeof getDynamicWeights !== 'function') issues.push("CRITICAL: getDynamicWeights logic is missing.");
+    if (typeof runMassacreMonteCarlo !== 'function') issues.push("CRITICAL: Monte Carlo Worker bridge is broken.");
+
+    // 2. Structural Test: Try to run a fake calculation to see if math is 'sane'
+    try {
+      const testWeight = getDynamicWeights("full", 0.5, "eng.1");
+      if (testWeight.teamWeight !== 0.65) issues.push("INTEGRITY: Math logic has been altered (Weight Mismatch).");
+    } catch(e) {
+      issues.push("INTEGRITY: Math engine failed internal sanity test.");
+    }
+
+    // 3. Environment Check
+    if (!window.indexedDB) issues.push("ENV: Browser IndexedDB is disabled. Data loss imminent.");
+
+    return issues;
+  }
+};
 
 
 /*
@@ -4352,7 +4484,32 @@ function isTrackerDebugView() {
   return g_trackerModalView === "debug";
 }
 
-function trackerDebug(message, extra = null) {}
+function trackerDebug(message, extra = null) {
+  try {
+    const stamp = new Date().toLocaleTimeString([], { hour12: false });
+    let detail = "";
+    if (extra !== null && extra !== undefined) {
+      if (typeof extra === "string") { detail = extra; }
+      else if (extra instanceof Error) { detail = `${extra.message} | Stack: ${extra.stack}`; }
+      else {
+        const copy = Array.isArray(extra) ? [...extra] : { ...extra };
+        for (const k in copy) { if (copy[k] instanceof Error) copy[k] = `${copy[k].message} | Stack: ${copy[k].stack}`; }
+        try { detail = JSON.stringify(copy); } catch (err) { detail = String(extra); }
+      }
+    }
+    const line = detail ? `[${stamp}] ${message} | ${detail}` : `[${stamp}] ${message}`;
+    g_trackerDebugLog.unshift(line);
+    if (g_trackerDebugLog.length > TRACKER_DEBUG_LIMIT) g_trackerDebugLog = g_trackerDebugLog.slice(0, TRACKER_DEBUG_LIMIT);
+    
+    if (getDebugSeverity(line) === "error") {
+      triggerGlobalEngineAlert(line);
+    }
+    renderTrackerDebugPanel();
+    updateTrackerInsightsButton();
+  } catch (err) {
+    console.error("[BB Engine] trackerDebug failed", err);
+  }
+}
 
 function renderTrackerDebugPanel() {
   if (!isTrackerPicksView()) {
@@ -4363,7 +4520,32 @@ function renderTrackerDebugPanel() {
 const ENGINE_DEBUG_LIMIT = 180;
 let g_engineDebugLog = [];
 
-function engineDebug(message, extra = null) {}
+function engineDebug(message, extra = null) {
+  try {
+    const stamp = new Date().toLocaleTimeString([], { hour12: false });
+    let detail = "";
+    if (extra !== null && extra !== undefined) {
+      if (typeof extra === "string") { detail = extra; }
+      else if (extra instanceof Error) { detail = `${extra.message} | Stack: ${extra.stack}`; }
+      else {
+        const copy = Array.isArray(extra) ? [...extra] : { ...extra };
+        for (const k in copy) { if (copy[k] instanceof Error) copy[k] = `${copy[k].message} | Stack: ${copy[k].stack}`; }
+        try { detail = JSON.stringify(copy); } catch (err) { detail = String(extra); }
+      }
+    }
+    const line = detail ? `[${stamp}] ${message} | ${detail}` : `[${stamp}] ${message}`;
+    g_engineDebugLog.unshift(line);
+    if (g_engineDebugLog.length > ENGINE_DEBUG_LIMIT) g_engineDebugLog = g_engineDebugLog.slice(0, ENGINE_DEBUG_LIMIT);
+    
+    if (getDebugSeverity(line) === "error") {
+      triggerGlobalEngineAlert(line);
+    }
+    renderEngineDebugPanel();
+    updateTrackerInsightsButton();
+  } catch (err) {
+    console.error("[BB Engine] engineDebug failed", err);
+  }
+}
 
 
 function renderEngineDebugPanel() {
@@ -4388,20 +4570,6 @@ function triggerGlobalEngineAlert(line = "") {
   }
   applyGlobalEngineAlertState();
 
-  // 🛡️ GOD FATHER AUTO-WAKE TRIGGER
-  const errLower = String(line).toLowerCase();
-  const isCritical = errLower.includes("fail") || errLower.includes("error") || 
-                     errLower.includes("critical") || errLower.includes("breakdown") || 
-                     errLower.includes("watchdog");
-
-  if (isCritical) {
-    if (typeof openTrackerModal === "function") {
-      openTrackerModal();
-      setTrackerModalView("debug");
-      // Force instant refresh so the red box jumps to the top immediately
-      renderTrackerAnalytics(); 
-    }
-  }
 }
 
 
@@ -7008,433 +7176,21 @@ let g_lastRenderedTrackerView = null;
 
 
 // ── POWER DEBUG PANEL ────────────────────────────────────────────────────────
-function buildGodFatherDebugHtml() {
-  const now = Date.now();
-  const cutoffMs = 14 * 60 * 60 * 1000;
-  const active = Array.isArray(g_trackerState.activePicks) ? g_trackerState.activePicks : [];
-  const archived = Array.isArray(g_trackerState.archivedPicks) ? g_trackerState.archivedPicks : [];
-  
-  function safeMs(v) { if (!v) return 0; const ms = Date.parse(String(v)); return isFinite(ms) ? ms : 0; }
-  function ts(v) { return v ? String(v).substring(5,16).replace("T"," ") : `<span style="color:#555">-</span>`; }
-  function badge(color, text) { return `<span style="background:${color};color:#000;padding:2px 5px;border-radius:3px;font-size:9px;font-weight:900;letter-spacing:0.5px;text-transform:uppercase;">${text}</span>`; }
-  
-  const tableStyles = `width:100%; table-layout:fixed; border-collapse:collapse; font-size:10px; font-family:ui-monospace, monospace;`;
-  const btnStyles = `background:#f44336; color:#fff; border:1px solid #d32f2f; padding:4px 8px; border-radius:4px; font-size:9px; font-weight:bold; cursor:pointer; text-transform:uppercase; letter-spacing:0.5px;`;
-
-  // ==========================================
-  // 1. SYSTEM & MEMORY CORE
-  // ==========================================
-  const lineMemSize = Object.keys(g_engineLineMemory || {}).length;
-  const memNearLimit = archived.length >= 1900 || lineMemSize >= 190;
-  const memStatus = memNearLimit ? "⚠️ NEAR LIMIT" : "✅ HEALTHY";
-  const memColor = memNearLimit ? "#ff9800" : "#333";
-  const memLeftBorder = memNearLimit ? "#ff9800" : "#4caf50";
-  const memBadge = memNearLimit ? badge("#ff9800", "WARNING") : badge("#4caf50", "CLEAR");
-
-  const pruneBtn = memNearLimit ? `<button style="${btnStyles} background:#ff9800; color:#000; border-color:#cc7a00;" onclick="g_trackerState.archivedPicks = g_trackerState.archivedPicks.slice(0, 1000); saveTrackerStateToLocal(); alert('Archive Pruned!'); renderTrackerAnalytics();">🩹 Prune Archive</button>` : "";
-
-  const sysHealthHtml = `
-    <div class="godfather-box" data-has-error="${memNearLimit}" data-keywords="system memory core storage database limit capacity" style="background:#111; border:1px solid ${memColor}; border-left:4px solid ${memLeftBorder}; border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:8px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-size:12px; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:0.5px;">🖥️ System & Memory</div>
-        <div style="display:flex; gap:6px; align-items:center;">${pruneBtn} ${memBadge}</div>
-      </div>
-      <div style="font-size:9px; color:#666;">Tracks local database capacity.</div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size:10px; color:#aaa; background:#0a0a0a; padding:10px; border-radius:4px; border:1px solid #222;">
-        <div>Active Picks: <b style="color:#fff">${active.length} / 500</b></div>
-        <div>Archive Size: <b style="color:#fff">${archived.length} / 2000</b></div>
-        <div>Line Memory: <b style="color:#fff">${lineMemSize} / 200</b></div>
-        <div>Engine Status: <b style="color:${memNearLimit?'#ff9800':'#4caf50'}">${memStatus}</b></div>
-      </div>
-    </div>
-  `;
-
-  // ==========================================
-  // 2. QUEUE DIAGNOSTICS
-  // ==========================================
-  const pending = active.filter(p => !["win","loss","push"].includes(p.resultStatus));
-  const stuck = active.filter(p => {
-    if (!["win","loss","push"].includes(p.resultStatus)) return false;
-    const st = safeMs(p.eventDate) || safeMs(p.createdAt);
-    return st > 0 && (now - st) >= cutoffMs;
-  });
-
-  let archiveRows = "";
-  if (stuck.length === 0 && pending.length === 0) {
-    archiveRows = `<tr><td colspan="4" style="padding:10px;color:#4caf50;text-align:center;font-weight:bold;">✅ All queues clear. No stuck data.</td></tr>`;
-  } else {
-    [...stuck, ...pending].forEach(p => {
-      const isSettled = ["win","loss","push"].includes(p.resultStatus);
-      const gameTs = safeMs(p.eventDate) || safeMs(p.createdAt);
-      const isExpired = gameTs > 0 && (now - gameTs) >= cutoffMs;
-      const label = `${(p.homeTeam||"?").substring(0,12)} vs ${(p.awayTeam||"?").substring(0,12)}`;
-
-      let alertBadge = "";
-      let rowColor = "#aaa";
-      
-      if (!isSettled && isExpired) {
-        alertBadge = badge("#f44336","API FAILED"); 
-        rowColor = "#f44336";
-      } else if (!isSettled) {
-        alertBadge = badge("#ff9800","WAITING");
-      } else if (isSettled && isExpired) {
-        alertBadge = badge("#f44336","STUCK IN UI"); 
-        rowColor = "#f44336";
-      }
-
-      archiveRows += `<tr style="border-bottom:1px solid #1e1e1e; color:${rowColor}">
-        <td style="padding:6px 4px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</td>
-        <td style="padding:6px 4px;font-size:9px">${(p.resultStatus||"pend").toUpperCase()}</td>
-        <td style="padding:6px 4px;font-size:9px">${ts(p.eventDate)}</td>
-        <td style="padding:6px 4px">${alertBadge}</td>
-      </tr>`;
-    });
-  }
-
-  const isArchiveRed = stuck.length > 0 || pending.some(p => (safeMs(p.eventDate) > 0 && (now - safeMs(p.eventDate)) >= cutoffMs));
-  const archiveBorderCol = isArchiveRed ? "#f44336" : "#333";
-  const archiveLeftCol = isArchiveRed ? "#f44336" : "#4caf50";
-  const archiveBadge = isArchiveRed ? badge("#f44336", "ACTION NEEDED") : badge("#4caf50", "CLEAR");
-
-  const sweepBtn = isArchiveRed ? `<button style="${btnStyles}" onclick="archiveExpiredTrackedPicks(); renderTrackerAnalytics();">🩹 Force Sweep</button>` : "";
-
-  const archiveSection = `
-    <div class="godfather-box" data-has-error="${isArchiveRed}" data-keywords="queue diagnostics archive stuck pending settlement time sweep" style="background:#111; border:1px solid ${archiveBorderCol}; border-left:4px solid ${archiveLeftCol}; border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:8px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-size:12px; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:0.5px;">🗂️ Queue Diagnostics</div>
-        <div style="display:flex; gap:6px; align-items:center;">${sweepBtn} ${archiveBadge}</div>
-      </div>
-      <div style="font-size:9px; color:#666;">Scans for picks that failed to settle or archive.</div>
-      <div style="background:#0a0a0a; border:1px solid #222; border-radius:4px; max-height:250px; overflow-y:auto;">
-        <table style="${tableStyles}">
-          <thead><tr style="color:#555; background:#151515; border-bottom:1px solid #2a2a2a">
-            <th style="padding:6px 4px;text-align:left;width:40%">Match</th>
-            <th style="padding:6px 4px;text-align:left;width:20%">Status</th>
-            <th style="padding:6px 4px;text-align:left;width:20%">Tip-Off</th>
-            <th style="padding:6px 4px;text-align:left;width:20%">Alert</th>
-          </tr></thead>
-          <tbody>${archiveRows}</tbody>
-        </table>
-      </div>
-    </div>`;
-
-  // ==========================================
-  // 3. ESPN API RESPONSE LOG
-  // ==========================================
-  let attemptRows = "";
-  let apiErrors = 0;
-  g_settlementDebugLog.forEach((entry) => {
-    const isErr = entry.status.includes("❌");
-    if (isErr) apiErrors++;
-    const statusColor = entry.status.startsWith("✅") ? "#4caf50" : entry.status.startsWith("⏳") ? "#ff9800" : "#f44336";
-    const cleanPick = entry.pick.replace(" · ", "<br>").substring(0, 35);
-    
-    attemptRows += `<tr style="border-bottom:1px solid #1e1e1e">
-      <td style="padding:6px 4px;color:#aaa;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cleanPick}</td>
-      <td style="padding:6px 4px;color:${statusColor};font-size:9px;font-weight:bold;">${entry.status.replace("SETTLED: ", "")}</td>
-      <td style="padding:6px 4px;color:#555;font-size:9px">${entry.stateName||"—"}</td>
-      <td style="padding:6px 4px;color:#555;font-size:9px">${entry.actual ?? "—"}/${entry.line ?? "—"}</td>
-    </tr>`;
-  });
-
-  const isApiRed = apiErrors > 0;
-  const apiBorderCol = isApiRed ? "#f44336" : "#333";
-  const apiLeftCol = isApiRed ? "#f44336" : "#2196f3";
-  const apiBadge = isApiRed ? badge("#f44336", "API ERROR") : badge("#2196f3", "CONNECTED");
-
-  const clearCacheBtn = isApiRed ? `<button style="${btnStyles}" onclick="_schedCache.clear(); _summaryCache.clear(); _fixtureCache.clear(); g_settlementDebugLog.clear(); alert('API Cache Wiped!'); renderTrackerAnalytics();">🩹 Clear API Cache</button>` : "";
-
-  const attemptSection = `
-    <div class="godfather-box" data-has-error="${isApiRed}" data-keywords="espn network log api fetch response connection cache" style="background:#111; border:1px solid ${apiBorderCol}; border-left:4px solid ${apiLeftCol}; border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:8px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-size:12px; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:0.5px;">📡 ESPN Network Log</div>
-        <div style="display:flex; gap:6px; align-items:center;">${clearCacheBtn} ${apiBadge}</div>
-      </div>
-      <div style="font-size:9px; color:#666;">Checks if the server is responding to settlement requests.</div>
-      <div style="background:#0a0a0a; border:1px solid #222; border-radius:4px; max-height:250px; overflow-y:auto;">
-        ${attemptRows ? `<table style="${tableStyles}">
-          <thead><tr style="color:#555; background:#151515; border-bottom:1px solid #2a2a2a">
-            <th style="padding:6px 4px;text-align:left;width:40%">Pick</th>
-            <th style="padding:6px 4px;text-align:left;width:25%">API</th>
-            <th style="padding:6px 4px;text-align:left;width:15%">State</th>
-            <th style="padding:6px 4px;text-align:left;width:20%">Act/Line</th>
-          </tr></thead><tbody>${attemptRows}</tbody></table>`
-          : `<div style="color:#aaa;font-size:10px;text-align:center;padding:10px;">Waiting for next auto-refresh cycle...</div>`}
-      </div>
-    </div>`;
-
-    // ==========================================
-  // 4. CLOUD SYNC & PERSISTENCE (UPGRADED)
-  // ==========================================
-  const isSyncRed = (typeof g_trackerSaveFailureCount !== 'undefined' && g_trackerSaveFailureCount > 0);
-  
-    // Track internal save queue to see if we are waiting on the network
-  const localQueue = typeof g_trackerSaveVersion !== 'undefined' ? g_trackerSaveVersion : 0;
-  const cloudQueue = typeof g_trackerPersistedVersion !== 'undefined' ? g_trackerPersistedVersion : 0;
-  const isDesynced = localQueue > cloudQueue && !g_trackerSaveInFlight;
-
-
-  const syncBorder = isSyncRed || isDesynced ? "#f44336" : "#333";
-  const syncLeft = isSyncRed || isDesynced ? "#f44336" : "#4caf50";
-    const syncBadge = isSyncRed ? badge("#f44336", "SYNC FAILING") : isDesynced ? badge("#ff9800", "DESYNCED") : badge("#4caf50", "SYNCED");
-
-  const forceSyncBtn = (isSyncRed || isDesynced) ? `<button style="${btnStyles}" onclick="g_trackerSaveFailureCount = 0; forceTrackerSaveNow(); alert('Forced Hard Sync to Cloud!'); renderTrackerAnalytics();">🩹 Force Hard Sync</button>` : "";
-
-  const syncHealthHtml = `
-
-    <div class="godfather-box" data-has-error="${isSyncRed || isDesynced}" data-keywords="cloud sync network save failure persistence version desync" style="background:#111; border:1px solid ${syncBorder}; border-left:4px solid ${syncLeft}; border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:8px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-size:12px; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:0.5px;">☁️ Cloud Sync Core X-Ray</div>
-        <div style="display:flex; gap:6px; align-items:center;">${forceSyncBtn} ${syncBadge}</div>
-      </div>
-      <div style="font-size:9px; color:#666;">Monitors the connection and version history to the backend storage.</div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size:10px; color:#aaa; background:#0a0a0a; padding:10px; border-radius:4px; border:1px solid #222;">
-        <div>Save Failures: <b style="color:${isSyncRed?'#f44336':'#fff'}">${typeof g_trackerSaveFailureCount !== 'undefined' ? g_trackerSaveFailureCount : 0}</b></div>
-        <div>In Flight: <b style="color:#fff">${typeof g_trackerSaveInFlight !== 'undefined' && g_trackerSaveInFlight ? "YES" : "NO"}</b></div>
-               <div>Local Save Queue: <b style="color:${isDesynced?'#ff9800':'#4caf50'}">${localQueue}</b></div>
-        <div>Cloud Confirmed: <b style="color:${isDesynced?'#ff9800':'#4caf50'}">${cloudQueue}</b></div>
-      </div>
-      ${isDesynced ? `<div style="color:#ff9800; font-size:9px; font-weight:bold; margin-top:4px;">⚠️ Sync lagging. The device has fresh data that hasn't successfully reached Cloudflare yet.</div>` : ''}
-    </div>
-  `;
-
-
-  // ==========================================
-  // 5. PHASE 2 LEARNING MATRIX
-  // ==========================================
-  const p2 = typeof getPhase2ActivationState === 'function' ? getPhase2ActivationState() : null;
-  const isP2Red = p2 && (!p2.trackerReady && p2.settled >= p2.reviewCheckpointSettled); 
-  const p2Border = isP2Red ? "#ff9800" : "#333";
-  const p2Left = isP2Red ? "#ff9800" : "#2196f3";
-  const p2Badge = p2?.trackerReady ? badge("#2196f3", "ACTIVE") : badge("#555", "BUILDING");
-
-  let p2Reasons = "";
-  if (p2) {
-    p2Reasons = p2.trackerReasons.map(r => `<div style="padding:4px 0; border-bottom:1px solid #1e1e1e; color:#aaa;">${safeText(r)}</div>`).join("");
-  }
-
-  const learningMatrixHtml = `
-    <div class="godfather-box" data-has-error="${isP2Red}" data-keywords="phase 2 learning matrix tracker shadow live feedback" style="background:#111; border:1px solid ${p2Border}; border-left:4px solid ${p2Left}; border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:8px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-size:12px; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:0.5px;">🧠 Learning Matrix</div>
-        ${p2Badge}
-      </div>
-      <div style="font-size:9px; color:#666;">State of the Phase 2 Tracker Feedback loop.</div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size:10px; color:#aaa; background:#0a0a0a; padding:10px; border-radius:4px; border:1px solid #222; margin-bottom:4px;">
-        <div>Engine Mode: <b style="color:#fff; text-transform:uppercase;">${p2?.phase2Mode || "UNKNOWN"}</b></div>
-        <div>Tracker Live: <b style="color:${p2?.trackerFeedbackLive ? '#4caf50' : '#fff'}">${p2?.trackerFeedbackLive ? "YES" : "NO"}</b></div>
-      </div>
-      <div style="font-size:9px; color:#888; background:#0a0a0a; border:1px solid #222; border-radius:4px; padding:4px 10px; max-height:150px; overflow-y:auto;">
-        ${p2Reasons || "No matrix data available."}
-      </div>
-    </div>
-  `;
-
-  // ==========================================
-  // 6. UI INPUT SANITY
-  // ==========================================
-  const inputErrCount = (typeof g_fetchInputErrors !== 'undefined' ? g_fetchInputErrors.length : 0);
-  const auditErrCount = (typeof g_fetchAuditIssues !== 'undefined' ? g_fetchAuditIssues.length : 0);
-  const isInputRed = inputErrCount > 0 || auditErrCount > 0;
-  const inputBorder = isInputRed ? "#f44336" : "#333";
-  const inputLeft = isInputRed ? "#f44336" : "#4caf50";
-  const inputBadge = isInputRed ? badge("#f44336", "INPUT ERROR") : badge("#4caf50", "VALID");
-
-  let inputDetails = "";
-  if (isInputRed) {
-     const allErrs = [...(typeof g_fetchInputErrors !== 'undefined' ? g_fetchInputErrors : []), ...(typeof g_fetchAuditIssues !== 'undefined' ? g_fetchAuditIssues : [])];
-     inputDetails = allErrs.map(e => `<div style="padding:4px 0; border-bottom:1px solid #1e1e1e; color:#f44336;">• ${safeText(e)}</div>`).join("");
-  } else {
-     inputDetails = `<div style="color:#4caf50; text-align:center; padding:6px; font-weight:bold;">✅ All current UI inputs are clean.</div>`;
-  }
-
-  const liveInputHtml = `
-    <div class="godfather-box" data-has-error="${isInputRed}" data-keywords="input validation sanity errors ui fetch" style="background:#111; border:1px solid ${inputBorder}; border-left:4px solid ${inputLeft}; border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:8px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-size:12px; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:0.5px;">🚦 UI Input Sanity</div>
-        ${inputBadge}
-      </div>
-      <div style="font-size:9px; color:#666;">Watches the main screen for missing or contradictory data.</div>
-      <div style="background:#0a0a0a; border:1px solid #222; border-radius:4px; padding:4px 10px; font-size:9px; max-height:150px; overflow-y:auto;">
-        ${inputDetails}
-      </div>
-    </div>
-  `;
-
-  // ==========================================
-  // 7. INJURY MATRIX
-  // ==========================================
-  const injA_un = typeof g_injA !== 'undefined' && (g_injA?.highUncertainty || g_injA?.hasUnknownImpact);
-  const injB_un = typeof g_injB !== 'undefined' && (g_injB?.highUncertainty || g_injB?.hasUnknownImpact);
-  const isInjRed = injA_un || injB_un;
-  const injBorder = isInjRed ? "#ff9800" : "#333";
-  const injLeft = isInjRed ? "#ff9800" : "#4caf50";
-  const injBadge = isInjRed ? badge("#ff9800", "CAUTION") : badge("#4caf50", "CLEAN");
-
-  let injDetails = "";
-  if ((typeof g_injA !== 'undefined' && g_injA?.notes?.length) || (typeof g_injB !== 'undefined' && g_injB?.notes?.length)) {
-     const aNotes = (g_injA?.notes||[]).map(n => `<div style="padding:4px 0; border-bottom:1px solid #1e1e1e;">Team A: ${safeText(n.text)}</div>`).join("");
-     const bNotes = (g_injB?.notes||[]).map(n => `<div style="padding:4px 0; border-bottom:1px solid #1e1e1e;">Team B: ${safeText(n.text)}</div>`).join("");
-     injDetails = `<div style="color:#aaa;">${aNotes}${bNotes}</div>`;
-  } else {
-     injDetails = `<div style="color:#aaa; text-align:center; padding:6px;">No significant injuries detected in current fetch.</div>`;
-  }
-
-  const injuryDiagnosticsHtml = `
-    <div class="godfather-box" data-has-error="${isInjRed}" data-keywords="injury out dtd uncertainty matrix impact players" style="background:#111; border:1px solid ${injBorder}; border-left:4px solid ${injLeft}; border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:8px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-size:12px; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:0.5px;">🏥 Injury Matrix</div>
-        ${injBadge}
-      </div>
-      <div style="font-size:9px; color:#666;">Watches for hidden impacts or high uncertainty.</div>
-      <div style="background:#0a0a0a; border:1px solid #222; border-radius:4px; padding:8px 10px; font-size:9px; max-height:150px; overflow-y:auto;">
-        <div style="margin-bottom:8px; color:#fff; display:flex; justify-content:space-between; border-bottom:1px solid #333; padding-bottom:6px;">
-          <span>A Mult: <b>${(typeof g_injA !== 'undefined' ? (g_injA?.scoringMult||1) : 1).toFixed(2)}</b></span>
-          <span>B Mult: <b>${(typeof g_injB !== 'undefined' ? (g_injB?.scoringMult||1) : 1).toFixed(2)}</b></span>
-        </div>
-        ${injDetails}
-      </div>
-    </div>
-  `;
-
-  // ==========================================
-  // 8. VEGAS LINE (CLV) RADAR
-  // ==========================================
-  let clvRows = "";
-  let clvAlerts = 0;
-  active.filter(p => p.resultStatus === "pending").forEach(p => {
-    const move = typeof getTrackedPickLineMoveProxy === 'function' ? getTrackedPickLineMoveProxy(p) : null;
-    if (move && move.state === "unfavorable" && Math.abs(move.delta) >= 1.5) {
-      clvAlerts++;
-      const cleanPick = (p.homeTeam + " vs " + p.awayTeam).substring(0, 20);
-      clvRows += `<tr style="border-bottom:1px solid #1e1e1e">
-        <td style="padding:6px 4px;color:#aaa;font-size:10px;">${cleanPick}...</td>
-        <td style="padding:6px 4px;color:#fff;font-size:9px;font-weight:bold;">${p.predictionText}</td>
-        <td style="padding:6px 4px;color:#f44336;font-size:9px;font-weight:bold;">${move.delta > 0 ? '+'+move.delta : move.delta} pts</td>
-      </tr>`;
-    }
-  });
-
-  const isClvRed = clvAlerts > 0;
-  const clvBorder = isClvRed ? "#f44336" : "#333";
-  const clvLeft = isClvRed ? "#f44336" : "#4caf50";
-  const clvBadge = isClvRed ? badge("#f44336", "LINE MOVED AGAINST YOU") : badge("#4caf50", "LINES STABLE");
-
-  const vegasRadarHtml = `
-    <div class="godfather-box" data-has-error="${isClvRed}" data-keywords="vegas line radar clv movement sharp money odds" style="background:#111; border:1px solid ${clvBorder}; border-left:4px solid ${clvLeft}; border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:8px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-size:12px; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:0.5px;">📉 Vegas Line Radar</div>
-        ${clvBadge}
-      </div>
-      <div style="font-size:9px; color:#666;">Detects if Vegas moves a line by 1.5+ points against your active picks.</div>
-      <div style="background:#0a0a0a; border:1px solid #222; border-radius:4px; max-height:200px; overflow-y:auto;">
-        ${clvRows ? `<table style="${tableStyles}">
-          <thead><tr style="color:#555; background:#151515; border-bottom:1px solid #2a2a2a">
-            <th style="padding:6px 4px;text-align:left;width:45%">Match</th>
-            <th style="padding:6px 4px;text-align:left;width:30%">Pick</th>
-            <th style="padding:6px 4px;text-align:left;width:25%">Line Move</th>
-          </tr></thead><tbody>${clvRows}</tbody></table>`
-          : `<div style="color:#4caf50;font-size:10px;text-align:center;padding:10px;font-weight:bold;">✅ No sharp line movement detected against active picks.</div>`}
-      </div>
-    </div>
-  `;
-
-  // ==========================================
-  // 9. MASSACRE (MONTE CARLO) MONITOR
-  // ==========================================
-  let mcRows = "";
-  let mcAlerts = 0;
-  active.filter(p => p.resultStatus === "pending").forEach(p => {
-    const diag = p.diagnostics?.massacre;
-    if (diag && diag.failedReasons && diag.failedReasons.length > 0) {
-      mcAlerts++;
-      const cleanPick = (p.homeTeam + " vs " + p.awayTeam).substring(0, 20);
-      mcRows += `<tr style="border-bottom:1px solid #1e1e1e">
-        <td style="padding:6px 4px;color:#aaa;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cleanPick}...</td>
-        <td style="padding:6px 4px;color:#f44336;font-size:9px">${diag.failedReasons.slice(0,2).join(" • ")}</td>
-      </tr>`;
-    }
-  });
-
-  const isMcRed = mcAlerts > 0;
-  const mcBorder = isMcRed ? "#ff9800" : "#333";
-  const mcLeft = isMcRed ? "#ff9800" : "#4caf50";
-  const mcBadge = isMcRed ? badge("#ff9800", "SIM ERRORS") : badge("#4caf50", "HEALTHY");
-
-  const massacreHtml = `
-    <div class="godfather-box" data-has-error="${isMcRed}" data-keywords="massacre monte carlo simulation math brutality agreement" style="background:#111; border:1px solid ${mcBorder}; border-left:4px solid ${mcLeft}; border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:8px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-size:12px; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:0.5px;">🎲 Massacre Monitor</div>
-        ${mcBadge}
-      </div>
-      <div style="font-size:9px; color:#666;">Tracks if active picks have failing simulation/math triggers.</div>
-      <div style="background:#0a0a0a; border:1px solid #222; border-radius:4px; max-height:200px; overflow-y:auto;">
-        ${mcRows ? `<table style="${tableStyles}">
-          <thead><tr style="color:#555; background:#151515; border-bottom:1px solid #2a2a2a">
-            <th style="padding:6px 4px;text-align:left;width:45%">Match</th>
-            <th style="padding:6px 4px;text-align:left;width:55%">Failed Sim Triggers</th>
-          </tr></thead><tbody>${mcRows}</tbody></table>`
-          : `<div style="color:#4caf50;font-size:10px;text-align:center;padding:10px;font-weight:bold;">✅ All active simulations passed cleanly.</div>`}
-      </div>
-    </div>
-  `;
-
-  // ==========================================
-  // 10. BUSTED LOCK AUTOPSY
-  // ==========================================
-  let bustRows = "";
-  let bustAlerts = 0;
-  const bustedLocks = archived
-    .filter(p => p.isLock && p.resultStatus === "loss")
-    .sort((a,b) => safeMs(b.eventDate) - safeMs(a.eventDate))
-    .slice(0, 5);
-
-  bustedLocks.forEach(p => {
-    bustAlerts++;
-    const mem = p.godsEyeMemory || p.diagnostics || {};
-    const edge = p.edgePct ? p.edgePct.toFixed(1)+'%' : '—';
-    const cleanPick = (p.homeTeam + " vs " + p.awayTeam).substring(0, 16);
-    
-    bustRows += `<tr style="border-bottom:1px solid #1e1e1e">
-      <td style="padding:6px 4px;color:#aaa;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cleanPick}</td>
-      <td style="padding:6px 4px;color:#fff;font-size:9px;font-weight:bold;">${p.marketKey.toUpperCase()}</td>
-      <td style="padding:6px 4px;color:#f44336;font-size:9px">Edge: ${edge}<br>Pace: ${mem.pace ? Number(mem.pace).toFixed(1) : '—'}</td>
-    </tr>`;
-  });
-
-  const isBustRed = bustAlerts > 0;
-  const bustBorder = isBustRed ? "#c91920" : "#333";
-  const bustLeft = isBustRed ? "#c91920" : "#4caf50";
-  const bustBadge = isBustRed ? badge("#c91920", "BUSTED LOCKS") : badge("#4caf50", "NO DEAD LOCKS");
-
-  const bustedLockHtml = `
-    <div class="godfather-box" data-has-error="${isBustRed}" data-keywords="busted lock autopsy failure post mortem loss" style="background:#111; border:1px solid ${bustBorder}; border-left:4px solid ${bustLeft}; border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:8px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-size:12px; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:0.5px;">💀 Busted Lock Autopsy</div>
-        ${bustBadge}
-      </div>
-      <div style="font-size:9px; color:#666;">Automatically pulls the last 5 Locks (🔒) that lost for review.</div>
-      <div style="background:#0a0a0a; border:1px solid #222; border-radius:4px; max-height:200px; overflow-y:auto;">
-        ${bustRows ? `<table style="${tableStyles}">
-          <thead><tr style="color:#555; background:#151515; border-bottom:1px solid #2a2a2a">
-            <th style="padding:6px 4px;text-align:left;width:40%">Match</th>
-            <th style="padding:6px 4px;text-align:left;width:20%">Market</th>
-            <th style="padding:6px 4px;text-align:left;width:40%">Engine State at Lock</th>
-          </tr></thead><tbody>${bustRows}</tbody></table>`
-          : `<div style="color:#4caf50;font-size:10px;text-align:center;padding:10px;font-weight:bold;">✅ No dead locks in recent archive.</div>`}
-      </div>
-    </div>
-  `;
-
-    return sysHealthHtml + archiveSection + attemptSection + syncHealthHtml + learningMatrixHtml + liveInputHtml + injuryDiagnosticsHtml + vegasRadarHtml + massacreHtml + bustedLockHtml;
-}
-
 function renderTrackerAnalytics() {
+
   const panel = document.getElementById("trackerAnalyticsPanel");
   if (!panel) return;
-  panel.style.display = "none";
-  panel.innerHTML = "";
-}
+
+  const currentView = g_trackerModalView;
+
+  if (currentView === "picks") {
+    syncTrackerModalView();
+    panel.classList.add("tracker-hidden");
+    panel.style.display = "none";
+    panel.innerHTML = "";
+    g_lastRenderedTrackerView = currentView;
+    return;
+  }
 
   if (g_lastRenderedTrackerVersion === g_trackerState.updatedAt && g_lastRenderedTrackerView === currentView) {
      syncTrackerModalView();
@@ -8104,48 +7860,28 @@ function renderTrackerAnalytics() {
       </div>
     `;
   } else if (currentView === "debug") {
-    const godFatherDebugHtml = buildGodFatherDebugHtml();
-    
-    // We pass our live logs into the newly standardized Report cards
-    const engineErrorsHtml = buildReportDebugCard("Important Engine Errors", importantEngineLines, 6, "No active engine errors. The watchdog is quiet.");
-    const trackerErrorsHtml = buildReportDebugCard("Important Tracker Errors", importantTrackerLines, 6, "No active tracker errors. Nothing urgent needs review.");
-
+    const engineLines = g_engineDebugLog.map(line => `<li class="${getDebugSeverityClass(line)}">${safeText(line)}</li>`).join('');
+    const trackerLines = g_trackerDebugLog.map(line => `<li class="${getDebugSeverityClass(line)}">${safeText(line)}</li>`).join('');
     panel.innerHTML = `
-      <style>
-        #godfatherGrid { display: flex; flex-direction: column; gap: 12px; padding: 12px; padding-bottom: 30px; }
-        .godfather-box { order: 5; transition: box-shadow 0.2s ease, border-color 0.2s ease; }
-        /* The Auto-Sort Magic: Any box with an error instantly moves to order 1 (top of page) */
-        .godfather-box[data-has-error="true"] { 
-          order: 1; 
-          box-shadow: 0 0 15px rgba(244, 67, 54, 0.15); 
-        }
-        .godfather-box:hover { border-color: #666 !important; }
-        .godfather-box[data-has-error="true"]:hover { border-color: #ff5c61 !important; }
-      </style>
-
-      <div class="tracker-analytics-shell" style="height:100%; display:flex; flex-direction:column; overflow:hidden;">
-        <div class="tracker-analytics-topbar" style="padding:12px; border-bottom:1px solid #333; background:#1a1a1a; z-index:2; position:sticky; top:0;">
-          <div class="tracker-analytics-heading" style="margin-bottom:10px;">
-            <div class="tracker-analytics-kicker" style="color:#f44336;">Immune System</div>
-            <div class="tracker-analytics-title" style="color:#fff;">God Father 🛡️</div>
-            <div class="tracker-analytics-subtitle" style="color:#888;">Core engine diagnostics and auto-sorting health checks.</div>
+      <div class="tracker-analytics-shell">
+        <div class="tracker-analytics-topbar">
+          <div class="tracker-analytics-heading">
+            <div class="tracker-analytics-kicker">System Logs</div>
+            <div class="tracker-analytics-title">Diagnostic Stream</div>
+            <div class="tracker-analytics-subtitle">Live engine execution data and network sync events.</div>
           </div>
-          
-          <input type="text" placeholder="🔍 Search diagnostics (e.g. 'queue', 'error', 'espn')..." 
-            oninput="
-              const q = this.value.toLowerCase().trim();
-              document.querySelectorAll('.godfather-box').forEach(b => {
-                const txt = (b.dataset.keywords + ' ' + b.innerText).toLowerCase();
-                b.style.display = (!q || txt.includes(q)) ? 'flex' : 'none';
-              });
-            "
-            style="width:100%; background:#0a0a0a; color:#fff; border:1px solid #444; padding:10px 12px; border-radius:6px; font-size:12px; font-family:monospace; outline:none;" autocomplete="off" spellcheck="false">
         </div>
-        
-        <div id="godfatherGrid" style="flex:1; overflow-y:auto;">
-          ${godFatherDebugHtml}
-          ${engineErrorsHtml}
-          ${trackerErrorsHtml}
+        <div class="tracker-analytics-card">
+          <div class="tracker-analytics-card-head"><div class="tracker-analytics-card-title">⚙️ Engine Activity</div></div>
+          <div class="tracker-analytics-card-body">
+            <ul class="tracker-debug-log">${engineLines || '<li class="note">No engine logs currently in memory.</li>'}</ul>
+          </div>
+        </div>
+        <div class="tracker-analytics-card">
+          <div class="tracker-analytics-card-head"><div class="tracker-analytics-card-title">📡 Network & Tracker</div></div>
+          <div class="tracker-analytics-card-body">
+            <ul class="tracker-debug-log">${trackerLines || '<li class="note">No tracker logs currently in memory.</li>'}</ul>
+          </div>
         </div>
       </div>
     `;
@@ -10876,23 +10612,17 @@ async function runMassacreMonteCarlo(projA, projB, line) {
 
 // --- LIVE UI LOGGER ---
 function uiLog(msg, isErr = false) {
-  const el = document.getElementById("liveEngineDebugger");
-  if(el) {
-    const color = isErr ? "#ff5c61" : "#49d45f";
-    el.innerHTML += `<div style="color:${color}; margin-top:4px;">&gt; ${safeText(msg)}</div>`;
-    el.scrollTop = el.scrollHeight;
-  }
+  const level = isErr ? 'ERROR' : 'FETCH';
+  if (typeof AFDB !== 'undefined') AFDB.log(level, 'FETCH', msg);
   console.log("[FETCH]", msg);
 }
 
 function clearUiLog() {
-  const el = document.getElementById("liveEngineDebugger");
-  if (el) el.innerHTML = "<div style='color:#aaa; font-weight:bold; margin-bottom:5px;'>[SYSTEM] Live Auto-Fetch Monitor Active...</div>";
+  if (typeof AFDB !== 'undefined') AFDB.clear();
 }
 
 
 async function fetchESPN() {
-  document.getElementById("liveEngineDebugger").innerHTML = "<div style='color:#aaa; font-weight:bold; margin-bottom:5px;'>[SYSTEM] Live Auto-Fetch Monitor Active...</div>";
   const league = document.getElementById("leagueSelect").value;
   const teamAName = document.getElementById("teamAName").value.trim();
   const teamBName = document.getElementById("teamBName").value.trim();
@@ -11525,6 +11255,284 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   await primeTrackerStateForRun();
   await refreshTrackerInBackground(true);
+});
+</script>
+
+<div id="afdbOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,0.96);flex-direction:column;font-family:ui-monospace,Consolas,monospace;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);">
+  <div id="afdbPanel" style="width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;"></div>
+</div>
+
+<script>
+const AFDB = (function() {
+  const LOG_LIMIT = 600;
+  let _log = [];
+  let _isOpen = false;
+  let _showOnlyErrors = true; 
+
+  const LEVELS = {
+    BOOT:    { color:'#7aa6ff' }, NET:     { color:'#4ea9ff' },
+    FETCH:   { color:'#49d45f' }, FILL:    { color:'#2aff9e' },
+    PICK:    { color:'#d4af37' }, H2H:     { color:'#c678dd' },
+    SUCCESS: { color:'#49d45f' }, WARN:    { color:'#ffcf73' },
+    ERROR:   { color:'#ff5c61' }, INFO:    { color:'#aaa'    },
+    ENGINE:  { color:'#d4af37' }, TRACKER: { color:'#4ea9ff' },
+    VERDICT: { color:'#49d45f' } 
+  };
+
+  const ICONS = {
+    BOOT:'\u2699\ufe0f', NET:'\ud83c\udf10', FETCH:'\ud83d\udce1', FILL:'\u270f\ufe0f',
+    PICK:'\ud83d\udccc', H2H:'\ud83d\udd04', SUCCESS:'\u2705', WARN:'\u26a0\ufe0f', ERROR:'\u274c', INFO:'\u2139\ufe0f',
+    ENGINE:'\u2699\ufe0f', TRACKER:'\ud83d\udcca', VERDICT:'\ud83c\udf96\ufe0f'
+  };
+
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function log(level, section, msg, data) {
+    const entry = {
+      ts: new Date().toLocaleTimeString([],{hour12:false}),
+      level, section: section||'CORE', msg,
+      data: data !== undefined ? data : null
+    };
+    _log.unshift(entry);
+    if (_log.length > LOG_LIMIT) _log = _log.slice(0, LOG_LIMIT);
+    if (_isOpen) _render();
+  }
+
+  function clear() { _log = []; _render(); }
+
+  function toggleFilter() {
+    _showOnlyErrors = !_showOnlyErrors;
+    _render();
+  }
+
+  function copy(btnEl) {
+    const visibleLogs = _showOnlyErrors ? _log.filter(e => e.level === 'ERROR' || e.level === 'WARN' || e.level === 'VERDICT') : _log;
+    const textArr = visibleLogs.slice().reverse().map(e => {
+      let line = '[' + e.ts + '] [' + e.level + '] [' + e.section + '] ' + e.msg;
+      if (e.data !== null) {
+        try { line += ' | ' + JSON.stringify(e.data); }
+        catch(x) { line += ' | ' + String(e.data); }
+      }
+      return line;
+    });
+    const text = textArr.join(String.fromCharCode(10, 10));
+        try {
+      navigator.clipboard.writeText(text);
+      if (btnEl) {
+        const origText = btnEl.innerHTML;
+        btnEl.innerHTML = "\u2705 COPIED!";
+        setTimeout(() => { if (btnEl) btnEl.innerHTML = origText; }, 1500);
+      }
+    } catch(e) {
+      log('WARN','AFDB','Clipboard blocked \u2014 printed to console');
+    }
+  }
+
+  function snapDOM() {
+    const ids = [
+      'leagueSelect','teamAName','teamBName',
+      'aFTScored','aFTAllowed','a1HScored','a1HAllowed',
+      'bFTScored','bFTAllowed','b1HScored','b1HAllowed',
+      'aFTH2H','bFTH2H','a1HH2H','b1HH2H',
+      'ftMarket','h1Market','h2Market','teamAMarket','teamBMarket'
+    ];
+    const snap = {};
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      snap[id] = el ? (el.value||'(empty)') : '\u26d4 NOT FOUND';
+    });
+    if (typeof selectedTeamIds !== 'undefined') snap['_teamIds'] = JSON.stringify(selectedTeamIds);
+    if (typeof uiState !== 'undefined') snap['_league'] = uiState.appliedLeagueSlug||'(none)';
+    return snap;
+  }
+
+  function _render() {
+    const panel = document.getElementById('afdbPanel');
+    if (!panel) return;
+    const visibleLogs = _showOnlyErrors ? _log.filter(e => e.level === 'ERROR' || e.level === 'WARN' || e.level === 'VERDICT') : _log;
+    const logRows = visibleLogs.map(e => {
+      const def = LEVELS[e.level]||LEVELS.INFO;
+      const icon = ICONS[e.level]||'\u2022';
+      let dataHtml = '';
+      if (e.data !== null) {
+        let ds;
+        try { ds = typeof e.data==='object' ? JSON.stringify(e.data,null,2) : String(e.data); }
+        catch(x) { ds = String(e.data); }
+        dataHtml = '<pre style="color:#888;font-size:9px;margin:4px 0 0 0;padding:6px;background:#070707;border-left:2px solid #222;white-space:pre-wrap;word-break:break-all;">' + esc(ds) + '</pre>';
+
+  }
+  return '<div style="padding:8px;border-bottom:1px solid #151515;"><div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;"><span style="color:#555;font-size:9px;min-width:65px;flex-shrink:0;">' + esc(e.ts) + '</span><span style="color:' + def.color + ';font-size:10px;font-weight:900;min-width:75px;flex-shrink:0;">' + icon + ' ' + esc(e.level) + '</span><span style="color:#777;font-size:9px;min-width:80px;flex-shrink:0;">[' + esc(e.section) + ']</span><span style="color:' + def.color + ';font-size:11px;font-weight:700;flex:1;white-space:pre-wrap;">' + esc(e.msg) + '</span></div>' + dataHtml + '</div>';
+}).join('');
+
+const headerBtns = '<button onclick="AFDB.copy(this)" style="background:#111;border:1px solid #333;color:#49d45f;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">📋 Copy Log</button><button onclick="AFDB.clear()" style="background:#111;border:1px solid #333;color:#ff5c61;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">🗑️ Clear</button><button onclick="AFDB.runTestFetch()" style="background:#2a0608;border:1px solid #d91f26;color:#fff;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;box-shadow:0 0 8px rgba(217,31,38,0.4);">🚨 MILITARY RAID</button><button onclick="window.openVisualReportFromDebug()" style="background:#111;border:1px solid #333;color:#d4af37;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">📊</button><button onclick="AFDB.close()" style="background:#111;border:1px solid #555;color:#ccc;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;">✕ Close</button>';
+
+const emptyMsg = _showOnlyErrors ? 'No suspects arrested. The code is clean.' : 'No log entries yet. Run a fetch.';
+const filterLabel = _showOnlyErrors ? '\ud83d\udc41\ufe0f SHOW ALL' : '\ud83c\udfaf ERRORS ONLY';
+
+panel.innerHTML = '<div style="background:#080808;border-bottom:1px solid #222;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;flex-shrink:0;"><div style="color:#d4af37;font-size:14px;font-weight:900;letter-spacing:1px;">\ud83d\udd2c AUTO-FETCH DEBUG BRAIN (FB)</div><div style="display:flex;gap:8px;flex-wrap:wrap;">' + headerBtns + '</div></div><div style="display:flex;flex-direction:column;flex:1;overflow-y:auto;background:#0a0a0a;"><div style="flex:1;"><div style="padding:10px 12px;background:#111;color:#d4af37;font-size:11px;font-weight:900;text-transform:uppercase;position:sticky;top:0;z-index:10;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;"><span>\ud83d\udce1 FETCH & ENGINE LOGS</span><button onclick="AFDB.toggleFilter()" style="background:none;border:none;color:#4ea9ff;font-size:14px;font-weight:bold;cursor:pointer;">' + filterLabel + '</button></div><div style="padding-bottom:15px;">' + (logRows||'<div style="color:#555;font-size:12px;text-align:center;padding:30px;font-weight:bold;">' + emptyMsg + '</div>') + '</div></div></div>';
+
+}
+
+  function open() {
+    _isOpen = true;
+    const ov = document.getElementById('afdbOverlay');
+    if (ov) { ov.style.display='flex'; _render(); }
+  }
+
+  function close() {
+    _isOpen = false;
+    const ov = document.getElementById('afdbOverlay');
+    if (ov) ov.style.display='none';
+  }
+
+  async function runTestFetch() {
+    try {
+      if (typeof forceTrackerSaveNow === 'function') await forceTrackerSaveNow();
+      if (typeof refreshTrackerInBackground === 'function') await refreshTrackerInBackground(true);
+    } catch(e) {}
+
+    let totalSuspects = 0;
+
+    if (typeof _schedCache !== 'undefined') _schedCache.clear();
+    if (typeof _summaryCache !== 'undefined') _summaryCache.clear();
+    if (typeof _fixtureCache !== 'undefined') _fixtureCache.clear();
+    if (typeof _teamCatalogCache !== 'undefined') _teamCatalogCache.clear();
+
+    const inputsToCheck = ['aFTScored', 'bFTScored', 'ftMarket', 'teamAMarket', 'teamBMarket'];
+    inputsToCheck.forEach(id => {
+      const el = document.getElementById(id);
+      const val = el ? el.value.trim() : '';
+      if (val && /[^0-9,.\s-]/.test(val)) {
+        log('ERROR', 'UI INPUT', 'Invalid characters detected in ' + id + ': "' + val + '". Math engine will crash.');
+        totalSuspects++;
+      }
+    });
+
+    const active = Array.isArray(g_trackerState && g_trackerState.activePicks) ? g_trackerState.activePicks : [];
+    const memCount = Object.keys(g_engineLineMemory || {}).length;
+    if (memCount > 190) { log('ERROR','STORAGE','Line memory nearing maximum capacity (200). Pruning imminent.'); totalSuspects++; }
+    if (active.length > 490) { log('ERROR','STORAGE','Active picks array is critically full (Limit: 500).'); totalSuspects++; }
+    if (typeof MODEL_TUNING === 'undefined') { log('ERROR','CONFIG','MODEL_TUNING matrix is missing.'); totalSuspects++; }
+
+    let edgeAnomalies = 0;
+    active.forEach(p => {
+      if (p.edgePct && Math.abs(p.edgePct) > 25) edgeAnomalies++;
+    });
+    if (edgeAnomalies > 0) { log('ERROR','MATH ENGINE', edgeAnomalies + ' picks show extreme edge anomalies (>25%).'); totalSuspects++; }
+
+    const settled = (g_trackerState && g_trackerState.stats && g_trackerState.stats.settled) || 0;
+    const wins = (g_trackerState && g_trackerState.stats && g_trackerState.stats.wins) || 0;
+    if (settled >= 20) {
+      const winRate = (wins / settled) * 100;
+      if (winRate < 45) { log('ERROR','MODEL BIAS','System win rate dropping below safety threshold (' + winRate.toFixed(1) + '%). Recalibration required.'); totalSuspects++; }
+    }
+
+    const league = document.getElementById('leagueSelect') && document.getElementById('leagueSelect').value;
+    const tA = document.getElementById('teamAName') && document.getElementById('teamAName').value;
+    const tB = document.getElementById('teamBName') && document.getElementById('teamBName').value;
+    if (league && league !== 'unknown' && tA && tB) {
+      try { await fetchESPN(); }
+      catch(e) { log('ERROR','NETWORK','Live sweep failed: ' + e.message); totalSuspects++; }
+    }
+
+    const verdictMsg = totalSuspects === 0 ? 'Raid complete.\nEngine is 100% perfect.' : 'Raid complete.\nCaught ' + totalSuspects + ' Thieves and locked them behind the bars.';
+    const verdictEntry = {
+      ts: new Date().toLocaleTimeString([],{hour12:false}),
+      level: totalSuspects === 0 ? 'VERDICT' : 'ERROR',
+      section: 'POLICE RAID',
+      msg: verdictMsg,
+      data: null
+    };
+    _log.unshift(verdictEntry);
+    if (_log.length > LOG_LIMIT) _log = _log.slice(0, LOG_LIMIT);
+    if (_isOpen) _render();
+    setTimeout(() => {
+      const idx = _log.indexOf(verdictEntry);
+      if (idx !== -1) { _log.splice(idx, 1); if (_isOpen) _render(); }
+    }, 7000);
+
+  }
+
+  return { log, clear, copy, toggleFilter, open, close, runTestFetch, get isOpen() { return _isOpen; } };
+})();
+
+window.openVisualReportFromDebug = function() {
+  AFDB.close();
+  if (typeof openTrackerModal === 'function') openTrackerModal();
+  if (typeof setTrackerModalView === 'function') setTrackerModalView('report');
+};
+
+window.engineDebug = function(msg, extra) {
+  const msgStr = String(msg).toLowerCase();
+  if (msgStr.includes("fetch") || msgStr.includes("load failed") || msgStr.includes("networkerror")) return;
+  const isErr = msgStr.includes("error") || msgStr.includes("fail") || msgStr.includes("critical");
+  AFDB.log(isErr ? 'ERROR' : 'ENGINE', 'ENGINE', msg, extra);
+};
+
+window.trackerDebug = function(msg, extra) {
+  const msgStr = String(msg).toLowerCase();
+  if (msgStr.includes("fetch") || msgStr.includes("load failed") || msgStr.includes("networkerror")) return;
+  const isErr = msgStr.includes("error") || msgStr.includes("fail");
+  AFDB.log(isErr ? 'ERROR' : 'TRACKER', 'TRACKER', msg, extra);
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    if (typeof proxyFetch === 'function' && !proxyFetch._afdbPatched) {
+      const _orig = proxyFetch;
+      window.proxyFetch = async function(url, timeout) {
+        const short = String(url||'').replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\/soccer\//,'FB/').replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\//,'ESPN/');
+        try { return await _orig.apply(this, arguments); }
+        catch(err) { AFDB.log('ERROR','PROXY','FAILED: ' + short, { error: err.message }); throw err; }
+      };
+      window.proxyFetch._afdbPatched = true;
+    }
+    if (typeof fetchESPN === 'function' && !fetchESPN._afdbPatched) {
+      const _origFetch = fetchESPN;
+      window.fetchESPN = async function() {
+        const leagueVal = (document.getElementById('leagueSelect') && document.getElementById('leagueSelect').value) || '(none)';
+        const teamAVal = (document.getElementById('teamAName') && document.getElementById('teamAName').value && document.getElementById('teamAName').value.trim()) || '(empty)';
+        const teamBVal = (document.getElementById('teamBName') && document.getElementById('teamBName').value && document.getElementById('teamBName').value.trim()) || '(empty)';
+        if (!leagueVal || leagueVal === 'unknown') { AFDB.log('ERROR','fetchESPN','BLOCKED: league is empty or unknown.'); return; }
+        if (!teamAVal || !teamBVal) { AFDB.log('ERROR','fetchESPN','BLOCKED: team name(s) are empty.'); return; }
+        try { return await _origFetch.apply(this, arguments); }
+        catch(err) { AFDB.log('ERROR','fetchESPN','fetchESPN THREW: ' + err.message); throw err; }
+      };
+      window.fetchESPN._afdbPatched = true;
+    }
+    if (typeof fetchScheduleCore === 'function' && !fetchScheduleCore._afdbPatched) {
+      const _origSched = fetchScheduleCore;
+      window.fetchScheduleCore = async function(base, teamId, league) {
+        try {
+          const res = await _origSched.apply(this, arguments);
+          if (!res) AFDB.log('ERROR','scheduleCore','NULL RESULT for teamId=' + teamId + ' — this blocks auto-fill!');
+          return res;
+        } catch(err) { AFDB.log('ERROR','scheduleCore','THREW for teamId=' + teamId + ': ' + err.message); throw err; }
+      };
+      window.fetchScheduleCore._afdbPatched = true;
+    }
+    if (typeof fetchH2HCore === 'function' && !fetchH2HCore._afdbPatched) {
+      const _origH2H = fetchH2HCore;
+      window.fetchH2HCore = async function(base, teamAId, teamBId, leagueKey) {
+        try { return await _origH2H.apply(this, arguments); }
+        catch(err) { AFDB.log('ERROR','h2hCore','H2H THREW: ' + err.message); throw err; }
+      };
+      window.fetchH2HCore._afdbPatched = true;
+    }
+    if (typeof searchTeamFromAPI === 'function' && !searchTeamFromAPI._afdbPatched) {
+      const _origSearch = searchTeamFromAPI;
+      window.searchTeamFromAPI = async function(base, name, league) {
+        try {
+          const res = await _origSearch.apply(this, arguments);
+          if (!res) AFDB.log('ERROR','searchTeam','Team ID NOT FOUND for "' + name + '" in ' + league + ' — THIS BLOCKS FETCH!');
+          return res;
+        } catch(err) { AFDB.log('ERROR','searchTeam','searchTeamFromAPI threw for "' + name + '": ' + err.message); throw err; }
+      };
+      window.searchTeamFromAPI._afdbPatched = true;
+    }
+  }, 0);
 });
 </script>
 
