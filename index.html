@@ -2597,7 +2597,9 @@ body.dark-mode .tracker-analytics-section-head {
   <span class="brand-right">
     <button class="theme-toggle" type="button" id="themeToggleBtn" title="Toggle dark/light mode">🎾</button>
     <button class="theme-toggle" type="button" id="trackerToggleBtn" title="Open tracked picks">📊</button>
+    <button class="theme-toggle" type="button" id="afdbBtn" title="Auto-Fetch Debugger" onclick="AFDB.open()">🔬</button>
     PREDICTIONS
+---ENDREPLACE---
   </span>
 </header>
 
@@ -3215,93 +3217,9 @@ const ENGINE_INTEGRITY_SHIELD = {
     el.textContent = text;
   }
 
-  // ── GOD FATHER: TENNIS X-RAY PANEL ──────────────────────────────────────────────
-  function buildGodFatherDebugHtml() {
-    const active = getTrackerItems();
-    const tableStyles = `width:100%; table-layout:fixed; border-collapse:collapse; font-size:10px; font-family:ui-monospace, monospace;`;
-    const btnStyles = `background:#f44336; color:#fff; border:1px solid #d32f2f; padding:4px 8px; border-radius:4px; font-size:9px; font-weight:bold; cursor:pointer; text-transform:uppercase; letter-spacing:0.5px;`;
-    
-    function badge(color, text) { return `<span style="background:${color};color:#000;padding:2px 5px;border-radius:3px;font-size:9px;font-weight:900;letter-spacing:0.5px;text-transform:uppercase;">${text}</span>`; }
-
-    // 1. SYSTEM & MEMORY
-    const lineMemSize = Object.keys(historyPoolCache || {}).length;
-    const sysHealthHtml = `
-      <div class="godfather-box" style="background:#111; border:1px solid #333; border-left:4px solid #4caf50; border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div style="font-size:12px; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:0.5px;">🖥️ System & Memory</div>
-          ${badge("#4caf50", "HEALTHY")}
-        </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size:10px; color:#aaa; background:#0a0a0a; padding:10px; border-radius:4px; border:1px solid #222;">
-          <div>Active Items: <b style="color:#fff">${active.length}</b></div>
-          <div>History Pool: <b style="color:#fff">${historyPoolCache.size}</b></div>
-        </div>
-      </div>`;
-
-    // 2. CLOUD SYNC CORE X-RAY
-    const isDesynced = g_trackerSaveVersion > g_trackerPersistedVersion;
-    const syncBadge = g_trackerSaveFailureCount > 0 ? badge("#f44336", "FAILING") : isDesynced ? badge("#ff9800", "DESYNCED") : badge("#4caf50", "SYNCED");
-    const syncHealthHtml = `
-      <div class="godfather-box" style="background:#111; border:1px solid ${isDesynced ? '#ff9800' : '#333'}; border-left:4px solid ${isDesynced ? '#ff9800' : '#4caf50'}; border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div style="font-size:12px; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:0.5px;">☁️ Cloud Sync X-Ray</div>
-          ${syncBadge}
-        </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size:10px; color:#aaa; background:#0a0a0a; padding:10px; border-radius:4px; border:1px solid #222;">
-          <div>Local Queue: <b style="color:#fff">${g_trackerSaveVersion}</b></div>
-          <div>Cloud Confirmed: <b style="color:#fff">${g_trackerPersistedVersion}</b></div>
-        </div>
-        ${isDesynced ? `<button style="${btnStyles} width:100%; margin-top:5px;" onclick="forceTrackerSaveNow()">🩹 Force Hard Sync</button>` : ''}
-      </div>`;
-
-    // 3. SETTLEMENT PROBES
-    let probeRows = (g_trackerDebug.lastSettlementDetails || []).map(d => `
-      <tr style="border-bottom:1px solid #1e1e1e">
-        <td style="padding:6px 4px;color:#aaa;font-size:9px;">${d.match.substring(0,15)}</td>
-        <td style="padding:6px 4px;color:#fff;font-size:9px;">${d.reason}</td>
-      </tr>`).join('');
-
-    const attemptSection = `
-      <div class="godfather-box" style="background:#111; border:1px solid #333; border-left:4px solid #2196f3; border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:8px;">
-        <div style="font-size:12px; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:0.5px;">📡 Settlement Log</div>
-        <div style="background:#0a0a0a; border:1px solid #222; border-radius:4px; max-height:150px; overflow-y:auto;">
-          <table style="${tableStyles}"><thead><tr style="color:#555; background:#151515"><th>Match</th><th>Result</th></tr></thead>
-          <tbody>${probeRows || '<tr><td colspan="2" style="padding:10px;text-align:center;">No active probes.</td></tr>'}</tbody></table>
-        </div>
-      </div>`;
-
-    return sysHealthHtml + syncHealthHtml + attemptSection;
-  }
-
-  function renderTrackerDebug() {
-    const panel = qs("trackerDebugPanel");
-    if (!panel) return;
-    
-    // Check if we are in debug view
-    const trackerModal = qs("trackerModal");
-    const isDebugView = trackerModal && trackerModal.querySelector(".tracker-panel").classList.contains("debug-view");
-    if (!isDebugView) return;
-
-    panel.innerHTML = `
-      <div class="tracker-analytics-shell">
-        <div class="tracker-analytics-topbar">
-          <div class="tracker-analytics-heading">
-            <div class="tracker-analytics-kicker" style="color:#f44336;">Immune System</div>
-            <div class="tracker-analytics-title" style="color:#fff;">God Father 🛡️</div>
-            <div class="tracker-analytics-subtitle" style="color:#888;">Tennis core diagnostics and auto-sorting health checks.</div>
-          </div>
-        </div>
-        <div id="godfatherGrid" style="padding:10px 0;">
-          ${buildGodFatherDebugHtml()}
-        </div>
-        <div style="margin-top:15px; border-top:1px solid #333; padding-top:10px;">
-           <div style="color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; margin-bottom:8px;">📜 Logic Event Log</div>
-           <div style="background:#000; border:1px solid #222; padding:10px; font-family:monospace; font-size:9px; color:#0f0; max-height:200px; overflow-y:auto;">
-             ${g_engineDebugLog.map(log => `<div>${htmlEscape(log)}</div>`).join('') || 'Waiting for events...'}
-           </div>
-        </div>
-      </div>
-    `;
-  }
+  // ── AFDB Microscope handles debugging now. ──────────────────────────────────────
+  function renderTrackerDebug() {}
+---ENDREPLACE---
 
 
   function openTrackerDebugModal() {
@@ -7112,27 +7030,19 @@ document.addEventListener("DOMContentLoaded", function () {
     document.body.classList.toggle("engine-alert", hasIssues);
   }
 
-  window.engineDebug = function(msg, detail) {
-    const stamp = new Date().toLocaleTimeString();
-    const line = `[${stamp}] ${msg} ${detail ? '| ' + JSON.stringify(detail) : ''}`;
-    g_engineDebugLog.unshift(line);
-    if (line.toLowerCase().includes("error") || line.toLowerCase().includes("fail")) {
-      g_engineAlertNeedsReview = true;
-      renderHeaderErrorState();
-    }
-    renderTrackerDebug();
-  };
+---ENDREPLACE---
 
     const headerErrorBtn = qs("headerErrorBtn");
     if (headerErrorBtn) {
       headerErrorBtn.addEventListener("click", function () {
-        openTrackerModal();
-        setTrackerView("debug");
+        // Open the AFDB Microscope natively and clear the red alert state
+        if (typeof AFDB !== 'undefined') AFDB.open();
         g_engineAlertNeedsReview = false;
         document.body.classList.remove("engine-alert");
         renderHeaderErrorState();
       });
     }
+---ENDREPLACE---
 
     const trackerInsightsBtn = qs("trackerInsightsBtn");
     if (trackerInsightsBtn) {
@@ -7333,5 +7243,290 @@ document.addEventListener("DOMContentLoaded", function () {
 
 })();
 </script>
+
+<div id="afdbOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,0.96);flex-direction:column;font-family:ui-monospace,Consolas,monospace;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);">
+  <div id="afdbPanel" style="width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;"></div>
+</div>
+
+<script>
+const AFDB = (function() {
+  const LOG_LIMIT = 600;
+  let _log = [];
+  let _isOpen = false;
+  let _showOnlyErrors = true; 
+  let _currentLogLevel = 'ALL';
+
+  const LEVELS = {
+    BOOT:    { color:'#7aa6ff' }, NET:     { color:'#4ea9ff' },
+    FETCH:   { color:'#49d45f' }, FILL:    { color:'#2aff9e' },
+    PICK:    { color:'#d4af37' }, H2H:     { color:'#c678dd' },
+    SUCCESS: { color:'#49d45f' }, WARN:    { color:'#ffcf73' },
+    ERROR:   { color:'#ff5c61' }, INFO:    { color:'#aaa'    },
+    ENGINE:  { color:'#d4af37' }, TRACKER: { color:'#4ea9ff' },
+    VERDICT: { color:'#49d45f' } 
+  };
+
+  const ICONS = {
+    BOOT:'⚙️', NET:'🌐', FETCH:'📡', FILL:'✍️',
+    PICK:'📌', H2H:'🔄', SUCCESS:'✅', WARN:'⚠️', ERROR:'❌', INFO:'ℹ️',
+    ENGINE:'⚙️', TRACKER:'📊', VERDICT:'🏅'
+  };
+
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function log(level, section, msg, data) {
+    const entry = {
+      ts: new Date().toLocaleTimeString([],{hour12:false}),
+      level, section: section||'CORE', msg,
+      data: data !== undefined ? data : null
+    };
+    _log.unshift(entry);
+    if (_log.length > LOG_LIMIT) _log = _log.slice(0, LOG_LIMIT);
+    if (_isOpen) _render();
+  }
+
+  function clear() { _log = []; _render(); }
+
+  function toggleFilter() {
+    const levels = ['ALL', 'ERROR', 'WARN'];
+    _currentLogLevel = levels[(levels.indexOf(_currentLogLevel) + 1) % levels.length];
+    _showOnlyErrors = _currentLogLevel !== 'ALL';
+    _render();
+  }
+
+  function copy(btnEl) {
+    const visibleLogs = _showOnlyErrors ? _log.filter(e => e.level === 'ERROR' || e.level === 'WARN' || e.level === 'VERDICT') : _log;
+    const textArr = visibleLogs.slice().reverse().map(e => {
+      let line = '[' + e.ts + '] [' + e.level + '] [' + e.section + '] ' + e.msg;
+      if (e.data !== null) {
+        try { line += ' | ' + JSON.stringify(e.data); }
+        catch(x) { line += ' | ' + String(e.data); }
+      }
+      return line;
+    });
+    const text = textArr.join(String.fromCharCode(10, 10));
+        try {
+      navigator.clipboard.writeText(text);
+      if (btnEl) {
+        const origText = btnEl.innerHTML;
+        btnEl.innerHTML = "✅ COPIED!";
+        setTimeout(() => { if (btnEl) btnEl.innerHTML = origText; }, 1500);
+      }
+    } catch(e) {
+      log('WARN','AFDB','Clipboard blocked — printed to console');
+    }
+  }
+
+  function snapDOM() {
+    const ids = [
+      'leagueSelect','teamAName','teamBName',
+      'aFTScored','aFTAllowed','a1HScored','a1HAllowed',
+      'bFTScored','bFTAllowed','b1HScored','b1HAllowed',
+      'aFTH2H','bFTH2H','a1HH2H','b1HH2H',
+      'ftMarket','h1Market','h2Market','teamAMarket','teamBMarket'
+    ];
+    const snap = {};
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      snap[id] = el ? (el.value||'(empty)') : '🚫 NOT FOUND';
+    });
+    if (typeof selectedPlayerIds !== 'undefined') snap['_playerIds'] = JSON.stringify(selectedPlayerIds);
+    if (typeof uiState !== 'undefined') snap['_league'] = uiState.appliedLeagueSlug||'(none)';
+    return snap;
+  }
+
+  function _render() {
+    const panel = document.getElementById('afdbPanel');
+    if (!panel) return;
+    const visibleLogs = _log.filter(e => _currentLogLevel === 'ALL' || e.level === _currentLogLevel || (_currentLogLevel === 'ERROR' && e.level === 'VERDICT') || (_currentLogLevel === 'WARN' && (e.level === 'ERROR' || e.level === 'VERDICT')));
+    const logRows = visibleLogs.map(e => {
+      const def = LEVELS[e.level]||LEVELS.INFO;
+      const icon = ICONS[e.level]||'•';
+      let dataHtml = '';
+      if (e.data !== null) {
+        let ds;
+        try { ds = typeof e.data==='object' ? JSON.stringify(e.data,null,2) : String(e.data); }
+        catch(x) { ds = String(e.data); }
+        dataHtml = '<pre style="color:#888;font-size:9px;margin:4px 0 0 0;padding:6px;background:#070707;border-left:2px solid #222;white-space:pre-wrap;word-break:break-all;">' + esc(ds) + '</pre>';
+
+  }
+  return '<div style="padding:8px;border-bottom:1px solid #151515;"><div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;"><span style="color:#555;font-size:9px;min-width:65px;flex-shrink:0;">' + esc(e.ts) + '</span><span style="color:' + def.color + ';font-size:10px;font-weight:900;min-width:75px;flex-shrink:0;">' + icon + ' ' + esc(e.level) + '</span><span style="color:#777;font-size:9px;min-width:80px;flex-shrink:0;">[' + esc(e.section) + ']</span><span style="color:' + def.color + ';font-size:11px;font-weight:700;flex:1;white-space:pre-wrap;">' + esc(e.msg) + '</span></div>' + dataHtml + '</div>';
+}).join('');
+
+const headerBtns = '<button onclick="AFDB.copy(this)" style="background:#111;border:1px solid #333;color:#49d45f;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">📋 Copy Log</button><button onclick="AFDB.clear()" style="background:#111;border:1px solid #333;color:#ff5c61;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">🗑️ Clear</button><button onclick="AFDB.runTestFetch()" style="background:#2a0608;border:1px solid #d91f26;color:#fff;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;box-shadow:0 0 8px rgba(217,31,38,0.4);">🚨 MILITARY RAID</button><button onclick="window.openVisualReportFromDebug()" style="background:#111;border:1px solid #333;color:#d4af37;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">📊</button><button onclick="AFDB.close()" style="background:#111;border:1px solid #555;color:#ccc;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;">✕ Close</button>';
+
+const emptyMsg = _showOnlyErrors ? 'No suspects arrested. The code is clean.' : 'No log entries yet. Run a fetch.';
+const filterLabel = `🎯 LEVEL: ${_currentLogLevel}`;
+
+panel.innerHTML = '<div style="background:#080808;border-bottom:1px solid #222;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;flex-shrink:0;"><div style="color:#d4af37;font-size:14px;font-weight:900;letter-spacing:1px;">🔬 AUTO-FETCH DEBUG BRAIN (TT)</div><div style="display:flex;gap:8px;flex-wrap:wrap;">' + headerBtns + '</div></div><div style="display:flex;flex-direction:column;flex:1;overflow-y:auto;background:#0a0a0a;"><div style="flex:1;"><div style="padding:10px 12px;background:#111;color:#d4af37;font-size:11px;font-weight:900;text-transform:uppercase;position:sticky;top:0;z-index:10;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;"><span>📡 FETCH & ENGINE LOGS</span><button onclick="AFDB.toggleFilter()" style="background:none;border:none;color:#4ea9ff;font-size:14px;font-weight:bold;cursor:pointer;">' + filterLabel + '</button></div><div style="padding-bottom:15px;">' + (logRows||'<div style="color:#555;font-size:12px;text-align:center;padding:30px;font-weight:bold;">' + emptyMsg + '</div>') + '</div></div></div>';
+
+}
+
+  function open() {
+    _isOpen = true;
+    const ov = document.getElementById('afdbOverlay');
+    if (ov) { ov.style.display='flex'; _render(); }
+  }
+
+  function close() {
+    _isOpen = false;
+    const ov = document.getElementById('afdbOverlay');
+    if (ov) ov.style.display='none';
+  }
+
+  async function runTestFetch() {
+    try {
+      if (typeof forceTrackerSaveNow === 'function') await forceTrackerSaveNow();
+      if (typeof refreshTrackerInBackground === 'function') await refreshTrackerInBackground(true);
+    } catch(e) {}
+
+    let totalSuspects = 0;
+
+    if (typeof _schedCache !== 'undefined') _schedCache.clear();
+    if (typeof _summaryCache !== 'undefined') _summaryCache.clear();
+    if (typeof _fixtureCache !== 'undefined') _fixtureCache.clear();
+    if (typeof _teamCatalogCache !== 'undefined') _teamCatalogCache.clear();
+
+    const inputsToCheck = ['aFTScored', 'bFTScored', 'ftMarket', 'teamAMarket', 'teamBMarket'];
+    inputsToCheck.forEach(id => {
+      const el = document.getElementById(id);
+      const val = el ? el.value.trim() : '';
+      if (val && /[^0-9,.\s-]/.test(val)) {
+        log('ERROR', 'UI INPUT', 'Invalid characters detected in ' + id + ': "' + val + '". Math engine will crash.');
+        totalSuspects++;
+      }
+    });
+
+    const active = Array.isArray(g_trackerState && g_trackerState.activePicks) ? g_trackerState.activePicks : [];
+    const memCount = Object.keys(g_engineLineMemory || {}).length;
+    if (memCount > 190) { log('ERROR','STORAGE','Line memory nearing maximum capacity (200). Pruning imminent.'); totalSuspects++; }
+    if (active.length > 490) { log('ERROR','STORAGE','Active picks array is critically full (Limit: 500).'); totalSuspects++; }
+    if (typeof MODEL_TUNING === 'undefined') { log('ERROR','CONFIG','MODEL_TUNING matrix is missing.'); totalSuspects++; }
+
+    let paceAnomalies = 0, edgeAnomalies = 0;
+    active.forEach(p => {
+      const pace = (p.diagnostics && p.diagnostics.pace) || (p.godsEyeMemory && p.godsEyeMemory.pace);
+      if (pace && (pace > 135 || pace < 65)) paceAnomalies++;
+      if (p.edgePct && Math.abs(p.edgePct) > 25) edgeAnomalies++;
+    });
+    if (paceAnomalies > 0) { log('ERROR','MATH ENGINE', paceAnomalies + ' picks show unrealistic pace projections (<65 or >135). Logic contradiction detected.'); totalSuspects++; }
+    if (edgeAnomalies > 0) { log('ERROR','MATH ENGINE', edgeAnomalies + ' picks show extreme edge anomalies (>25%).'); totalSuspects++; }
+
+    const settled = (g_trackerState && g_trackerState.stats && g_trackerState.stats.settled) || 0;
+    const wins = (g_trackerState && g_trackerState.stats && g_trackerState.stats.wins) || 0;
+    if (settled >= 20) {
+      const winRate = (wins / settled) * 100;
+      if (winRate < 45) { log('ERROR','MODEL BIAS','System win rate dropping below safety threshold (' + winRate.toFixed(1) + '%). Recalibration required.'); totalSuspects++; }
+    }
+
+    const league = document.getElementById('leagueSelect') && document.getElementById('leagueSelect').value;
+    const tA = document.getElementById('teamAName') && document.getElementById('teamAName').value;
+    const tB = document.getElementById('teamBName') && document.getElementById('teamBName').value;
+    if (league && league !== 'unknown' && tA && tB) {
+      try { await fetchESPNTennis(); }
+      catch(e) { log('ERROR','NETWORK','Live sweep failed: ' + e.message); totalSuspects++; }
+    }
+
+    const verdictMsg = totalSuspects === 0 ? 'Raid complete.\nEngine is 100% perfect.' : 'Raid complete.\nCaught ' + totalSuspects + ' Thieves and locked them behind the bars.';
+    const verdictEntry = {
+      ts: new Date().toLocaleTimeString([],{hour12:false}),
+      level: totalSuspects === 0 ? 'VERDICT' : 'ERROR',
+      section: 'POLICE RAID',
+      msg: verdictMsg,
+      data: null
+    };
+    _log.unshift(verdictEntry);
+    if (_log.length > LOG_LIMIT) _log = _log.slice(0, LOG_LIMIT);
+    if (_isOpen) _render();
+    setTimeout(() => {
+      const idx = _log.indexOf(verdictEntry);
+      if (idx !== -1) { _log.splice(idx, 1); if (_isOpen) _render(); }
+    }, 7000);
+
+  }
+
+  return { log, clear, copy, toggleFilter, open, close, runTestFetch, get isOpen() { return _isOpen; }, get logs() { return _log; } };
+})();
+
+window.openVisualReportFromDebug = function() {
+  AFDB.close();
+  if (typeof openTrackerModal === 'function') openTrackerModal();
+  if (typeof setTrackerView === 'function') setTrackerView('report');
+};
+
+window.engineDebug = function(msg, extra) {
+  const msgStr = String(msg).toLowerCase();
+  if (msgStr.includes("fetch") || msgStr.includes("load failed") || msgStr.includes("networkerror")) return;
+  const isErr = msgStr.includes("error") || msgStr.includes("fail") || msgStr.includes("critical");
+  AFDB.log(isErr ? 'ERROR' : 'ENGINE', 'ENGINE', msg, extra);
+};
+
+window.trackerDebug = function(msg, extra) {
+  const msgStr = String(msg).toLowerCase();
+  if (msgStr.includes("fetch") || msgStr.includes("load failed") || msgStr.includes("networkerror")) return;
+  const isErr = msgStr.includes("error") || msgStr.includes("fail");
+  AFDB.log(isErr ? 'ERROR' : 'TRACKER', 'TRACKER', msg, extra);
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    if (typeof proxyFetch === 'function' && !proxyFetch._afdbPatched) {
+      const _orig = proxyFetch;
+      window.proxyFetch = async function(url, timeout) {
+        const short = String(url||'').replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\/tennis\//,'TT/').replace(/https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\//,'ESPN/');
+        try { return await _orig.apply(this, arguments); }
+        catch(err) { AFDB.log('ERROR','PROXY','FAILED: ' + short, { error: err.message }); throw err; }
+      };
+      window.proxyFetch._afdbPatched = true;
+    }
+    if (typeof fetchESPNTennis === 'function' && !fetchESPNTennis._afdbPatched) {
+      const _origFetch = fetchESPNTennis;
+      window.fetchESPNTennis = async function() {
+        const leagueVal = (document.getElementById('leagueSelect') && document.getElementById('leagueSelect').value) || '(none)';
+        const teamAVal = (document.getElementById('teamAName') && document.getElementById('teamAName').value && document.getElementById('teamAName').value.trim()) || '(empty)';
+        const teamBVal = (document.getElementById('teamBName') && document.getElementById('teamBName').value && document.getElementById('teamBName').value.trim()) || '(empty)';
+        if (!leagueVal || leagueVal === 'unknown') { AFDB.log('ERROR','fetchESPNTennis','BLOCKED: league is empty or unknown.'); return; }
+        if (!teamAVal || !teamBVal) { AFDB.log('ERROR','fetchESPNTennis','BLOCKED: team name(s) are empty.'); return; }
+        try { return await _origFetch.apply(this, arguments); }
+        catch(err) { AFDB.log('ERROR','fetchESPNTennis','fetchESPNTennis THREW: ' + err.message); throw err; }
+      };
+      window.fetchESPNTennis._afdbPatched = true;
+    }
+    if (typeof fetchScheduleCore === 'function' && !fetchScheduleCore._afdbPatched) {
+      const _origSched = fetchScheduleCore;
+      window.fetchScheduleCore = async function(base, teamId, league) {
+        try {
+          const res = await _origSched.apply(this, arguments);
+          if (!res) AFDB.log('ERROR','scheduleCore','NULL RESULT for teamId=' + teamId + ' — this blocks auto-fill!');
+          return res;
+        } catch(err) { AFDB.log('ERROR','scheduleCore','THREW for teamId=' + teamId + ': ' + err.message); throw err; }
+      };
+      window.fetchScheduleCore._afdbPatched = true;
+    }
+    if (typeof fetchH2HCore === 'function' && !fetchH2HCore._afdbPatched) {
+      const _origH2H = fetchH2HCore;
+      window.fetchH2HCore = async function(base, teamAId, teamBId, leagueKey) {
+        try { return await _origH2H.apply(this, arguments); }
+        catch(err) { AFDB.log('ERROR','h2hCore','H2H THREW: ' + err.message); throw err; }
+      };
+      window.fetchH2HCore._afdbPatched = true;
+    }
+    if (typeof searchTeamFromAPI === 'function' && !searchTeamFromAPI._afdbPatched) {
+      const _origSearch = searchTeamFromAPI;
+      window.searchTeamFromAPI = async function(base, name, league) {
+        try {
+          const res = await _origSearch.apply(this, arguments);
+          if (!res) AFDB.log('ERROR','searchTeam','Team ID NOT FOUND for "' + name + '" in ' + league + ' — THIS BLOCKS FETCH!');
+          return res;
+        } catch(err) { AFDB.log('ERROR','searchTeam','searchTeamFromAPI threw for "' + name + '": ' + err.message); throw err; }
+      };
+      window.searchTeamFromAPI._afdbPatched = true;
+    }
+  }, 0);
+});
+</script>
 </body>
 </html>
+---ENDREPLACE---
