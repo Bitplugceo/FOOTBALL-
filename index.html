@@ -3946,28 +3946,32 @@ const ENGINE_INTEGRITY_SHIELD = {
     const isRescueEligible = simPct >= 62 || Math.abs(edge) >= 4.0;
     if (!hasH2H) {
       if (isRescueEligible) notes.push("No H2H, but rescued by extreme edge/sim");
-      else { filtersTriggered.push("missingH2H"); notes.push("No H2H support"); if (confidence !== "PASS") { confidence = downgradeConfidence(confidence); } }
+      else {
+        filtersTriggered.push("missingH2H");
+        notes.push("No H2H support");
+        // Only downgrade when edge is tiny — a large edge survives without H2H
+        if (confidence !== "PASS" && Math.abs(edge) < 1.5) { confidence = downgradeConfidence(confidence); }
+      }
     } else {
-      // FIX: Tell the user exactly how much H2H was blended in so you know it worked.
       notes.push(`H2H Blended (${Math.round(h2hWeight * 100)}% weight)`);
     }
 
-    if (volatility > 5.5 && volatility <= 7.0) {
+    if (volatility > 6.5 && volatility <= 7.0) {
       filtersTriggered.push("chaos");
       if (!isRescueEligible) { confidence = downgradeConfidence(confidence); }
       else notes.push("Volatility rescued by math strength");
     }
     if (volatility > 7.0) { filtersTriggered.push("chaos"); notes.push("Extreme volatility / skip zone"); confidence = "PASS"; pick = "PASS"; }
 
-    if (simPct < 50 && pick !== "PASS") { notes.push(`Sim Warning: ${simPct.toFixed(1)}%`); confidence = downgradeConfidence(confidence); } 
-    else if (simPct >= 62 && pick !== "PASS" && !terminalVeto) { 
-      notes.push(`Sim Strong: ${simPct.toFixed(1)}%`); 
+    if (simPct < 48 && pick !== "PASS") { notes.push(`Sim Warning: ${simPct.toFixed(1)}%`); confidence = downgradeConfidence(confidence); }
+    else if (simPct >= 62 && pick !== "PASS" && !terminalVeto) {
+      notes.push(`Sim Strong: ${simPct.toFixed(1)}%`);
       if (confidence === "C") {
         confidence = "B";
-      } else if (confidence === "PASS") { 
-        confidence = "C"; 
-        pick = lineDecision.pick; 
-      } 
+      } else if (confidence === "PASS") {
+        confidence = "C";
+        pick = lineDecision.pick;
+      }
     }
 
 
@@ -5630,6 +5634,25 @@ const ENGINE_INTEGRITY_SHIELD = {
   }
 
 
+  function renderArchivedSection(items, archiveWrap) {
+    const archived = items.filter(function(i) { return i.archived; })
+      .sort(function(a, b) { return getTrackerItemTimeMs(b) - getTrackerItemTimeMs(a); });
+    if (!archiveWrap) return;
+    archiveWrap.style.display = archived.length ? "block" : "none";
+    const archBody = qs("trackerArchiveBody");
+    if (!archBody) return;
+    archBody.innerHTML = archived.slice(0, 30).map(function(ar) {
+      const eTxt = (Number(ar.edge) > 0 ? "+" : "") + fmt(ar.edge);
+      const sCls = "track-" + String(ar.status || "PENDING").toLowerCase();
+      return '<tr><td>' + htmlEscape(formatTrackerDate(ar.archivedAt || ar.savedAt)) + '</td>' +
+        '<td>' + htmlEscape(ar.match) + '</td><td>' + htmlEscape(ar.market) + '</td>' +
+        '<td>' + htmlEscape(ar.line || "—") + '</td>' +
+        '<td class="' + getPickCellClass(ar.rawPick, ar.confidence) + '">' + htmlEscape(ar.pick) + '</td>' +
+        '<td>' + htmlEscape(eTxt) + '</td>' +
+        '<td class="' + sCls + '">' + htmlEscape(ar.status || "PENDING") + '</td></tr>';
+    }).join("");
+  }
+
   function updateTrackerUI() {
     const items = getTrackerItems();
     const summary = qs("trackerSummary");
@@ -5677,25 +5700,7 @@ const ENGINE_INTEGRITY_SHIELD = {
         empty.textContent = "No live/recent picks. Older picks moved to record.";
       }
           if (tableWrap) tableWrap.style.display = "none";
-    // Fix #13: Render archived picks even when no live picks are visible
-    const _archivedEarly = items.filter(function(i) { return i.archived; })
-      .sort(function(a, b) { return getTrackerItemTimeMs(b) - getTrackerItemTimeMs(a); });
-    if (archiveWrap) {
-      archiveWrap.style.display = _archivedEarly.length ? "block" : "none";
-      const _archBodyEarly = qs("trackerArchiveBody");
-      if (_archBodyEarly) {
-        _archBodyEarly.innerHTML = _archivedEarly.slice(0, 30).map(function(ar) {
-          const eTxt = (Number(ar.edge) > 0 ? "+" : "") + fmt(ar.edge);
-          const sCls = "track-" + String(ar.status || "PENDING").toLowerCase();
-          return '<tr><td>' + htmlEscape(formatTrackerDate(ar.archivedAt || ar.savedAt)) + '</td>' +
-            '<td>' + htmlEscape(ar.match) + '</td><td>' + htmlEscape(ar.market) + '</td>' +
-            '<td>' + htmlEscape(ar.line || "—") + '</td>' +
-            '<td class="' + getPickCellClass(ar.rawPick, ar.confidence) + '">' + htmlEscape(ar.pick) + '</td>' +
-            '<td>' + htmlEscape(eTxt) + '</td>' +
-            '<td class="' + sCls + '">' + htmlEscape(ar.status || "PENDING") + '</td></tr>';
-        }).join("");
-      }
-    }
+    renderArchivedSection(items, archiveWrap);
     if (body) body.innerHTML = "";
     return;
     }
@@ -5703,23 +5708,7 @@ const ENGINE_INTEGRITY_SHIELD = {
     if (empty) empty.style.display = "none";
     if (tableWrap) tableWrap.style.display = "block";
 
-    // Fix #13: Render archived picks in the archive section
-    const _archivedMain = items.filter(function(i) { return i.archived; })
-      .sort(function(a, b) { return getTrackerItemTimeMs(b) - getTrackerItemTimeMs(a); });
-    if (archiveWrap) archiveWrap.style.display = _archivedMain.length ? "block" : "none";
-    const _archBodyMain = qs("trackerArchiveBody");
-    if (_archBodyMain) {
-      _archBodyMain.innerHTML = _archivedMain.slice(0, 30).map(function(ar) {
-        const eTxt = (Number(ar.edge) > 0 ? "+" : "") + fmt(ar.edge);
-        const sCls = "track-" + String(ar.status || "PENDING").toLowerCase();
-        return '<tr><td>' + htmlEscape(formatTrackerDate(ar.archivedAt || ar.savedAt)) + '</td>' +
-          '<td>' + htmlEscape(ar.match) + '</td><td>' + htmlEscape(ar.market) + '</td>' +
-          '<td>' + htmlEscape(ar.line || "—") + '</td>' +
-          '<td class="' + getPickCellClass(ar.rawPick, ar.confidence) + '">' + htmlEscape(ar.pick) + '</td>' +
-          '<td>' + htmlEscape(eTxt) + '</td>' +
-          '<td class="' + sCls + '">' + htmlEscape(ar.status || "PENDING") + '</td></tr>';
-      }).join("");
-    }
+    renderArchivedSection(items, archiveWrap);
 
     function statusBadge(item) {
       const status = String(item.status || "PENDING").toUpperCase();
@@ -7279,6 +7268,114 @@ document.addEventListener("DOMContentLoaded", function () {
     if (fetchBtn) {
       fetchBtn.addEventListener("click", fetchESPNTennis);
     }
+
+    // Fix #19: Autocomplete for player name fields
+    (function setupAutocomplete() {
+      const ATP_PLAYERS = [
+        "Novak Djokovic", "Carlos Alcaraz", "Jannik Sinner", "Daniil Medvedev",
+        "Alexander Zverev", "Andrey Rublev", "Holger Rune", "Stefanos Tsitsipas",
+        "Casper Ruud", "Hubert Hurkacz", "Taylor Fritz", "Frances Tiafoe",
+        "Ben Shelton", "Tommy Paul", "Sebastian Korda", "Felix Auger-Aliassime",
+        "Lorenzo Musetti", "Alex de Minaur", "Ugo Humbert", "Grigor Dimitrov",
+        "Nicolas Jarry", "Francisco Cerundolo", "Karen Khachanov", "Roman Safiullin",
+        "Tallon Griekspoor", "Arthur Fils", "Alexei Popyrin", "Sebastian Baez",
+        "Jiri Lehecka", "Tomas Machac"
+      ];
+      const WTA_PLAYERS = [
+        "Aryna Sabalenka", "Iga Swiatek", "Coco Gauff", "Elena Rybakina",
+        "Jessica Pegula", "Mirra Andreeva", "Qinwen Zheng", "Emma Navarro",
+        "Danielle Collins", "Madison Keys", "Daria Kasatkina", "Liudmila Samsonova",
+        "Jelena Ostapenko", "Maria Sakkari", "Jasmine Paolini", "Barbora Krejcikova",
+        "Victoria Azarenka", "Elina Svitolina", "Beatriz Haddad Maia", "Paula Badosa",
+        "Anna Kalinskaya", "Ekaterina Alexandrova", "Marta Kostyuk", "Karolina Muchova",
+        "Diana Shnaider", "Yulia Putintseva", "Elise Mertens", "Veronika Kudermetova",
+        "Donna Vekic", "Clara Tauson"
+      ];
+      const ALL_PLAYERS = ATP_PLAYERS.concat(WTA_PLAYERS);
+
+      function getFilteredPlayers(query) {
+        const q = normalizeName(query);
+        if (!q || q.length < 2) return [];
+        return ALL_PLAYERS.filter(function(name) {
+          return normalizeName(name).includes(q);
+        }).slice(0, 8);
+      }
+
+      function setupField(inputId, dropId, playerIdKey) {
+        const input = qs(inputId);
+        const drop = qs(dropId);
+        if (!input || !drop) return;
+        let activeIdx = -1;
+
+        function hideDrop() {
+          drop.innerHTML = "";
+          drop.style.display = "none";
+          activeIdx = -1;
+        }
+
+        function showDrop(matches, query) {
+          if (!matches.length) { hideDrop(); return; }
+          const q = normalizeName(query);
+          drop.innerHTML = matches.map(function(name, i) {
+            const norm = normalizeName(name);
+            const idx = norm.indexOf(q);
+            var label;
+            if (idx === -1) {
+              label = htmlEscape(name);
+            } else {
+              label = htmlEscape(name.slice(0, idx)) +
+                "<strong>" + htmlEscape(name.slice(idx, idx + query.length)) + "</strong>" +
+                htmlEscape(name.slice(idx + query.length));
+            }
+            return '<div data-idx="' + i + '">' + label + "</div>";
+          }).join("");
+          drop.style.display = "block";
+          activeIdx = -1;
+        }
+
+        function selectItem(name) {
+          input.value = name;
+          selectedPlayerIds[playerIdKey] = null;
+          clearFetchedAutofill();
+          hideDrop();
+        }
+
+        input.addEventListener("input", function() {
+          showDrop(getFilteredPlayers(input.value), input.value);
+        });
+
+        input.addEventListener("keydown", function(e) {
+          var rows = drop.querySelectorAll("div[data-idx]");
+          if (!rows.length) return;
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            activeIdx = Math.min(activeIdx + 1, rows.length - 1);
+            rows.forEach(function(el, i) { el.classList.toggle("active", i === activeIdx); });
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            activeIdx = Math.max(activeIdx - 1, 0);
+            rows.forEach(function(el, i) { el.classList.toggle("active", i === activeIdx); });
+          } else if (e.key === "Enter" && activeIdx >= 0) {
+            e.preventDefault();
+            selectItem(rows[activeIdx].textContent);
+          } else if (e.key === "Escape") {
+            hideDrop();
+          }
+        });
+
+        drop.addEventListener("mousedown", function(e) {
+          var div = e.target.closest("div[data-idx]");
+          if (div) { e.preventDefault(); selectItem(div.textContent); }
+        });
+
+        document.addEventListener("click", function(e) {
+          if (!input.contains(e.target) && !drop.contains(e.target)) hideDrop();
+        });
+      }
+
+      setupField("teamAName", "dropA", "A");
+      setupField("teamBName", "dropB", "B");
+    })();
 
     const runBtn = qs("runBtn");
     if (runBtn) runBtn.addEventListener("click", runEngine);
