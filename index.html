@@ -2924,6 +2924,26 @@ const ENGINE_INTEGRITY_SHIELD = {
 
 (function () {
   const THEME_KEY = "tennis_engine_theme";
+
+  // Centralized model configuration — all tunable parameters in one place (Fix #5/#10)
+  const MODEL_CONFIG = {
+    bo5Multiplier: 1.45,
+    grassMultiplier: 1.035,
+    clayMultiplier: 0.965,
+    baseHoldProbATP: 0.645,
+    baseHoldProbWTA: 0.625,
+    dominanceScaling: 0.18,
+    h2hWeightDefault: 0.30,
+    h2hWeightGrass: 0.20,
+    h2hWeightClay: 0.40,
+    h2hWeightSmallSample: 0.15,
+    h2hSmallSampleThreshold: 3,
+    confidenceThresholds: { A: 14.0, B: 9.0, C: 4.5 },
+    confidenceVolatilityMax: { A: 4.5, B: 5.5, C: 6.5, max: 7.0 },
+    fetchCooldownMs: 3000,
+    simRuns: 10000
+  };
+
     // 🧠 THE ENGINE BRAIN (Moved to top for visibility)
   function normalizeTrackerItem(item) {
     const base = item && typeof item === "object" ? item : {};
@@ -2960,7 +2980,7 @@ const ENGINE_INTEGRITY_SHIELD = {
   let g_trackerSaveFailureCount = 0;
   let g_trackerSaveVersion = 0;
   let g_trackerPersistedVersion = 0;
-  const WORKER_URL = "https://thebetceo-engine.ridwantunde636.workers.dev/";
+  let WORKER_URL = localStorage.getItem("betceo_worker_url") || "https://thebetceo-engine.ridwantunde636.workers.dev/";
   const TRACKER_STORAGE_KEY = "The_Bet_Ceo_Key2";
   const TRACKER_API_URL = String(WORKER_URL || "").replace(/\/+$/, "") + "/tracker-state";
   const TRACKER_CACHE_KEY = "bb_engine_tracker_state_" + TRACKER_STORAGE_KEY;
@@ -3456,13 +3476,13 @@ const ENGINE_INTEGRITY_SHIELD = {
     // We convert the edge to a percentage relative to the line midpoint.
     const edgePct = (absEdge / (lineMid || 22.0)) * 100;
 
-    if (volatility > 7.0) return "PASS"; 
-    
-    // Percent-based thresholds provide fair grading for both Set 1 and Match totals.
-    // A: >14.0% | B: >9.0% | C: >4.5%
-    if (edgePct >= 14.0 && volatility <= 4.5) return "A";
-    if (edgePct >= 9.0 && volatility <= 5.5) return "B";
-    if (edgePct >= 4.5 && volatility <= 6.5) return "C";
+    if (volatility > MODEL_CONFIG.confidenceVolatilityMax.max) return "PASS";
+
+    const { A: thrA, B: thrB, C: thrC } = MODEL_CONFIG.confidenceThresholds;
+    const { A: volA, B: volB, C: volC } = MODEL_CONFIG.confidenceVolatilityMax;
+    if (edgePct >= thrA && volatility <= volA) return "A";
+    if (edgePct >= thrB && volatility <= volB) return "B";
+    if (edgePct >= thrC && volatility <= volC) return "C";
     return "PASS";
 
   }
@@ -3646,25 +3666,20 @@ const ENGINE_INTEGRITY_SHIELD = {
 
     // 1. Format Scaling (Institutional Multipliers)
     if (isMatch && isBO5) {
-      const bo5Multiplier = 1.45; // BO5 is statistically 1.45x longer than BO3
-      avgA *= bo5Multiplier;
-      avgB *= bo5Multiplier;
-      notes.push("Format: BO5 Multiplier (1.45x)");
+      avgA *= MODEL_CONFIG.bo5Multiplier;
+      avgB *= MODEL_CONFIG.bo5Multiplier;
+      notes.push("Format: BO5 Multiplier (" + MODEL_CONFIG.bo5Multiplier + "x)");
     }
 
-    // 2. Surface Multipliers (Percentage-based)
-    // Fast surfaces (Grass) increase total games by ~3.5% due to higher hold rates.
-    // Slow surfaces (Clay) decrease total games by ~3.5% due to higher break rates.
+    // 2. Surface Multipliers (from MODEL_CONFIG)
     if (ctx.surface === "Grass") {
-      const grassMult = 1.035;
-      avgA *= grassMult;
-      avgB *= grassMult;
-      notes.push("Surface: Grass (+3.5%)");
+      avgA *= MODEL_CONFIG.grassMultiplier;
+      avgB *= MODEL_CONFIG.grassMultiplier;
+      notes.push("Surface: Grass (+" + Math.round((MODEL_CONFIG.grassMultiplier - 1) * 100) + "%)");
     } else if (ctx.surface === "Clay") {
-      const clayMult = 0.965;
-      avgA *= clayMult;
-      avgB *= clayMult;
-      notes.push("Surface: Clay (-3.5%)");
+      avgA *= MODEL_CONFIG.clayMultiplier;
+      avgB *= MODEL_CONFIG.clayMultiplier;
+      notes.push("Surface: Clay (-" + Math.round((1 - MODEL_CONFIG.clayMultiplier) * 100) + "%)");
     }
 
     // 3. Fatigue Re-balancing (Zero-Sum Logic)
@@ -3686,7 +3701,7 @@ const ENGINE_INTEGRITY_SHIELD = {
 
     if (ctx.eventLevel) notes.push(ctx.eventLevel);
 
-    return { avgA, avgB, stdA, stdB, h2h, projectionShift, extraNotes: uniqueNotes(notes), avgGrind, avgTb, avgS1Kill };
+    return { avgA, avgB, stdA, stdB, h2h, projectionShift, extraNotes: uniqueNotes(notes), avgGrind, avgTb, avgS1Kill, pA_serve, pB_serve };
   }
 
       // PERSISTENT WORKER ASSETS (Located outside the function to maintain state)
@@ -3846,9 +3861,11 @@ const ENGINE_INTEGRITY_SHIELD = {
     const hasH2H = Array.isArray(config.h2h) && config.h2h.length > 0;
     const h2hAvg = hasH2H ? mean(config.h2h) : null;
 
-    let h2hWeight = 0.3;
-    if (config.ctx && config.ctx.surface === "Grass") h2hWeight = 0.2; 
-    else if (config.ctx && config.ctx.surface === "Clay") h2hWeight = 0.4; 
+    let h2hWeight = MODEL_CONFIG.h2hWeightDefault;
+    if (config.ctx && config.ctx.surface === "Grass") h2hWeight = MODEL_CONFIG.h2hWeightGrass;
+    else if (config.ctx && config.ctx.surface === "Clay") h2hWeight = MODEL_CONFIG.h2hWeightClay;
+    // Fix #11: Reduce weight for small H2H samples to avoid noise
+    if (hasH2H && config.h2h.length < MODEL_CONFIG.h2hSmallSampleThreshold) h2hWeight = MODEL_CONFIG.h2hWeightSmallSample;
 
         const projectionCore = hasH2H ? ((baseProjection * (1 - h2hWeight)) + (h2hAvg * h2hWeight)) : baseProjection;
     const projection = projectionCore + (config.projectionShift || 0);
@@ -3874,48 +3891,41 @@ const ENGINE_INTEGRITY_SHIELD = {
 
     // 🏎️ MARKOV SIMULATION WIRING
     // We convert the raw game averages into point-level serve probabilities
-// 🏎️ MARKOV POINT CALIBRATION (Surface-Aware)
-    let baseHoldProb = config.ctx?.tour === "ATP" ? 0.645 : 0.625;
-    
-    // Fast surfaces increase the "Base Hold" probability for everyone
-    if (config.ctx?.surface === "Grass") baseHoldProb += 0.025;
-    if (config.ctx?.surface === "Clay") baseHoldProb -= 0.025;
-
-    // Distribute the dominance based on the game-won averages
-    const pA = baseHoldProb + (config.avgA / (config.avgA + config.avgB || 1) - 0.5) * 0.18;
-    const pB = baseHoldProb + (config.avgB / (config.avgA + config.avgB || 1) - 0.5) * 0.18;
+    // Fix #1: Use pre-computed serve probabilities from buildDerivedMarketInputs
+    const pA = config.pA_serve || MODEL_CONFIG.baseHoldProbATP;
+    const pB = config.pB_serve || MODEL_CONFIG.baseHoldProbATP;
     const isBO5 = config.ctx?.matchFormat === "BO5";
 
-        // Run the point-by-point simulation
-    const sim = await runTennisMarkovSimulation(pA, pB, config.lineRange.mid, isBO5, 10000);
+    // Run the point-by-point simulation
+    const sim = await runTennisMarkovSimulation(pA, pB, config.lineRange.mid, isBO5, MODEL_CONFIG.simRuns);
     const simPct = (pick === "OVER") ? sim.overPct : sim.underPct;
 
-
+    // Fix #4: Simulation-informed edge refinement
+    if (!lineDecision.atMid && pick !== "PASS" && simPct >= 52) {
+      const simBoost = ((simPct - 50) / 100) * 0.5;
+      edge = pick === "OVER" ? edge + simBoost : edge - simBoost;
+    }
 
     if (lineDecision.atMid) { notes.push("Projection exactly on midpoint"); confidence = "PASS"; pick = "PASS"; }
 
-        // --- BRUTAL VETOES ---
-    if (config.avgGrind >= 0.40 && pick === "UNDER") {
+        // --- VETOES (direction-neutral, Fix #6) ---
+    if (config.avgGrind >= 0.40) {
       filtersTriggered.push("grind_veto");
-      notes.push("VETO UNDER: Grind Factor");
+      notes.push("VETO: Grind Factor (both directions)");
       confidence = "PASS"; pick = "PASS";
       terminalVeto = true;
-}
-    if (config.avgTb >= 0.25 && pick === "UNDER") {
+    }
+    if (config.avgTb >= 0.25) {
       filtersTriggered.push("tb_veto");
-      notes.push("VETO UNDER: Serve-Bot Alert");
+      notes.push("VETO: Serve-Bot Alert (both directions)");
       confidence = "PASS"; pick = "PASS";
       terminalVeto = true;
     }
-    if (config.avgS1Kill >= 0.35 && pick === "OVER" && config.marketKey === "set1") {
-       notes.push("VETO OVER: Set 1 Kill Rate");
-       confidence = "PASS"; pick = "PASS";
-       terminalVeto = true;
-    }
-
-    if (config.avgS1Kill >= 0.35 && pick === "OVER" && config.marketKey === "set1") {
-       notes.push("VETO OVER: Set 1 Kill Rate");
-       confidence = "PASS"; pick = "PASS";
+    if (config.avgS1Kill >= 0.35 && config.marketKey === "set1") {
+      filtersTriggered.push("s1kill_veto");
+      notes.push("VETO: Set 1 Kill Rate (both directions)");
+      confidence = "PASS"; pick = "PASS";
+      terminalVeto = true;
     }
 
     const isRescueEligible = simPct >= 62 || Math.abs(edge) >= 4.0;
@@ -3934,7 +3944,7 @@ const ENGINE_INTEGRITY_SHIELD = {
     }
     if (volatility > 7.0) { filtersTriggered.push("chaos"); notes.push("Extreme volatility / skip zone"); confidence = "PASS"; pick = "PASS"; }
 
-    if (simPct < 53 && pick !== "PASS") { notes.push(`Sim Warning: ${simPct.toFixed(1)}%`); confidence = downgradeConfidence(confidence); } 
+    if (simPct < 50 && pick !== "PASS") { notes.push(`Sim Warning: ${simPct.toFixed(1)}%`); confidence = downgradeConfidence(confidence); } 
     else if (simPct >= 62 && pick !== "PASS" && !terminalVeto) { 
       notes.push(`Sim Strong: ${simPct.toFixed(1)}%`); 
       if (confidence === "C") {
@@ -3998,6 +4008,8 @@ const ENGINE_INTEGRITY_SHIELD = {
     lowAvgThreshold: 9,
     projectionShift: matchDerived.projectionShift,
     extraNotes: matchDerived.extraNotes,
+    pA_serve: matchDerived.pA_serve,
+    pB_serve: matchDerived.pB_serve,
     ctx: ctx
   });
 
@@ -4013,6 +4025,8 @@ const ENGINE_INTEGRITY_SHIELD = {
     lowAvgThreshold: 4.5,
     projectionShift: set1Derived.projectionShift,
     extraNotes: set1Derived.extraNotes,
+    pA_serve: set1Derived.pA_serve,
+    pB_serve: set1Derived.pB_serve,
     ctx: ctx
   }) : null;
 
@@ -5646,15 +5660,50 @@ const ENGINE_INTEGRITY_SHIELD = {
         empty.style.display = "block";
         empty.textContent = "No live/recent picks. Older picks moved to record.";
       }
-      if (tableWrap) tableWrap.style.display = "none";
-      if (archiveWrap) archiveWrap.style.display = "none"; // Hide archive table permanently
-      if (body) body.innerHTML = "";
-      return;
+          if (tableWrap) tableWrap.style.display = "none";
+    // Fix #13: Render archived picks even when no live picks are visible
+    const _archivedEarly = items.filter(function(i) { return i.archived; })
+      .sort(function(a, b) { return getTrackerItemTimeMs(b) - getTrackerItemTimeMs(a); });
+    if (archiveWrap) {
+      archiveWrap.style.display = _archivedEarly.length ? "block" : "none";
+      const _archBodyEarly = qs("trackerArchiveBody");
+      if (_archBodyEarly) {
+        _archBodyEarly.innerHTML = _archivedEarly.slice(0, 30).map(function(ar) {
+          const eTxt = (Number(ar.edge) > 0 ? "+" : "") + fmt(ar.edge);
+          const sCls = "track-" + String(ar.status || "PENDING").toLowerCase();
+          return '<tr><td>' + htmlEscape(formatTrackerDate(ar.archivedAt || ar.savedAt)) + '</td>' +
+            '<td>' + htmlEscape(ar.match) + '</td><td>' + htmlEscape(ar.market) + '</td>' +
+            '<td>' + htmlEscape(ar.line || "—") + '</td>' +
+            '<td class="' + getPickCellClass(ar.rawPick, ar.confidence) + '">' + htmlEscape(ar.pick) + '</td>' +
+            '<td>' + htmlEscape(eTxt) + '</td>' +
+            '<td class="' + sCls + '">' + htmlEscape(ar.status || "PENDING") + '</td></tr>';
+        }).join("");
+      }
+    }
+    if (body) body.innerHTML = "";
+    return;
     }
 
     if (empty) empty.style.display = "none";
     if (tableWrap) tableWrap.style.display = "block";
-    if (archiveWrap) archiveWrap.style.display = "none"; // Hide archive table permanently
+
+    // Fix #13: Render archived picks in the archive section
+    const _archivedMain = items.filter(function(i) { return i.archived; })
+      .sort(function(a, b) { return getTrackerItemTimeMs(b) - getTrackerItemTimeMs(a); });
+    if (archiveWrap) archiveWrap.style.display = _archivedMain.length ? "block" : "none";
+    const _archBodyMain = qs("trackerArchiveBody");
+    if (_archBodyMain) {
+      _archBodyMain.innerHTML = _archivedMain.slice(0, 30).map(function(ar) {
+        const eTxt = (Number(ar.edge) > 0 ? "+" : "") + fmt(ar.edge);
+        const sCls = "track-" + String(ar.status || "PENDING").toLowerCase();
+        return '<tr><td>' + htmlEscape(formatTrackerDate(ar.archivedAt || ar.savedAt)) + '</td>' +
+          '<td>' + htmlEscape(ar.match) + '</td><td>' + htmlEscape(ar.market) + '</td>' +
+          '<td>' + htmlEscape(ar.line || "—") + '</td>' +
+          '<td class="' + getPickCellClass(ar.rawPick, ar.confidence) + '">' + htmlEscape(ar.pick) + '</td>' +
+          '<td>' + htmlEscape(eTxt) + '</td>' +
+          '<td class="' + sCls + '">' + htmlEscape(ar.status || "PENDING") + '</td></tr>';
+      }).join("");
+    }
 
     function statusBadge(item) {
       const status = String(item.status || "PENDING").toUpperCase();
@@ -6787,7 +6836,14 @@ if (!duplicate) {
     setContextValue("roundDisplay", meta.roundName || "", "");
   }
 
+  let _lastFetchTime = 0;
   async function fetchESPNTennis() {
+    const _now = Date.now();
+    if (_now - _lastFetchTime < MODEL_CONFIG.fetchCooldownMs) {
+      setFetchStatus("Please wait a few seconds before fetching again.", "loading");
+      return;
+    }
+    _lastFetchTime = _now;
     const league = String(qs("leagueSelect").value || "").trim();
     const playerAName = String(qs("teamAName").value || "").trim();
     const playerBName = String(qs("teamBName").value || "").trim();
@@ -6977,6 +7033,7 @@ if (!duplicate) {
       ];
 
       clearHeaderError();
+      window.lastESPNFetch = new Date().toISOString();
       setFetchStatus(statusParts.join(" • "), "ok");
       openSection("teamASection");
       openSection("teamBSection");
