@@ -2842,7 +2842,7 @@ body.dark-mode .tracker-analytics-section-head {
 
 <script>
 /**
- * 🛡️ TENNIS-CEO UNKILLABLE GOD-MODE WATCHDOG
+ * 🛡️ TENNIS-CEO UNKILLABLE WATCHDOG
  * Detects: Syntax Errors, Typos, CORS Blocks, and Boot Failures.
  */
 (function () {
@@ -3378,7 +3378,7 @@ const ENGINE_INTEGRITY_SHIELD = {
   }
 
     function parseNumber(value, name) {
-    // WEAPONIZED SANITIZATION: Strips non-breaking spaces and hidden HTML noise
+    // SANITIZATION: Strips non-breaking spaces and hidden HTML noise
     const cleaned = String(value || "").replace(/[\u00A0\u1680\u180e\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]/g, " ").trim();
     if (!cleaned) {
       throw new Error(name + " is required.");
@@ -3394,7 +3394,7 @@ const ENGINE_INTEGRITY_SHIELD = {
   }
 
     function parseNumericList(raw, name, minLen, maxLen, allowEmpty) {
-    // WEAPONIZED SANITIZATION: Force-cleans hidden chars from the entire string
+    // SANITIZATION: Force-cleans hidden chars from the entire string
     const text = String(raw || "")
       .replace(/[\u00A0\ufeff]/g, " ") 
       .replace(/[^\x00-\x7F]/g, "") 
@@ -3445,7 +3445,7 @@ const ENGINE_INTEGRITY_SHIELD = {
     if (!Array.isArray(values) || values.length < 2) return 0;
     const avg = mean(values);
     
-    // WEAPONIZED MATH: Applying Bessel's Correction (n-1) 
+    // MATH: Applying Bessel's Correction (n-1) 
     // This provides an unbiased estimate of variance for small samples (3-10 games).
     const variance = values.reduce(function (sum, val) {
       const diff = val - avg;
@@ -3487,7 +3487,7 @@ const ENGINE_INTEGRITY_SHIELD = {
       function getRawConfidence(edge, volatility, lineMid) {
     const absEdge = Math.abs(edge);
     
-    // WEAPONIZED NORMALIZATION: Comparing raw games across different markets is a flaw.
+    // NORMALIZATION: Comparing raw games across different markets is a flaw.
     // We convert the edge to a percentage relative to the line midpoint.
     const edgePct = (absEdge / (lineMid || 22.0)) * 100;
 
@@ -3539,7 +3539,7 @@ const ENGINE_INTEGRITY_SHIELD = {
     function weightedMean(values) {
     if (!Array.isArray(values) || !values.length) return null;
     
-    // WEAPONIZED DECAY: Exponential weighting constant.
+    // DECAY: Exponential weighting constant.
     // A factor of 0.75 means the most recent match is ~4x more influential 
     // than a match played 5 games ago. Linear weighting is for amateurs.
     const DECAY_FACTOR = 0.75; 
@@ -5585,7 +5585,7 @@ const ENGINE_INTEGRITY_SHIELD = {
       </div>
             <div class="tracker-analytics-card" style="margin-top: 10px; border-color: #d4af37;">
           <div class="tracker-analytics-card-head" style="background: linear-gradient(90deg, #333 0%, #111 100%);">
-            <div class="tracker-analytics-card-title" style="color: #ffd700;">👁️ GOD'S EYE: POST-MORTEM LOG</div>
+            <div class="tracker-analytics-card-title" style="color: #ffd700;">👁️ POST-MORTEM LOG</div>
             <div class="tracker-analytics-card-meta">Game-by-game diagnostic archive</div>
           </div>
           <div class="tracker-analytics-card-body">
@@ -6308,7 +6308,7 @@ if (!duplicate) {
     const tournamentName = String((parentEvent && (parentEvent.shortName || parentEvent.name)) || "").trim();
     const eventLevel = classifyEventLevel(tournamentName);
     
-    // --- SYNDICATE FIX: DETECT GENDER TO PREVENT MIXING ---
+    // --- FIX: DETECT GENDER TO PREVENT MIXING ---
     let gender = "UNKNOWN";
     const combinedSearch = (labelText + " " + tournamentName).toLowerCase();
     if (combinedSearch.includes("women") || combinedSearch.includes("wta")) gender = "WTA";
@@ -6455,7 +6455,7 @@ if (!duplicate) {
         const scheduledAt = new Date(record.date);
         const hasValidDate = !Number.isNaN(scheduledAt.getTime());
 
-        // --- SYNDICATE FIX: STRICT LEAGUE FILTERING ---
+        // --- FIX: STRICT LEAGUE FILTERING ---
         if (league === "ATP" && record.gender === "WTA") return false;
         if (league === "WTA" && record.gender === "ATP") return false;
 
@@ -6463,7 +6463,7 @@ if (!duplicate) {
           return !value || value === "tbd" || value === "bye" || value === "qualifier" || value === "winner" || value === "loser";
         }
 
-        // --- STRICT PRE-MATCH FILTERING ---
+        // --- PRE-MATCH FILTERING ---
         const isLive = state === "in" || name.includes("IN_PROGRESS") || name.includes("HALFTIME");
         const isScheduled = state === "pre" || name.includes("SCHEDULED") || name.includes("TBD") || name.includes("DELAYED");
         const isActuallyCompleted = completed || name.includes("FINAL") || name.includes("CANCELED") || name.includes("POSTPONED");
@@ -6486,7 +6486,7 @@ if (!duplicate) {
         return isScheduled;
 
       }).sort(function (a, b) {
-        // --- SYNDICATE FIX: BULLETPROOF TIME SORTING ---
+        // --- FIX: BULLETPROOF TIME SORTING ---
         const tA = new Date(a.date).getTime();
         const tB = new Date(b.date).getTime();
         if (tA === tB) return a.playerAName.localeCompare(b.playerAName); // Fallback to alphabet if same time
@@ -6665,7 +6665,7 @@ if (!duplicate) {
     });
   }
 
-  // --- SYNDICATE LEVEL: BRUTAL METRICS CALCULATOR ---
+  // --- BRUTAL METRICS CALCULATOR ---
   function computeBrutalMetrics(series, currentSurface) {
     const recent = Array.isArray(series) ? series.slice(0, 10) : [];
     if (!recent.length) return { tiebreakIdx: 0, set1Kill: 0, grindRate: 0, surfaceDelta: 0 };
@@ -6686,7 +6686,7 @@ if (!duplicate) {
 
             for (let i = 0; i < setsPlayed; i++) {
         totalSets++;
-        // WEAPONIZED LOGIC: A tiebreak set (7-6) always has exactly 13 games. 
+        // LOGIC: A tiebreak set (7-6) always has exactly 13 games. 
         // 7-5 sets (12 games) are standard breaks and should NOT count toward the TB Index.
         if ((aSets[i] + bSets[i]) >= 13) tbSets++; 
       }
@@ -6921,7 +6921,7 @@ if (!duplicate) {
             const recentA10 = recentA.slice(0, 10);
       const recentB10 = recentB.slice(0, 10);
 
-      // WEAPONIZED ELO: Dynamically calculating Surface-Specific Bayesian Elo
+      // ELO: Dynamically calculating Surface-Specific Bayesian Elo
       const fixtureSelect = qs("fixtureSelect");
       const selectedFixtureKey = fixtureSelect ? fixtureSelect.value : "";
       const selectedFixtureRecord = selectedFixtureKey ? fixtureRecordMap.get(selectedFixtureKey) : null;
@@ -6955,7 +6955,7 @@ if (!duplicate) {
       const h2hMatchTotals = h2h.slice(0, 5).map(m => m.totalGames).filter(Number.isFinite);
       const h2hSet1Totals = h2h.slice(0, 5).map(m => m.set1Total).filter(Number.isFinite);
 
-            // WEAPONIZED BAYESIAN PRIORS: Protecting against small-sample-size bias.
+            // BAYESIAN PRIORS: Protecting against small-sample-size bias.
       // If a player has < 5 matches, we inject "Phantom" matches representing the Tour Average.
       // This prevents the engine from overreacting to "Challenger-level" stars with thin data.
       const TOUR_AVG_GAMES = 10.2; 
@@ -7432,7 +7432,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 300000);
     setTrackerView("list");
 
-    // 🔥 TENNIS BRUTAL AUTO-SYNC
+    // 🔥 TENNIS AUTO-SYNC
     // Slams local data to the cloud the millisecond the DOM is ready.
     setTimeout(() => {
       g_trackerSaveFailureCount = 0;
@@ -7442,12 +7442,12 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }, 50);
 
-    // Tab-Wake Auto-Sync: Hard sync whenever you switch back to this tab
+    // Tab-Wake Auto-Sync: Sync whenever you switch back to this tab
     window.addEventListener("focus", () => {
        if (typeof forceTrackerSaveNow === "function") forceTrackerSaveNow();
     });
   });
-    // 🔥 BOSS EXPORTS
+    // BOSS EXPORTS
     window.openTrackerModal = openTrackerModal;
     window.setTrackerView = setTrackerView;
     window.renderTrackerAnalytics = renderTrackerAnalytics;
