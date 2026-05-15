@@ -2579,6 +2579,19 @@ body.dark-mode .tracker-analytics-section-head {
       grid-template-columns: 1fr;
     }
   }
+
+  /* Fix #15: Improve readability on small mobile screens */
+  @media (max-width: 480px) {
+    body { font-size: 13px; }
+    label { font-size: 13px !important; }
+    input, .league-box { font-size: 13px !important; }
+    .section-toggle .toggle-title { font-size: 13px; }
+    button { font-size: 12px !important; }
+    td, th { font-size: 11px !important; padding: 6px 4px !important; }
+    .brand-name { font-size: 13px; }
+    h3 { font-size: 14px; }
+    #fetchStatus { font-size: 11px; }
+  }
   </style>
 </head>
 <body>
@@ -2672,10 +2685,10 @@ body.dark-mode .tracker-analytics-section-head {
     <h3>Market Lines</h3>
 
     <label id="ftMarketLabel">Match Total Games</label>
-    <input id="ftMarket" placeholder="e.g. 18.5 - 22.5" />
+    <input id="ftMarket" placeholder="e.g. 18.5 - 22.5" title="Enter the bookmaker's match total games range, e.g. 18.5 - 22.5. A single value like 21.5 is also accepted." />
 
     <label id="h1MarketLabel">Set 1 Total Games</label>
-    <input id="h1Market" placeholder="e.g. 8.5 - 10.5" />
+    <input id="h1Market" placeholder="e.g. 8.5 - 10.5" title="Set 1 total games range from the bookmaker. Leave blank to skip Set 1 analysis entirely." />
 
   </div>
 
@@ -2683,27 +2696,27 @@ body.dark-mode .tracker-analytics-section-head {
     <h3>Player A - Last 5 / 10 Overall <span class="autofill-indicator" id="aAutoTag">✅ Auto-filled</span></h3>
 
     <label id="aFTScoredLabel">Recent Games Won <span style="font-size:10px;color:#888;">(Player A only • recent → oldest)</span></label>
-    <input id="aFTScored" placeholder="12,10,14,9,11" />
+    <input id="aFTScored" placeholder="12,10,14,9,11" title="Total games Player A won per match, most recent first. E.g. if they won 7-5, 6-3 in a match they won 13 games total. Enter 3-10 values." />
 
     <label id="aFTAllowedLabel">Recent Set 1 Games Won</label>
-    <input id="aFTAllowed" placeholder="6,4,7,5,6" />
+    <input id="aFTAllowed" placeholder="6,4,7,5,6" title="Games Player A won in Set 1 only, most recent first. E.g. if they won Set 1 six-four, enter 6." />
   </div>
 
   <div class="section" id="teamBSection">
     <h3>Player B - Last 5 / 10 Overall <span class="autofill-indicator" id="bAutoTag">✅ Auto-filled</span></h3>
 
     <label id="bFTScoredLabel">Recent Games Won <span style="font-size:10px;color:#888;">(Player B only • recent → oldest)</span></label>
-    <input id="bFTScored" placeholder="11,12,9,13,10" />
+    <input id="bFTScored" placeholder="11,12,9,13,10" title="Total games Player B won per match, most recent first. Enter 3-10 values, comma-separated." />
 
     <label id="bFTAllowedLabel">Recent Set 1 Games Won</label>
-    <input id="bFTAllowed" placeholder="4,6,5,7,5" />
+    <input id="bFTAllowed" placeholder="4,6,5,7,5" title="Games Player B won in Set 1 only, most recent first. E.g. if they lost Set 1 four-six, enter 4." />
   </div>
 
   <div class="section" id="h2hSection">
     <h3>H2H TEST <span class="autofill-indicator" id="h2hAutoTag">✅ Auto-filled / manual-ready</span></h3>
 
     <label id="useFTH2HLabel"><input type="checkbox" id="useFTH2H" checked /> Use Match H2H Totals</label>
-    <input id="aFTH2H" placeholder="22,24,19,27" />
+    <input id="aFTH2H" placeholder="22,24,19,27" title="Total combined games from head-to-head matches between these two players, most recent first. E.g. a 7-5, 3-6, 6-4 match = 31 total games." />
 
     <label id="use1HH2HLabel"><input type="checkbox" id="use1HH2H" checked /> Use Set 1 H2H Totals</label>
     <input id="a1HH2H" placeholder="10,9,12" />
@@ -2772,7 +2785,9 @@ body.dark-mode .tracker-analytics-section-head {
       <span id="trackerHeadTitle">Tracked Picks</span>
       <div class="tracker-head-actions">
         <button type="button" id="trackerInsightsBtn" class="tracker-insights-btn state-idle" title="Open report" aria-label="Open report">📊 Report</button>
-
+        <button type="button" id="trackerExportBtn" class="tracker-insights-btn state-idle" title="Export all picks to a JSON backup file">⬇️</button>
+        <button type="button" id="trackerImportBtn" class="tracker-insights-btn state-idle" title="Import picks from a previously exported JSON file">⬆️</button>
+        <input type="file" id="trackerImportFile" accept=".json" style="display:none;" />
         <button type="button" id="trackerCloseBtn" class="tracker-close">✕</button>
       </div>
     </div>
@@ -3931,15 +3946,15 @@ const ENGINE_INTEGRITY_SHIELD = {
     const isRescueEligible = simPct >= 62 || Math.abs(edge) >= 4.0;
     if (!hasH2H) {
       if (isRescueEligible) notes.push("No H2H, but rescued by extreme edge/sim");
-      else { filtersTriggered.push("missingH2H"); notes.push("No H2H support"); if (confidence !== "PASS") { confidence = downgradeConfidence(confidence); if (confidence === "PASS") pick = "PASS"; } }
+      else { filtersTriggered.push("missingH2H"); notes.push("No H2H support"); if (confidence !== "PASS") { confidence = downgradeConfidence(confidence); } }
     } else {
       // FIX: Tell the user exactly how much H2H was blended in so you know it worked.
       notes.push(`H2H Blended (${Math.round(h2hWeight * 100)}% weight)`);
     }
 
-    if (volatility > 5.0 && volatility <= 7.0) {
+    if (volatility > 5.5 && volatility <= 7.0) {
       filtersTriggered.push("chaos");
-      if (!isRescueEligible) { confidence = downgradeConfidence(confidence); if (confidence === "PASS") pick = "PASS"; }
+      if (!isRescueEligible) { confidence = downgradeConfidence(confidence); }
       else notes.push("Volatility rescued by math strength");
     }
     if (volatility > 7.0) { filtersTriggered.push("chaos"); notes.push("Extreme volatility / skip zone"); confidence = "PASS"; pick = "PASS"; }
@@ -4144,6 +4159,7 @@ const ENGINE_INTEGRITY_SHIELD = {
       };
 
       const fairLine = fmt(result.projection);
+      const rangeSpread = !isNoPlay && result.volatility ? fmt(result.volatility * 1.2) : null;
       const edgePct = isNoPlay ? "—" : fmt((Math.abs(result.edge) / result.lineRange.mid) * 100) + "%";
       const probText = isNoPlay ? "—" : fmt(winProb) + "%";
       const fairOdds = isNoPlay ? "—" : getFairOdds(winProb);
@@ -4153,7 +4169,7 @@ const ENGINE_INTEGRITY_SHIELD = {
                               return (
         '<tr>' +
           '<td class="result-market" style="font-weight:800;">' + htmlEscape(result.market) + '</td>' +
-          '<td style="font-family:monospace;">' + fairLine + '</td>' +
+          '<td style="font-family:monospace;">' + fairLine + (rangeSpread ? '<br><span style="font-size:9px;color:var(--muted);">±' + rangeSpread + '</span>' : '') + '</td>' +
           '<td style="color:#2f8f4a;">' + edgePct + '</td>' +
           '<td style="font-weight:bold;">' + probText + '</td>' +
           '<td class="' + getPickCellClass(result.pick, result.confidence) + '">' +
@@ -7069,6 +7085,73 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const trackerCloseBtn = qs("trackerCloseBtn");
     if (trackerCloseBtn) trackerCloseBtn.addEventListener("click", closeTrackerModal);
+
+    // Fix #17: Tracker export/import
+    const trackerExportBtn = qs("trackerExportBtn");
+    if (trackerExportBtn) {
+      trackerExportBtn.addEventListener("click", function () {
+        const items = getTrackerItems();
+        const payload = JSON.stringify({
+          exportedAt: new Date().toISOString(),
+          version: ENGINE_MODEL_VERSION || "tennis_v1",
+          items: items
+        }, null, 2);
+        const blob = new Blob([payload], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "betceo_picks_" + new Date().toISOString().slice(0, 10) + ".json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setRunStatus("Picks exported: " + items.length + " record(s).", "ok");
+      });
+    }
+
+    const trackerImportBtn = qs("trackerImportBtn");
+    const trackerImportFile = qs("trackerImportFile");
+    if (trackerImportBtn && trackerImportFile) {
+      trackerImportBtn.addEventListener("click", function () {
+        trackerImportFile.click();
+      });
+      trackerImportFile.addEventListener("change", function (e) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (ev) {
+          try {
+            const parsed = JSON.parse(ev.target.result);
+            const incoming = Array.isArray(parsed.items)
+              ? parsed.items
+              : Array.isArray(parsed) ? parsed : [];
+            if (!incoming.length) {
+              setRunStatus("Import failed: no valid picks found in file.", "err");
+              return;
+            }
+            const existing = getTrackerItems();
+            const merged = existing.slice();
+            let added = 0;
+            incoming.forEach(function (item) {
+              const isDuplicate = merged.some(function (ex) {
+                return ex.id && item.id && ex.id === item.id;
+              });
+              if (!isDuplicate) {
+                merged.unshift(normalizeTrackerItem(item));
+                added++;
+              }
+            });
+            saveTrackerItems(merged);
+            updateTrackerUI();
+            setRunStatus("Imported " + added + " new pick(s) from file.", "ok");
+          } catch (err) {
+            setRunStatus("Import failed: file is not valid JSON.", "err");
+          }
+          trackerImportFile.value = "";
+        };
+        reader.readAsText(file);
+      });
+    }
 
     const trackerModal = qs("trackerModal");
     if (trackerModal) {
