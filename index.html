@@ -2772,7 +2772,7 @@ body.dark-mode .tracker-analytics-section-head {
       <span id="trackerHeadTitle">Tracked Picks</span>
       <div class="tracker-head-actions">
         <button type="button" id="trackerInsightsBtn" class="tracker-insights-btn state-idle" title="Open report" aria-label="Open report">📊 Report</button>
-        <button type="button" id="trackerDebugBtn" class="tracker-insights-btn state-idle" title="Open tracker debug" aria-label="Open tracker debug">🐞</button>
+
         <button type="button" id="trackerCloseBtn" class="tracker-close">✕</button>
       </div>
     </div>
@@ -7058,23 +7058,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
 
-    const trackerDebugBtn = qs("trackerDebugBtn");
-    if (trackerDebugBtn) {
-      trackerDebugBtn.addEventListener("click", function () {
-        const trackerModal = qs("trackerModal");
-        if (!trackerModal) return;
-        const panel = trackerModal.querySelector(".tracker-panel");
-        const isDebug = panel && panel.classList.contains("debug-view");
 
-        if (!isTrackerModalOpen()) {
-          openTrackerModal();
-        }
-
-        setTrackerView(isDebug ? "list" : "debug");
-        updateTrackerUI();
-        renderTrackerDebug();
-      });
-    }
 
     const trackerDebugCloseBtn = qs("trackerDebugCloseBtn");
     if (trackerDebugCloseBtn) trackerDebugCloseBtn.addEventListener("click", closeTrackerDebugModal);
@@ -7227,6 +7211,8 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
     // 🔥 BOSS EXPORTS
+    window.openTrackerModal = openTrackerModal;
+    window.setTrackerView = setTrackerView;
     window.renderTrackerAnalytics = renderTrackerAnalytics;
     window.renderTrackerDebug = renderTrackerDebug;
     window.refreshTrackerNow = refreshTrackerNow;
