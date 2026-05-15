@@ -2611,6 +2611,7 @@ body.dark-mode .tracker-analytics-section-head {
     <button class="theme-toggle" type="button" id="themeToggleBtn" title="Toggle dark/light mode">🎾</button>
     <button class="theme-toggle" type="button" id="trackerToggleBtn" title="Open tracked picks">📊</button>
     <button class="theme-toggle" type="button" id="afdbBtn" title="Auto-Fetch Debugger" onclick="AFDB.open()">🔬</button>
+    <button class="theme-toggle" type="button" id="modelConfigBtn" title="Model Settings" onclick="openModelSettingsModal()">⚙️</button>
     PREDICTIONS
   </span>
 </header>
@@ -2788,6 +2789,8 @@ body.dark-mode .tracker-analytics-section-head {
         <button type="button" id="trackerExportBtn" class="tracker-insights-btn state-idle" title="Export all picks to a JSON backup file">⬇️</button>
         <button type="button" id="trackerImportBtn" class="tracker-insights-btn state-idle" title="Import picks from a previously exported JSON file">⬆️</button>
         <input type="file" id="trackerImportFile" accept=".json" style="display:none;" />
+        <button type="button" id="trackerBacktestBtn" class="tracker-insights-btn state-idle" title="Run backtest on all settled picks">📈</button>
+        <button type="button" id="trackerCleanupBtn" class="tracker-insights-btn state-idle" title="Remove archived picks older than 60 days">🗑️</button>
         <button type="button" id="trackerCloseBtn" class="tracker-close">✕</button>
       </div>
     </div>
@@ -2941,23 +2944,127 @@ const ENGINE_INTEGRITY_SHIELD = {
   const THEME_KEY = "tennis_engine_theme";
 
   // Centralized model configuration — all tunable parameters in one place (Fix #5/#10)
-  const MODEL_CONFIG = {
-    bo5Multiplier: 1.45,
-    grassMultiplier: 1.035,
-    clayMultiplier: 0.965,
-    baseHoldProbATP: 0.645,
-    baseHoldProbWTA: 0.625,
-    dominanceScaling: 0.18,
-    h2hWeightDefault: 0.30,
-    h2hWeightGrass: 0.20,
-    h2hWeightClay: 0.40,
-    h2hWeightSmallSample: 0.15,
-    h2hSmallSampleThreshold: 3,
+  // Fix #3: Model Configurability — all parameters are user-adjustable and persisted to localStorage.
+  const MODEL_CONFIG_DEFAULTS = {
+    bo5Multiplier: 1.45, grassMultiplier: 1.035, clayMultiplier: 0.965,
+    baseHoldProbATP: 0.645, baseHoldProbWTA: 0.625, dominanceScaling: 0.18,
+    h2hWeightDefault: 0.30, h2hWeightGrass: 0.20, h2hWeightClay: 0.40,
+    h2hWeightSmallSample: 0.15, h2hSmallSampleThreshold: 3,
     confidenceThresholds: { A: 14.0, B: 9.0, C: 4.5 },
     confidenceVolatilityMax: { A: 4.5, B: 5.5, C: 6.5, max: 7.0 },
-    fetchCooldownMs: 3000,
-    simRuns: 10000
+    fetchCooldownMs: 3000, simRuns: 10000
   };
+  const MODEL_CONFIG_STORAGE_KEY = "tennis_engine_model_config_v1";
+
+  function loadModelConfig() {
+    try {
+      const saved = localStorage.getItem(MODEL_CONFIG_STORAGE_KEY);
+      const base = {
+        confidenceThresholds: Object.assign({}, MODEL_CONFIG_DEFAULTS.confidenceThresholds),
+        confidenceVolatilityMax: Object.assign({}, MODEL_CONFIG_DEFAULTS.confidenceVolatilityMax)
+      };
+      if (!saved) return Object.assign({}, MODEL_CONFIG_DEFAULTS, base);
+      const parsed = JSON.parse(saved);
+      const merged = Object.assign({}, MODEL_CONFIG_DEFAULTS, parsed);
+      merged.confidenceThresholds = Object.assign({}, MODEL_CONFIG_DEFAULTS.confidenceThresholds, parsed.confidenceThresholds || {});
+      merged.confidenceVolatilityMax = Object.assign({}, MODEL_CONFIG_DEFAULTS.confidenceVolatilityMax, parsed.confidenceVolatilityMax || {});
+      return merged;
+    } catch(e) {
+      return Object.assign({}, MODEL_CONFIG_DEFAULTS, {
+        confidenceThresholds: Object.assign({}, MODEL_CONFIG_DEFAULTS.confidenceThresholds),
+        confidenceVolatilityMax: Object.assign({}, MODEL_CONFIG_DEFAULTS.confidenceVolatilityMax)
+      });
+    }
+  }
+
+  function saveModelConfig(cfg) {
+    try { localStorage.setItem(MODEL_CONFIG_STORAGE_KEY, JSON.stringify(cfg)); } catch(e) {}
+  }
+
+  function resetModelConfig() {
+    try { localStorage.removeItem(MODEL_CONFIG_STORAGE_KEY); } catch(e) {}
+    Object.assign(MODEL_CONFIG, MODEL_CONFIG_DEFAULTS);
+    MODEL_CONFIG.confidenceThresholds = Object.assign({}, MODEL_CONFIG_DEFAULTS.confidenceThresholds);
+    MODEL_CONFIG.confidenceVolatilityMax = Object.assign({}, MODEL_CONFIG_DEFAULTS.confidenceVolatilityMax);
+  }
+
+  function openModelSettingsModal() {
+    const existing = document.getElementById("modelSettingsModal");
+    if (existing) existing.remove();
+    const FIELDS = [
+      ["H2H Weight (Default)", "h2hWeightDefault", "0.05", "0.60", "0.01"],
+      ["H2H Weight (Grass)", "h2hWeightGrass", "0.05", "0.60", "0.01"],
+      ["H2H Weight (Clay)", "h2hWeightClay", "0.05", "0.60", "0.01"],
+      ["BO5 Multiplier", "bo5Multiplier", "1.10", "1.80", "0.01"],
+      ["Grass Multiplier", "grassMultiplier", "0.95", "1.15", "0.005"],
+      ["Clay Multiplier", "clayMultiplier", "0.85", "1.05", "0.005"],
+      ["Base Hold Prob (ATP)", "baseHoldProbATP", "0.50", "0.80", "0.005"],
+      ["Base Hold Prob (WTA)", "baseHoldProbWTA", "0.50", "0.80", "0.005"],
+      ["Simulation Runs", "simRuns", "1000", "50000", "1000"],
+      ["Confidence A Threshold %", "confidenceThresholds.A", "5", "30", "0.5"],
+      ["Confidence B Threshold %", "confidenceThresholds.B", "3", "20", "0.5"],
+      ["Confidence C Threshold %", "confidenceThresholds.C", "1", "12", "0.5"]
+    ];
+    function getVal(key) {
+      const parts = key.split(".");
+      return parts.length === 2 ? MODEL_CONFIG[parts[0]][parts[1]] : MODEL_CONFIG[key];
+    }
+    const rows = FIELDS.map(function(f) {
+      return '<div style="display:grid;grid-template-columns:1fr 90px;gap:8px;align-items:center;padding:7px 12px;border-bottom:1px solid var(--panel-border);">' +
+        '<label style="font-size:11px;font-weight:700;color:var(--text);margin:0;">' + f[0] + '</label>' +
+        '<input type="number" id="mscfg_' + f[1].replace(".", "-") + '" value="' + getVal(f[1]) +
+        '" min="' + f[2] + '" max="' + f[3] + '" step="' + f[4] +
+        '" style="padding:5px 6px;font-size:12px;background:var(--input-bg);color:var(--text);border:1px solid var(--input-border);width:100%;box-sizing:border-box;" /></div>';
+    }).join("");
+    const modal = document.createElement("div");
+    modal.id = "modelSettingsModal";
+    modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.62);z-index:99998;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+    modal.innerHTML =
+      '<div style="background:var(--panel);border:1px solid var(--panel-border);width:min(480px,100%);max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;">' +
+        '<div style="background:var(--table-head);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-weight:900;font-size:13px;position:sticky;top:0;z-index:1;">' +
+          '<span>⚙️ Model Settings</span>' +
+          '<button onclick="document.getElementById(\'modelSettingsModal\').remove()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1;padding:0;">✕</button>' +
+        '</div>' +
+        '<div style="padding:8px 12px 4px;font-size:10px;color:var(--muted);font-weight:700;line-height:1.5;">Tune key engine parameters. Saved to your browser. Takes effect on the next Run.</div>' +
+        rows +
+        '<div style="padding:12px 14px;display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<button onclick="window._applyModelSettings()" style="background:#3a9c35;color:#fff;border:none;padding:8px 16px;font-weight:800;cursor:pointer;font-size:12px;">💾 Save Settings</button>' +
+          '<button onclick="window._resetModelConfigUI()" style="background:#3a404c;color:#fff;border:none;padding:8px 16px;font-weight:800;cursor:pointer;font-size:12px;">↩️ Reset Defaults</button>' +
+        '</div>' +
+        '<div id="modelSettingsSavedMsg" style="font-size:10px;color:#2f8f4a;font-weight:800;display:none;padding:0 14px 12px;">✅ Settings saved! Affects your next Run.</div>' +
+      '</div>';
+    document.body.appendChild(modal);
+    modal.addEventListener("click", function(e) { if (e.target === modal) modal.remove(); });
+  }
+
+  window._applyModelSettings = function() {
+    var FIELDS = [
+      ["h2hWeightDefault", false], ["h2hWeightGrass", false], ["h2hWeightClay", false],
+      ["bo5Multiplier", false], ["grassMultiplier", false], ["clayMultiplier", false],
+      ["baseHoldProbATP", false], ["baseHoldProbWTA", false], ["simRuns", false],
+      ["confidenceThresholds.A", true], ["confidenceThresholds.B", true], ["confidenceThresholds.C", true]
+    ];
+    FIELDS.forEach(function(f) {
+      var el = document.getElementById("mscfg_" + f[0].replace(".", "-"));
+      if (!el) return;
+      var val = Number(el.value);
+      if (!Number.isFinite(val)) return;
+      if (f[1]) { var parts = f[0].split("."); MODEL_CONFIG[parts[0]][parts[1]] = val; }
+      else { MODEL_CONFIG[f[0]] = val; }
+    });
+    saveModelConfig(MODEL_CONFIG);
+    var msg = document.getElementById("modelSettingsSavedMsg");
+    if (msg) { msg.style.display = "block"; setTimeout(function() { msg.style.display = "none"; }, 2500); }
+  };
+
+  window._resetModelConfigUI = function() {
+    resetModelConfig();
+    var m = document.getElementById("modelSettingsModal");
+    if (m) m.remove();
+    setTimeout(openModelSettingsModal, 50);
+  };
+
+  const MODEL_CONFIG = loadModelConfig();
 
     // 🧠 THE ENGINE BRAIN (Moved to top for visibility)
   function normalizeTrackerItem(item) {
@@ -2968,7 +3075,8 @@ const ENGINE_INTEGRITY_SHIELD = {
       pick: "", rawPick: "", confidence: "", status: "PENDING", isLock: false,
       notes: "", actualTotal: null, settledAt: null, archived: false,
       archivedAt: null, playerAId: "", playerBId: "", competitionId: "",
-      eventId: "", fixtureDate: "", tournamentName: "", eventLevel: "", roundName: ""
+      eventId: "", fixtureDate: "", tournamentName: "", eventLevel: "", roundName: "",
+      modelVersion: "", settlementAttempts: 0, lastSettlementAttempt: null
     }, base);
   }
 
@@ -3916,9 +4024,29 @@ const ENGINE_INTEGRITY_SHIELD = {
     const simPct = (pick === "OVER") ? sim.overPct : sim.underPct;
 
     // Fix #4: Simulation-informed edge refinement
-    if (!lineDecision.atMid && pick !== "PASS" && simPct >= 52) {
-      const simBoost = ((simPct - 50) / 100) * 0.5;
-      edge = pick === "OVER" ? edge + simBoost : edge - simBoost;
+    // Fix #4: Simulation meaningfully refines the edge and can rescue or penalize confidence.
+    if (!lineDecision.atMid && pick !== "PASS") {
+      const simDelta = simPct - 50; // positive = sim agrees with OVER, negative = sim agrees with UNDER
+      const pickAligned = (pick === "OVER" && simDelta > 0) || (pick === "UNDER" && simDelta < 0);
+      if (Math.abs(simDelta) >= 2) {
+        // Scale boost proportionally: bigger sim delta AND bigger statistical edge = bigger refinement
+        const simBoost = (simDelta / 100) * Math.max(0.5, Math.abs(edge) * 0.35);
+        edge = pick === "OVER" ? edge + simBoost : edge - simBoost;
+      }
+      // Sim strongly rescues a near-PASS pick
+      if (Math.abs(simDelta) >= 15 && pickAligned && confidence === "PASS") {
+        confidence = "C";
+        pick = lineDecision.pick;
+        notes.push("Sim rescue (" + simPct.toFixed(1) + "%)");
+      } else if (Math.abs(simDelta) >= 10 && pickAligned && confidence === "C") {
+        confidence = "B";
+        notes.push("Sim upgrade (" + simPct.toFixed(1) + "%)");
+      }
+      // Sim actively contradicts the statistical pick — penalize confidence
+      if (!pickAligned && Math.abs(simDelta) >= 6) {
+        notes.push("Sim contradiction (" + simPct.toFixed(1) + "%)");
+        confidence = downgradeConfidence(confidence);
+      }
     }
 
     if (lineDecision.atMid) { notes.push("Projection exactly on midpoint"); confidence = "PASS"; pick = "PASS"; }
@@ -4596,7 +4724,8 @@ const ENGINE_INTEGRITY_SHIELD = {
       pick: "", rawPick: "", confidence: "", status: "PENDING", isLock: false,
       notes: "", actualTotal: null, settledAt: null, archived: false,
       archivedAt: null, playerAId: "", playerBId: "", competitionId: "",
-      eventId: "", fixtureDate: "", tournamentName: "", eventLevel: "", roundName: ""
+      eventId: "", fixtureDate: "", tournamentName: "", eventLevel: "", roundName: "",
+      modelVersion: "", settlementAttempts: 0, lastSettlementAttempt: null
     }, base);
   }
 
@@ -4879,16 +5008,51 @@ const ENGINE_INTEGRITY_SHIELD = {
 
     function shouldArchiveTrackerItem(item) {
     if (!item || item.archived) return false;
-    
-    // We anchor purely to the settlement time
-    const settleTs = item.settledAt ? Date.parse(item.settledAt) : 0;
-    if (!settleTs) return false;
 
-    const hoursSinceSettlement = (Date.now() - settleTs) / (1000 * 60 * 60);
-    
-    // 🚨 THE 10-HOUR LOCK: 
-    // Do not hide the result from the UI until 10 hours have passed.
-    return hoursSinceSettlement >= 10;
+    // Rule 1: Settled picks — keep visible for 10 hours so the user can see the result.
+    const settleTs = item.settledAt ? Date.parse(item.settledAt) : 0;
+    if (settleTs) {
+      return (Date.now() - settleTs) / (1000 * 60 * 60) >= 10;
+    }
+
+    // Rule 2: Pending picks older than 48 hours have no realistic chance of auto-settling.
+    // Archive them so they don't clog the live tracker forever.
+    const savedTs = item.savedAt ? Date.parse(item.savedAt) : 0;
+    if (savedTs) {
+      return (Date.now() - savedTs) / (1000 * 60 * 60) >= 48;
+    }
+
+    return false;
+  }
+
+  // Fix #5: Cleanup helper — removes archived picks older than `daysOld` days.
+  function cleanupOldArchivedPicks(daysOld) {
+    const cutoffMs = (daysOld || 60) * 24 * 60 * 60 * 1000;
+    const items = getTrackerItems();
+    const before = items.length;
+    const filtered = items.filter(function(item) {
+      if (!item.archived) return true;
+      const refTs = item.archivedAt ? Date.parse(item.archivedAt) :
+                    (item.settledAt ? Date.parse(item.settledAt) :
+                    (item.savedAt ? Date.parse(item.savedAt) : 0));
+      if (!refTs) return true;
+      return (Date.now() - refTs) < cutoffMs;
+    });
+    const removed = before - filtered.length;
+    if (removed > 0) { saveTrackerItems(filtered); updateTrackerUI(); }
+    return removed;
+  }
+
+  // Fix #5: Storage stats for the tracker.
+  function getTrackerStorageStats() {
+    const items = getTrackerItems();
+    const active = items.filter(function(i) { return !i.archived; }).length;
+    const archived = items.filter(function(i) { return !!i.archived; }).length;
+    const pending = items.filter(function(i) { return i.status === "PENDING" && !i.archived; }).length;
+    const settled = items.filter(function(i) { return i.status !== "PENDING"; }).length;
+    let storageBytes = 0;
+    try { storageBytes = new Blob([JSON.stringify(items)]).size; } catch(e) {}
+    return { total: items.length, active, archived, pending, settled, storageBytes };
   }
 
   function archiveOldTrackerItems(items) {
@@ -5343,9 +5507,31 @@ const ENGINE_INTEGRITY_SHIELD = {
     const recordCache = new Map();
     let settledCount = 0;
 
+    // Fix #1: Auto-Settlement — retry limit and cooldown prevent thrashing failed picks forever.
+    const MAX_SETTLEMENT_ATTEMPTS = 6;
+    const RETRY_COOLDOWN_HOURS = 2;
+
     for (let i = 0; i < items.length; i += 1) {
       const item = items[i];
       if (item.status !== "PENDING") continue;
+
+      // Skip picks that have exhausted their retry budget
+      const attempts = Number(item.settlementAttempts) || 0;
+      if (attempts >= MAX_SETTLEMENT_ATTEMPTS) {
+        g_trackerDebug.lastSettlementDetails.push({
+          match: item.match, market: item.market, savedAt: item.savedAt || "",
+          archived: !!item.archived, status: item.status, attempts: attempts,
+          reason: "Max retry limit (" + MAX_SETTLEMENT_ATTEMPTS + ") reached — skipped.",
+          checks: []
+        });
+        continue;
+      }
+
+      // Honour the cooldown between retries so we don't spam ESPN
+      if (item.lastSettlementAttempt && attempts > 0) {
+        const hoursSinceLast = (Date.now() - Date.parse(item.lastSettlementAttempt)) / (1000 * 60 * 60);
+        if (hoursSinceLast < RETRY_COOLDOWN_HOURS) continue;
+      }
 
       const cacheKey = [item.tour, item.match, item.savedAt ? item.savedAt.slice(0, 10) : ""].join("|");
       let probe = recordCache.get(cacheKey);
@@ -5365,20 +5551,32 @@ const ENGINE_INTEGRITY_SHIELD = {
         recordCache.set(cacheKey, probe);
       }
 
+      // Stamp the attempt count onto the item BEFORE settlement so it always advances
+      items[i] = Object.assign({}, item, {
+        settlementAttempts: attempts + 1,
+        lastSettlementAttempt: new Date().toISOString()
+      });
+
       g_trackerDebug.lastSettlementDetails.push({
         match: item.match,
         market: item.market,
         savedAt: item.savedAt || "",
         archived: !!item.archived,
         status: item.status,
+        attempts: attempts + 1,
         reason: probe && probe.debug ? probe.debug.reason : "no debug",
         checks: probe && probe.debug && Array.isArray(probe.debug.checks) ? probe.debug.checks : []
       });
 
       if (probe && probe.record) {
-        const settledItem = settleTrackerItemFromRecord(item, probe.record);
-        if (settledItem.status !== item.status) settledCount += 1;
-        items[i] = settledItem;
+        const settledItem = settleTrackerItemFromRecord(items[i], probe.record);
+        if (settledItem.status !== item.status) {
+          settledCount += 1;
+          // Reset retry counter on successful settlement
+          items[i] = Object.assign({}, settledItem, { settlementAttempts: 0 });
+        } else {
+          items[i] = settledItem;
+        }
       }
     }
 
@@ -5448,7 +5646,10 @@ const ENGINE_INTEGRITY_SHIELD = {
                     status: "PENDING",
           isLock: idx === lockIdx,
           notes: Array.isArray(result.notes) ? result.notes.join(" | ") : "",
-          simPct: result.simPct
+          simPct: result.simPct,
+          modelVersion: ENGINE_MODEL_VERSION || "tennis_v1",
+          settlementAttempts: 0,
+          lastSettlementAttempt: null
         };
       })
 
@@ -5633,6 +5834,67 @@ const ENGINE_INTEGRITY_SHIELD = {
     `;
   }
 
+
+  // Fix #2: Backtesting — analyses all settled picks and logs results to AFDB.
+  function runBacktest() {
+    const items = getTrackerItems();
+    const settled = items.filter(function(i) { return i.status !== "PENDING"; });
+
+    if (!settled.length) {
+      if (typeof AFDB !== "undefined") { AFDB.open(); AFDB.log("WARN", "BACKTEST", "No settled picks yet. Let the tracker accumulate results first."); }
+      else alert("No settled picks yet.");
+      return;
+    }
+
+    const wins = settled.filter(function(i) { return i.status === "WIN"; }).length;
+    const losses = settled.filter(function(i) { return i.status === "LOSS"; }).length;
+    const pushes = settled.filter(function(i) { return i.status === "PUSH"; }).length;
+    const winRate = settled.length ? ((wins / settled.length) * 100).toFixed(1) : "0";
+
+    const byConf = {}, byMarket = {}, byVersion = {};
+    const edges = [];
+
+    settled.forEach(function(i) {
+      const c = i.confidence || "?";
+      const m = i.market || "?";
+      const v = i.modelVersion || "legacy";
+      if (!byConf[c]) byConf[c] = { wins: 0, losses: 0, pushes: 0, total: 0 };
+      if (!byMarket[m]) byMarket[m] = { wins: 0, losses: 0, pushes: 0, total: 0 };
+      if (!byVersion[v]) byVersion[v] = { wins: 0, losses: 0, total: 0 };
+      [byConf[c], byMarket[m], byVersion[v]].forEach(function(bucket) { bucket.total++; });
+      if (i.status === "WIN") { byConf[c].wins++; byMarket[m].wins++; byVersion[v].wins++; }
+      else if (i.status === "LOSS") { byConf[c].losses++; byMarket[m].losses++; byVersion[v].losses++; }
+      else { byConf[c].pushes++; byMarket[m].pushes++; }
+      const e = Number(i.edge);
+      if (Number.isFinite(e)) edges.push(e);
+    });
+
+    const avgEdge = edges.length ? (edges.reduce(function(a, b) { return a + b; }, 0) / edges.length).toFixed(2) : "—";
+    const stats = getTrackerStorageStats();
+
+    if (typeof AFDB !== "undefined") {
+      AFDB.open();
+      AFDB.log("VERDICT", "BACKTEST", "Overall " + winRate + "% WR | " + wins + "W/" + losses + "L/" + pushes + "P over " + settled.length + " settled picks | Avg edge: " + avgEdge, null);
+      ["A", "B", "C"].forEach(function(c) {
+        const d = byConf[c];
+        if (!d) return;
+        const wr = d.total ? ((d.wins / d.total) * 100).toFixed(1) : "0";
+        AFDB.log("INFO", "BACKTEST", "Grade " + c + ": " + d.wins + "W / " + d.losses + "L / " + d.pushes + "P — " + wr + "% WR", d);
+      });
+      Object.keys(byMarket).forEach(function(m) {
+        const d = byMarket[m];
+        const wr = d.total ? ((d.wins / d.total) * 100).toFixed(1) : "0";
+        AFDB.log("INFO", "BACKTEST", m + ": " + d.wins + "W / " + d.losses + "L / " + d.pushes + "P — " + wr + "% WR", d);
+      });
+      Object.keys(byVersion).forEach(function(v) {
+        const d = byVersion[v];
+        const wr = d.total ? ((d.wins / d.total) * 100).toFixed(1) : "0";
+        AFDB.log("INFO", "BACKTEST", "Model [" + v + "]: " + d.wins + "W / " + d.losses + "L — " + wr + "% WR", d);
+      });
+      AFDB.log("INFO", "BACKTEST", "Storage: " + stats.total + " total | " + stats.active + " active | " + stats.archived + " archived | ~" + Math.round(stats.storageBytes / 1024) + " KB", stats);
+    }
+  }
+  window.runBacktest = runBacktest;
 
   function renderArchivedSection(items, archiveWrap) {
     const archived = items.filter(function(i) { return i.archived; })
@@ -7098,6 +7360,24 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
 
+    const trackerBacktestBtn = qs("trackerBacktestBtn");
+    if (trackerBacktestBtn) {
+      trackerBacktestBtn.addEventListener("click", function() { runBacktest(); });
+    }
+
+    const trackerCleanupBtn = qs("trackerCleanupBtn");
+    if (trackerCleanupBtn) {
+      trackerCleanupBtn.addEventListener("click", function() {
+        const removed = cleanupOldArchivedPicks(60);
+        setRunStatus(
+          removed > 0
+            ? "Cleaned up " + removed + " archived pick(s) older than 60 days."
+            : "Nothing to clean — no archived picks are older than 60 days.",
+          removed > 0 ? "ok" : ""
+        );
+      });
+    }
+
     const trackerImportBtn = qs("trackerImportBtn");
     const trackerImportFile = qs("trackerImportFile");
     if (trackerImportBtn && trackerImportFile) {
@@ -7457,6 +7737,10 @@ document.addEventListener("DOMContentLoaded", function () {
     window.loadTrackerStateFromLocal = loadTrackerStateFromLocal;
     window.saveTrackerStateToLocal = saveTrackerStateToLocal;
     window.normalizeTrackerState = normalizeTrackerState;
+    window.openModelSettingsModal = openModelSettingsModal;
+    window.runBacktest = runBacktest;
+    window.cleanupOldArchivedPicks = cleanupOldArchivedPicks;
+    window.getTrackerStorageStats = getTrackerStorageStats;
 
 
 
