@@ -2599,6 +2599,7 @@ body.dark-mode .tracker-analytics-section-head {
     <button class="theme-toggle" type="button" id="trackerToggleBtn" title="Open tracked picks">📊</button>
     <button class="theme-toggle" type="button" id="afdbBtn" title="Auto-Fetch Debugger" onclick="AFDB.open()">🔬</button>
     PREDICTIONS
+---ENDREPLACE---
   </span>
 </header>
 
@@ -3218,6 +3219,8 @@ const ENGINE_INTEGRITY_SHIELD = {
 
   // ── AFDB Microscope handles debugging now. ──────────────────────────────────────
   function renderTrackerDebug() {}
+---ENDREPLACE---
+
 
   function openTrackerDebugModal() {
     const trackerModal = qs("trackerModal");
@@ -7027,6 +7030,8 @@ document.addEventListener("DOMContentLoaded", function () {
     document.body.classList.toggle("engine-alert", hasIssues);
   }
 
+---ENDREPLACE---
+
     const headerErrorBtn = qs("headerErrorBtn");
     if (headerErrorBtn) {
       headerErrorBtn.addEventListener("click", function () {
@@ -7262,9 +7267,9 @@ const AFDB = (function() {
   };
 
   const ICONS = {
-    BOOT:'⚙️', NET:'🌐', FETCH:'📡', FILL:'✍️',
-    PICK:'📌', H2H:'🔄', SUCCESS:'✅', WARN:'⚠️', ERROR:'❌', INFO:'ℹ️',
-    ENGINE:'⚙️', TRACKER:'📊', VERDICT:'🏅'
+    BOOT:'\u2699\ufe0f', NET:'\ud83c\udf10', FETCH:'\ud83d\udce1', FILL:'\u270f\ufe0f',
+    PICK:'\ud83d\udccc', H2H:'\ud83d\udd04', SUCCESS:'\u2705', WARN:'\u26a0\ufe0f', ERROR:'\u274c', INFO:'\u2139\ufe0f',
+    ENGINE:'\u2699\ufe0f', TRACKER:'\ud83d\udcca', VERDICT:'\ud83c\udf96\ufe0f'
   };
 
   function esc(s) {
@@ -7306,29 +7311,29 @@ const AFDB = (function() {
       navigator.clipboard.writeText(text);
       if (btnEl) {
         const origText = btnEl.innerHTML;
-        btnEl.innerHTML = "✅ COPIED!";
+        btnEl.innerHTML = "\u2705 COPIED!";
         setTimeout(() => { if (btnEl) btnEl.innerHTML = origText; }, 1500);
       }
     } catch(e) {
-      log('WARN','AFDB','Clipboard blocked — printed to console');
+      log('WARN','AFDB','Clipboard blocked \u2014 printed to console');
     }
   }
 
   function snapDOM() {
     const ids = [
       'leagueSelect','teamAName','teamBName',
-      'aFTScored','aFTAllowed','bFTScored','bFTAllowed',
-      'aFTH2H','a1HH2H',
-      'ftMarket','h1Market'
+      'aFTScored','aFTAllowed','a1HScored','a1HAllowed',
+      'bFTScored','bFTAllowed','b1HScored','b1HAllowed',
+      'aFTH2H','bFTH2H','a1HH2H','b1HH2H',
+      'ftMarket','h1Market','h2Market','teamAMarket','teamBMarket'
     ];
     const snap = {};
     ids.forEach(id => {
       const el = document.getElementById(id);
-      snap[id] = el ? (el.value||'(empty)') : '🚫 NOT FOUND';
+      snap[id] = el ? (el.value||'(empty)') : '\u26d4 NOT FOUND';
     });
     if (typeof selectedPlayerIds !== 'undefined') snap['_playerIds'] = JSON.stringify(selectedPlayerIds);
-    const leagueEl = document.getElementById('leagueSelect');
-    snap['_league'] = leagueEl ? leagueEl.value : '(none)';
+    if (typeof uiState !== 'undefined') snap['_league'] = uiState.appliedLeagueSlug||'(none)';
     return snap;
   }
 
@@ -7338,7 +7343,7 @@ const AFDB = (function() {
     const visibleLogs = _log.filter(e => _currentLogLevel === 'ALL' || e.level === _currentLogLevel || (_currentLogLevel === 'ERROR' && e.level === 'VERDICT') || (_currentLogLevel === 'WARN' && (e.level === 'ERROR' || e.level === 'VERDICT')));
     const logRows = visibleLogs.map(e => {
       const def = LEVELS[e.level]||LEVELS.INFO;
-      const icon = ICONS[e.level]||'•';
+      const icon = ICONS[e.level]||'\u2022';
       let dataHtml = '';
       if (e.data !== null) {
         let ds;
@@ -7353,9 +7358,9 @@ const AFDB = (function() {
 const headerBtns = '<button onclick="AFDB.copy(this)" style="background:#111;border:1px solid #333;color:#49d45f;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">📋 Copy Log</button><button onclick="AFDB.clear()" style="background:#111;border:1px solid #333;color:#ff5c61;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">🗑️ Clear</button><button onclick="AFDB.runTestFetch()" style="background:#2a0608;border:1px solid #d91f26;color:#fff;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;box-shadow:0 0 8px rgba(217,31,38,0.4);">🚨 MILITARY RAID</button><button onclick="window.openVisualReportFromDebug()" style="background:#111;border:1px solid #333;color:#d4af37;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">📊</button><button onclick="AFDB.close()" style="background:#111;border:1px solid #555;color:#ccc;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;border-radius:4px;">✕ Close</button>';
 
 const emptyMsg = _showOnlyErrors ? 'No suspects arrested. The code is clean.' : 'No log entries yet. Run a fetch.';
-const filterLabel = `🎯 LEVEL: ${_currentLogLevel}`;
+const filterLabel = `\ud83c\udfaf LEVEL: ${_currentLogLevel}`;
 
-panel.innerHTML = '<div style="background:#080808;border-bottom:1px solid #222;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;flex-shrink:0;"><div style="color:#d4af37;font-size:14px;font-weight:900;letter-spacing:1px;">🔬 AUTO-FETCH DEBUG BRAIN (TT)</div><div style="display:flex;gap:8px;flex-wrap:wrap;">' + headerBtns + '</div></div><div style="display:flex;flex-direction:column;flex:1;overflow-y:auto;background:#0a0a0a;"><div style="flex:1;"><div style="padding:10px 12px;background:#111;color:#d4af37;font-size:11px;font-weight:900;text-transform:uppercase;position:sticky;top:0;z-index:10;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;"><span>📡 FETCH & ENGINE LOGS</span><button onclick="AFDB.toggleFilter()" style="background:none;border:none;color:#4ea9ff;font-size:14px;font-weight:bold;cursor:pointer;">' + filterLabel + '</button></div><div style="padding-bottom:15px;">' + (logRows||'<div style="color:#555;font-size:12px;text-align:center;padding:30px;font-weight:bold;">' + emptyMsg + '</div>') + '</div></div></div>';
+panel.innerHTML = '<div style="background:#080808;border-bottom:1px solid #222;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;flex-shrink:0;"><div style="color:#d4af37;font-size:14px;font-weight:900;letter-spacing:1px;">\ud83d\udd2c AUTO-FETCH DEBUG BRAIN (TT)</div><div style="display:flex;gap:8px;flex-wrap:wrap;">' + headerBtns + '</div></div><div style="display:flex;flex-direction:column;flex:1;overflow-y:auto;background:#0a0a0a;"><div style="flex:1;"><div style="padding:10px 12px;background:#111;color:#d4af37;font-size:11px;font-weight:900;text-transform:uppercase;position:sticky;top:0;z-index:10;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;"><span>\ud83d\udce1 FETCH & ENGINE LOGS</span><button onclick="AFDB.toggleFilter()" style="background:none;border:none;color:#4ea9ff;font-size:14px;font-weight:bold;cursor:pointer;">' + filterLabel + '</button></div><div style="padding-bottom:15px;">' + (logRows||'<div style="color:#555;font-size:12px;text-align:center;padding:30px;font-weight:bold;">' + emptyMsg + '</div>') + '</div></div></div>';
 
 }
 
@@ -7489,27 +7494,39 @@ document.addEventListener('DOMContentLoaded', function() {
       };
       window.fetchESPNTennis._afdbPatched = true;
     }
-    if (typeof fetchTennisScoreboard === 'function' && !fetchTennisScoreboard._afdbPatched) {
-      const _orig = fetchTennisScoreboard;
-      window.fetchTennisScoreboard = async function(league, datesQuery) {
+    if (typeof fetchScheduleCore === 'function' && !fetchScheduleCore._afdbPatched) {
+      const _origSched = fetchScheduleCore;
+      window.fetchScheduleCore = async function(base, teamId, league) {
         try {
-          const res = await _orig.apply(this, arguments);
-          if (!res) AFDB.log('ERROR','fetchTennisScoreboard','NULL RESULT for dates=' + datesQuery);
+          const res = await _origSched.apply(this, arguments);
+          if (!res) AFDB.log('ERROR','scheduleCore','NULL RESULT for teamId=' + teamId + ' — this blocks auto-fill!');
           return res;
-        } catch(err) { AFDB.log('ERROR','fetchTennisScoreboard','THREW for dates=' + datesQuery + ': ' + err.message); throw err; }
+        } catch(err) { AFDB.log('ERROR','scheduleCore','THREW for teamId=' + teamId + ': ' + err.message); throw err; }
       };
-      window.fetchTennisScoreboard._afdbPatched = true;
+      window.fetchScheduleCore._afdbPatched = true;
     }
-    if (typeof fetchAthleteHistoryPayload === 'function' && !fetchAthleteHistoryPayload._afdbPatched) {
-      const _orig = fetchAthleteHistoryPayload;
-      window.fetchAthleteHistoryPayload = async function(url) {
-        try { return await _orig.apply(this, arguments); }
-        catch(err) { AFDB.log('ERROR','fetchAthleteHistoryPayload','THREW: ' + err.message); throw err; }
+    if (typeof fetchH2HCore === 'function' && !fetchH2HCore._afdbPatched) {
+      const _origH2H = fetchH2HCore;
+      window.fetchH2HCore = async function(base, teamAId, teamBId, leagueKey) {
+        try { return await _origH2H.apply(this, arguments); }
+        catch(err) { AFDB.log('ERROR','h2hCore','H2H THREW: ' + err.message); throw err; }
       };
-      window.fetchAthleteHistoryPayload._afdbPatched = true;
+      window.fetchH2HCore._afdbPatched = true;
+    }
+    if (typeof searchTeamFromAPI === 'function' && !searchTeamFromAPI._afdbPatched) {
+      const _origSearch = searchTeamFromAPI;
+      window.searchTeamFromAPI = async function(base, name, league) {
+        try {
+          const res = await _origSearch.apply(this, arguments);
+          if (!res) AFDB.log('ERROR','searchTeam','Team ID NOT FOUND for "' + name + '" in ' + league + ' — THIS BLOCKS FETCH!');
+          return res;
+        } catch(err) { AFDB.log('ERROR','searchTeam','searchTeamFromAPI threw for "' + name + '": ' + err.message); throw err; }
+      };
+      window.searchTeamFromAPI._afdbPatched = true;
     }
   }, 0);
 });
 </script>
 </body>
 </html>
+---ENDREPLACE---
