@@ -2599,7 +2599,6 @@ body.dark-mode .tracker-analytics-section-head {
     <button class="theme-toggle" type="button" id="trackerToggleBtn" title="Open tracked picks">📊</button>
     <button class="theme-toggle" type="button" id="afdbBtn" title="Auto-Fetch Debugger" onclick="AFDB.open()">🔬</button>
     PREDICTIONS
----ENDREPLACE---
   </span>
 </header>
 
@@ -3219,8 +3218,6 @@ const ENGINE_INTEGRITY_SHIELD = {
 
   // ── AFDB Microscope handles debugging now. ──────────────────────────────────────
   function renderTrackerDebug() {}
----ENDREPLACE---
-
 
   function openTrackerDebugModal() {
     const trackerModal = qs("trackerModal");
@@ -7030,8 +7027,6 @@ document.addEventListener("DOMContentLoaded", function () {
     document.body.classList.toggle("engine-alert", hasIssues);
   }
 
----ENDREPLACE---
-
     const headerErrorBtn = qs("headerErrorBtn");
     if (headerErrorBtn) {
       headerErrorBtn.addEventListener("click", function () {
@@ -7322,10 +7317,9 @@ const AFDB = (function() {
   function snapDOM() {
     const ids = [
       'leagueSelect','teamAName','teamBName',
-      'aFTScored','aFTAllowed','a1HScored','a1HAllowed',
-      'bFTScored','bFTAllowed','b1HScored','b1HAllowed',
-      'aFTH2H','bFTH2H','a1HH2H','b1HH2H',
-      'ftMarket','h1Market','h2Market','teamAMarket','teamBMarket'
+      'aFTScored','aFTAllowed','bFTScored','bFTAllowed',
+      'aFTH2H','a1HH2H',
+      'ftMarket','h1Market'
     ];
     const snap = {};
     ids.forEach(id => {
@@ -7333,7 +7327,8 @@ const AFDB = (function() {
       snap[id] = el ? (el.value||'(empty)') : '🚫 NOT FOUND';
     });
     if (typeof selectedPlayerIds !== 'undefined') snap['_playerIds'] = JSON.stringify(selectedPlayerIds);
-    if (typeof uiState !== 'undefined') snap['_league'] = uiState.appliedLeagueSlug||'(none)';
+    const leagueEl = document.getElementById('leagueSelect');
+    snap['_league'] = leagueEl ? leagueEl.value : '(none)';
     return snap;
   }
 
@@ -7494,35 +7489,24 @@ document.addEventListener('DOMContentLoaded', function() {
       };
       window.fetchESPNTennis._afdbPatched = true;
     }
-    if (typeof fetchScheduleCore === 'function' && !fetchScheduleCore._afdbPatched) {
-      const _origSched = fetchScheduleCore;
-      window.fetchScheduleCore = async function(base, teamId, league) {
+    if (typeof fetchTennisScoreboard === 'function' && !fetchTennisScoreboard._afdbPatched) {
+      const _orig = fetchTennisScoreboard;
+      window.fetchTennisScoreboard = async function(league, datesQuery) {
         try {
-          const res = await _origSched.apply(this, arguments);
-          if (!res) AFDB.log('ERROR','scheduleCore','NULL RESULT for teamId=' + teamId + ' — this blocks auto-fill!');
+          const res = await _orig.apply(this, arguments);
+          if (!res) AFDB.log('ERROR','fetchTennisScoreboard','NULL RESULT for dates=' + datesQuery);
           return res;
-        } catch(err) { AFDB.log('ERROR','scheduleCore','THREW for teamId=' + teamId + ': ' + err.message); throw err; }
+        } catch(err) { AFDB.log('ERROR','fetchTennisScoreboard','THREW for dates=' + datesQuery + ': ' + err.message); throw err; }
       };
-      window.fetchScheduleCore._afdbPatched = true;
+      window.fetchTennisScoreboard._afdbPatched = true;
     }
-    if (typeof fetchH2HCore === 'function' && !fetchH2HCore._afdbPatched) {
-      const _origH2H = fetchH2HCore;
-      window.fetchH2HCore = async function(base, teamAId, teamBId, leagueKey) {
-        try { return await _origH2H.apply(this, arguments); }
-        catch(err) { AFDB.log('ERROR','h2hCore','H2H THREW: ' + err.message); throw err; }
+    if (typeof fetchAthleteHistoryPayload === 'function' && !fetchAthleteHistoryPayload._afdbPatched) {
+      const _orig = fetchAthleteHistoryPayload;
+      window.fetchAthleteHistoryPayload = async function(url) {
+        try { return await _orig.apply(this, arguments); }
+        catch(err) { AFDB.log('ERROR','fetchAthleteHistoryPayload','THREW: ' + err.message); throw err; }
       };
-      window.fetchH2HCore._afdbPatched = true;
-    }
-    if (typeof searchTeamFromAPI === 'function' && !searchTeamFromAPI._afdbPatched) {
-      const _origSearch = searchTeamFromAPI;
-      window.searchTeamFromAPI = async function(base, name, league) {
-        try {
-          const res = await _origSearch.apply(this, arguments);
-          if (!res) AFDB.log('ERROR','searchTeam','Team ID NOT FOUND for "' + name + '" in ' + league + ' — THIS BLOCKS FETCH!');
-          return res;
-        } catch(err) { AFDB.log('ERROR','searchTeam','searchTeamFromAPI threw for "' + name + '": ' + err.message); throw err; }
-      };
-      window.searchTeamFromAPI._afdbPatched = true;
+      window.fetchAthleteHistoryPayload._afdbPatched = true;
     }
   }, 0);
 });
