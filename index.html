@@ -3716,17 +3716,24 @@ const ENGINE_INTEGRITY_SHIELD = {
   }
 
   function computeFatiguePenalty(profile, marketKey) {
-    if (!profile) return 0;
-    let penalty = 0;
-    const isSet1 = marketKey === "set1";
-    if (profile.daysRest !== null) {
-      if (profile.daysRest <= 1) penalty += isSet1 ? 0.18 : 0.55;
-      else if (profile.daysRest === 2) penalty += isSet1 ? 0.08 : 0.22;
-    }
-    if (profile.matches7 >= 3) penalty += isSet1 ? 0.10 : 0.28;
-    if (profile.longLoad >= 2) penalty += isSet1 ? 0.10 : 0.28;
-    return penalty;
+  if (!profile) return 0;
+  let penalty = 0;
+  const isSet1 = marketKey === "set1";
+
+  if (profile.daysRest !== null) {
+    // Overwork penalties
+    if (profile.daysRest <= 1) penalty += isSet1 ? 0.18 : 0.55;
+    else if (profile.daysRest === 2) penalty += isSet1 ? 0.08 : 0.22;
+
+    // NEW: Rust penalties for long layoffs (e.g. 336 days)
+    else if (profile.daysRest >= 90) penalty += isSet1 ? 0.40 : 1.25;
+    else if (profile.daysRest >= 30) penalty += isSet1 ? 0.25 : 0.75;
   }
+
+  if (profile.matches7 >= 3) penalty += isSet1 ? 0.10 : 0.28;
+  if (profile.longLoad >= 2) penalty += isSet1 ? 0.10 : 0.28;
+  return penalty;
+}
 
   function uniqueNotes(notes) {
     return Array.from(new Set((notes || []).filter(Boolean)));
@@ -3739,6 +3746,14 @@ const ENGINE_INTEGRITY_SHIELD = {
     let avgB = mean(options.manualB);
     let stdA = stdDev(options.manualA);
     let stdB = stdDev(options.manualB);
+
+    // CLEAN Volatility Floor for Bayesian-padded small samples
+    if (options.ctx && options.ctx.isPaddedA) {
+      stdA = Math.max(stdA, marketKey === "match" ? 2.5 : 1.2);
+    }
+    if (options.ctx && options.ctx.isPaddedB) {
+      stdB = Math.max(stdB, marketKey === "match" ? 2.5 : 1.2);
+    }
     
     // FIX: Strictly obey the UI input for H2H. Do not secretly override it with context data.
     let h2h = (options.manualH2H || []).slice();
@@ -7295,6 +7310,10 @@ if (!duplicate) {
         throw new Error("Zero match history found. Bayesian anchor requires at least one real data point.");
       }
 
+      // Clean flags to detect Bayesian padding (for volatility floor)
+      const isPaddedA = aGames.length < MIN_SAMPLE_SIZE;
+      const isPaddedB = bGames.length < MIN_SAMPLE_SIZE;
+
       applyAutofillData({ 
         aGames: bayesianA, 
         bGames: bayesianB, 
@@ -7303,6 +7322,12 @@ if (!duplicate) {
         h2hMatchTotals, 
         h2hSet1Totals 
       });
+
+      // Store padding flags in context for buildDerivedMarketInputs
+      if (latestFetchedContext) {
+        latestFetchedContext.isPaddedA = isPaddedA;
+        latestFetchedContext.isPaddedB = isPaddedB;
+      }
 
 
       const tournamentName = (selectedFixtureRecord?.tournamentName) || (recentA[0]?.tournamentName) || "";
