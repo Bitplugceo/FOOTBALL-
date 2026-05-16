@@ -4029,14 +4029,26 @@ const ENGINE_INTEGRITY_SHIELD = {
     }
 
         const projectionCore = hasH2H ? ((baseProjection * (1 - h2hWeight)) + (h2hAvg * h2hWeight)) : baseProjection;
-    const projection = projectionCore + (config.projectionShift || 0);
+    let projection = projectionCore + (config.projectionShift || 0);
+
+    // Final Elo Boost (if available)
+    if (config.ctx && Number.isFinite(config.ctx.eloA) && Number.isFinite(config.ctx.eloB)) {
+      const eloDiff = config.ctx.eloA - config.ctx.eloB;
+      projection += (eloDiff / 120); // Small but meaningful adjustment
+    }
     
     // WEAPONIZED MATH: Variance Summation Rule
     // Standard deviations do not add linearly. We must sum the variances and take the square root.
     // Correct Formula: σ_total = sqrt(σA² + σB²)
     let volatility = Math.sqrt(Math.pow(config.stdA, 2) + Math.pow(config.stdB, 2));
-    
-    if (config.ctx && config.ctx.surface === "Grass") volatility *= 1.15; 
+
+    // Surface-aware volatility adjustment
+    if (config.ctx && config.ctx.surface) {
+      const surf = String(config.ctx.surface).toLowerCase();
+      if (surf.includes("grass")) volatility *= 1.18;
+      else if (surf.includes("clay")) volatility *= 0.88;
+      else if (surf.includes("hard")) volatility *= 1.05;
+    }
 
     const lineDecision = pickFromRange(projection, config.lineRange);
 
@@ -4044,6 +4056,13 @@ const ENGINE_INTEGRITY_SHIELD = {
     let edge = lineDecision.edge;
     // Updated call to include the line midpoint for normalized grading
     let confidence = getRawConfidence(edge, volatility, config.lineRange.mid);
+
+    // Bayesian Confidence Scaling: Lower sample = harder to get high grade
+    const sampleSize = (config.ctx && config.ctx.recentMatchA && config.ctx.recentMatchA.length) || 5;
+    if (sampleSize < 5) {
+      if (confidence === "A") confidence = "B";
+      else if (confidence === "B") confidence = "C";
+    }
 
     const notes = [].concat(config.extraNotes || []);
     const filtersTriggered = [];
