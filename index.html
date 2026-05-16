@@ -4026,6 +4026,17 @@ const ENGINE_INTEGRITY_SHIELD = {
       confidence = "PASS"; pick = "PASS";
       terminalVeto = true;
     }
+    
+    // VETO: Extreme Rust / Injury Layoff
+    // If either player has been inactive for > 90 days, historical data is statistically void.
+    const restA = config.ctx && config.ctx.fatigueA && config.ctx.fatigueA.daysRest !== null ? config.ctx.fatigueA.daysRest : 0;
+    const restB = config.ctx && config.ctx.fatigueB && config.ctx.fatigueB.daysRest !== null ? config.ctx.fatigueB.daysRest : 0;
+    if (restA > 90 || restB > 90) {
+      filtersTriggered.push("rust_veto");
+      notes.push("VETO: Extreme Layoff (> 90 days)");
+      confidence = "PASS"; pick = "PASS";
+      terminalVeto = true;
+    }
     if (config.avgTb >= 0.25) {
       filtersTriggered.push("tb_veto");
       notes.push("VETO: Serve-Bot Alert (both directions)");
