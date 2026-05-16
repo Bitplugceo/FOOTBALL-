@@ -4031,10 +4031,17 @@ const ENGINE_INTEGRITY_SHIELD = {
         const projectionCore = hasH2H ? ((baseProjection * (1 - h2hWeight)) + (h2hAvg * h2hWeight)) : baseProjection;
     let projection = projectionCore + (config.projectionShift || 0);
 
-    // Final Elo Boost (if available)
+    // Final Elo Boost (Corrected for Totals Symmetry)
     if (config.ctx && Number.isFinite(config.ctx.eloA) && Number.isFinite(config.ctx.eloB)) {
-      const eloDiff = config.ctx.eloA - config.ctx.eloB;
-      projection += (eloDiff / 120); // Small but meaningful adjustment
+      const eloGap = Math.abs(config.ctx.eloA - config.ctx.eloB);
+      
+      // If the gap is massive (> 150), it's a blowout mismatch. Subtract games.
+      // If the gap is tight (< 50), it's a coinflip dogfight. Add games.
+      if (eloGap > 150) {
+        projection -= (eloGap - 150) / 100; // E.g., 250 gap = -1.0 games
+      } else if (eloGap < 50) {
+        projection += (50 - eloGap) / 100; // E.g., 10 gap = +0.4 games
+      }
     }
     
     // WEAPONIZED MATH: Variance Summation Rule
