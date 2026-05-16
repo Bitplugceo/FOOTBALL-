@@ -2784,8 +2784,6 @@ body.dark-mode .tracker-analytics-section-head {
     <div class="tracker-head">
       <span id="trackerHeadTitle">Tracked Picks</span>
       <div class="tracker-head-actions">
-        <button type="button" id="trackerBacktestBtn" class="tracker-insights-btn state-idle" title="Run backtest on all settled picks">📈</button>
-        <button type="button" id="trackerCleanupBtn" class="tracker-insights-btn state-idle" title="Remove archived picks older than 60 days">🗑️</button>
         <button type="button" id="trackerCloseBtn" class="tracker-close">✕</button>
       </div>
     </div>
@@ -5841,67 +5839,6 @@ const ENGINE_INTEGRITY_SHIELD = {
   }
 
 
-  // Fix #2: Backtesting — analyses all settled picks and logs results to AFDB.
-  function runBacktest() {
-    const items = getTrackerItems();
-    const settled = items.filter(function(i) { return i.status !== "PENDING"; });
-
-    if (!settled.length) {
-      if (typeof AFDB !== "undefined") { AFDB.open(); AFDB.log("WARN", "BACKTEST", "No settled picks yet. Let the tracker accumulate results first."); }
-      else alert("No settled picks yet.");
-      return;
-    }
-
-    const wins = settled.filter(function(i) { return i.status === "WIN"; }).length;
-    const losses = settled.filter(function(i) { return i.status === "LOSS"; }).length;
-    const pushes = settled.filter(function(i) { return i.status === "PUSH"; }).length;
-    const winRate = settled.length ? ((wins / settled.length) * 100).toFixed(1) : "0";
-
-    const byConf = {}, byMarket = {}, byVersion = {};
-    const edges = [];
-
-    settled.forEach(function(i) {
-      const c = i.confidence || "?";
-      const m = i.market || "?";
-      const v = i.modelVersion || "legacy";
-      if (!byConf[c]) byConf[c] = { wins: 0, losses: 0, pushes: 0, total: 0 };
-      if (!byMarket[m]) byMarket[m] = { wins: 0, losses: 0, pushes: 0, total: 0 };
-      if (!byVersion[v]) byVersion[v] = { wins: 0, losses: 0, total: 0 };
-      [byConf[c], byMarket[m], byVersion[v]].forEach(function(bucket) { bucket.total++; });
-      if (i.status === "WIN") { byConf[c].wins++; byMarket[m].wins++; byVersion[v].wins++; }
-      else if (i.status === "LOSS") { byConf[c].losses++; byMarket[m].losses++; byVersion[v].losses++; }
-      else { byConf[c].pushes++; byMarket[m].pushes++; }
-      const e = Number(i.edge);
-      if (Number.isFinite(e)) edges.push(e);
-    });
-
-    const avgEdge = edges.length ? (edges.reduce(function(a, b) { return a + b; }, 0) / edges.length).toFixed(2) : "—";
-    const stats = getTrackerStorageStats();
-
-    if (typeof AFDB !== "undefined") {
-      AFDB.open();
-      AFDB.log("VERDICT", "BACKTEST", "Overall " + winRate + "% WR | " + wins + "W/" + losses + "L/" + pushes + "P over " + settled.length + " settled picks | Avg edge: " + avgEdge, null);
-      ["A", "B", "C"].forEach(function(c) {
-        const d = byConf[c];
-        if (!d) return;
-        const wr = d.total ? ((d.wins / d.total) * 100).toFixed(1) : "0";
-        AFDB.log("INFO", "BACKTEST", "Grade " + c + ": " + d.wins + "W / " + d.losses + "L / " + d.pushes + "P — " + wr + "% WR", d);
-      });
-      Object.keys(byMarket).forEach(function(m) {
-        const d = byMarket[m];
-        const wr = d.total ? ((d.wins / d.total) * 100).toFixed(1) : "0";
-        AFDB.log("INFO", "BACKTEST", m + ": " + d.wins + "W / " + d.losses + "L / " + d.pushes + "P — " + wr + "% WR", d);
-      });
-      Object.keys(byVersion).forEach(function(v) {
-        const d = byVersion[v];
-        const wr = d.total ? ((d.wins / d.total) * 100).toFixed(1) : "0";
-        AFDB.log("INFO", "BACKTEST", "Model [" + v + "]: " + d.wins + "W / " + d.losses + "L — " + wr + "% WR", d);
-      });
-      AFDB.log("INFO", "BACKTEST", "Storage: " + stats.total + " total | " + stats.active + " active | " + stats.archived + " archived | ~" + Math.round(stats.storageBytes / 1024) + " KB", stats);
-    }
-  }
-  window.runBacktest = runBacktest;
-
   function renderArchivedSection(items, archiveWrap) {
     const archived = items.filter(function(i) { return i.archived; })
       .sort(function(a, b) { return getTrackerItemTimeMs(b) - getTrackerItemTimeMs(a); });
@@ -7351,24 +7288,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const trackerCloseBtn = qs("trackerCloseBtn");
     if (trackerCloseBtn) trackerCloseBtn.addEventListener("click", closeTrackerModal);
 
-    const trackerBacktestBtn = qs("trackerBacktestBtn");
-    if (trackerBacktestBtn) {
-      trackerBacktestBtn.addEventListener("click", function() { runBacktest(); });
-    }
-
-    const trackerCleanupBtn = qs("trackerCleanupBtn");
-    if (trackerCleanupBtn) {
-      trackerCleanupBtn.addEventListener("click", function() {
-        const removed = cleanupOldArchivedPicks(60);
-        setRunStatus(
-          removed > 0
-            ? "Cleaned up " + removed + " archived pick(s) older than 60 days."
-            : "Nothing to clean — no archived picks are older than 60 days.",
-          removed > 0 ? "ok" : ""
-        );
-      });
-    }
-
     const trackerModal = qs("trackerModal");
     if (trackerModal) {
       trackerModal.addEventListener("click", function (e) {
@@ -7627,12 +7546,14 @@ document.addEventListener("DOMContentLoaded", function () {
     updateTrackerUI();
     renderTrackerDebug();
     hydrateTrackerState(true).then(function () {
+      cleanupOldArchivedPicks(60);
       updateTrackerUI();
       renderTrackerDebug();
       autoSettleTracker(true);
     });
     setInterval(function () {
       hydrateTrackerState(true).then(function () {
+        cleanupOldArchivedPicks(60);
         updateTrackerUI();
         autoSettleTracker(true);
       });
@@ -7664,7 +7585,6 @@ document.addEventListener("DOMContentLoaded", function () {
     window.loadTrackerStateFromLocal = loadTrackerStateFromLocal;
     window.saveTrackerStateToLocal = saveTrackerStateToLocal;
     window.normalizeTrackerState = normalizeTrackerState;
-    window.runBacktest = runBacktest;
     window.cleanupOldArchivedPicks = cleanupOldArchivedPicks;
     window.getTrackerStorageStats = getTrackerStorageStats;
 
