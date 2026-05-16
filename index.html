@@ -5459,6 +5459,22 @@ const ENGINE_INTEGRITY_SHIELD = {
     allChecks.push({ label: "outer-strategy-error", query: "", records: 0, exact: 0, fuzzy: 0, relaxed: 0, sample: outerErr && outerErr.message || "outer error" });
   }
 
+  // Final aggressive fallback: If we still have no record, try one last broad date scan
+  if (!item.fixtureDate && item.savedAt) {
+    try {
+      const broadDate = item.savedAt.slice(0, 10).replace(/-/g, "");
+      const payload = await fetchTennisScoreboard(item.tour, broadDate);
+      const dayRecords = extractCompetitionRecords(payload).filter(r => r.status && r.status.completed);
+      const looseMatch = dayRecords.find(r => 
+        normalizeName(r.playerAName).includes(normalizeName(names.playerAName).slice(0, 6)) ||
+        normalizeName(r.playerBName).includes(normalizeName(names.playerBName).slice(0, 6))
+      );
+      if (looseMatch) {
+        return { record: looseMatch, debug: { reason: "Aggressive fallback match found", checks: allChecks, manualSurface: manualSurface } };
+      }
+    } catch (e) {}
+  }
+
   return { record: null, debug: { reason: "All 3 settlement strategies exhausted — no match found.", checks: allChecks, manualSurface: manualSurface } };
 }
 
