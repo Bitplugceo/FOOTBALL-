@@ -4020,6 +4020,14 @@ const ENGINE_INTEGRITY_SHIELD = {
     // Fix #11: Reduce weight for small H2H samples to avoid noise
     if (hasH2H && config.h2h.length < MODEL_CONFIG.h2hSmallSampleThreshold) h2hWeight = MODEL_CONFIG.h2hWeightSmallSample;
 
+    // Dynamic H2H Weight: More H2H matches = stronger weight (up to 40%)
+    const h2hCount = hasH2H ? config.h2h.length : 0;
+    if (h2hCount >= 5) {
+      h2hWeight = Math.min(h2hWeight * 1.35, 0.40);
+    } else if (h2hCount >= 3) {
+      h2hWeight = Math.min(h2hWeight * 1.15, 0.35);
+    }
+
         const projectionCore = hasH2H ? ((baseProjection * (1 - h2hWeight)) + (h2hAvg * h2hWeight)) : baseProjection;
     const projection = projectionCore + (config.projectionShift || 0);
     
