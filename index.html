@@ -6765,7 +6765,22 @@ if (!duplicate) {
         if (!hasValidDate) return false;
         if (dateKeyFromDate(scheduledAt) !== targetDayKey) return false;
 
-        // 2. For today's matches, only show them if their start time is still in the future
+        // 2. HARD FILTER: Block Minor Leagues & Qualifiers
+        // ESPN does not reliably track history for these tiers.
+        // If we let them in the dropdown, they will just trigger the AUTO-SKIP anyway.
+        const tName = String(record.tournamentName || "").toLowerCase();
+        const rName = String(record.roundName || "").toLowerCase();
+        if (
+          tName.includes("challenger") || 
+          tName.includes("itf") || 
+          tName.includes("futures") || 
+          tName.includes("qualifying") ||
+          rName.includes("qualifying")
+        ) {
+          return false; // Silently drop from the dropdown menu
+        }
+
+        // 3. For today's matches, only show them if their start time is still in the future
         if (offset === 0) {
           return isScheduled && scheduledAt.getTime() > now.getTime();
         }
