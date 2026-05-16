@@ -4024,26 +4024,36 @@ const ENGINE_INTEGRITY_SHIELD = {
     const simPct = (pick === "OVER") ? sim.overPct : sim.underPct;
 
     // Fix #4: Simulation-informed edge refinement
-    // Fix #4: Simulation meaningfully refines the edge and can rescue or penalize confidence.
+    // Fix #4 FINAL: Simulation now has 35% weight and directly influences both edge and confidence.
     if (!lineDecision.atMid && pick !== "PASS") {
-      const simDelta = simPct - 50; // positive = sim agrees with OVER, negative = sim agrees with UNDER
+      const simDelta = simPct - 50;
       const pickAligned = (pick === "OVER" && simDelta > 0) || (pick === "UNDER" && simDelta < 0);
-      if (Math.abs(simDelta) >= 2) {
-        // Scale boost proportionally: bigger sim delta AND bigger statistical edge = bigger refinement
-        const simBoost = (simDelta / 100) * Math.max(0.5, Math.abs(edge) * 0.35);
-        edge = pick === "OVER" ? edge + simBoost : edge - simBoost;
+
+      const simImpliedEdge = (simDelta / 50) * (config.lineRange.mid * 0.085);
+      const blendedEdge = (edge * 0.65) + (simImpliedEdge * 0.35);
+
+      if (Math.sign(blendedEdge) === Math.sign(edge) || Math.abs(blendedEdge) < 0.04) {
+        const improvement = Math.abs(blendedEdge) - Math.abs(edge);
+        edge = blendedEdge;
+        if (Math.abs(improvement) >= 0.08) {
+          notes.push("Sim blend " + (improvement >= 0 ? "+" : "") + improvement.toFixed(2) + " edge (" + simPct.toFixed(1) + "%)");
+        }
       }
-      // Sim strongly rescues a near-PASS pick
-      if (Math.abs(simDelta) >= 15 && pickAligned && confidence === "PASS") {
+
+      if (confidence !== "PASS") {
+        confidence = getRawConfidence(edge, volatility, config.lineRange.mid);
+      }
+
+      if (Math.abs(simDelta) >= 14 && pickAligned && confidence === "PASS") {
         confidence = "C";
         pick = lineDecision.pick;
         notes.push("Sim rescue (" + simPct.toFixed(1) + "%)");
-      } else if (Math.abs(simDelta) >= 10 && pickAligned && confidence === "C") {
+      } else if (Math.abs(simDelta) >= 9 && pickAligned && confidence === "C") {
         confidence = "B";
         notes.push("Sim upgrade (" + simPct.toFixed(1) + "%)");
       }
-      // Sim actively contradicts the statistical pick — penalize confidence
-      if (!pickAligned && Math.abs(simDelta) >= 6) {
+
+      if (!pickAligned && Math.abs(simDelta) >= 7) {
         notes.push("Sim contradiction (" + simPct.toFixed(1) + "%)");
         confidence = downgradeConfidence(confidence);
       }
@@ -5348,98 +5358,108 @@ const ENGINE_INTEGRITY_SHIELD = {
 
   async function fetchSettlementRecordForItem(item) {
   if (!item || !item.tour || !item.match) {
-    return {
-      record: null,
-      debug: {
-        reason: "missing item / tour / match",
-        checks: [],
-        manualSurface: item?.manualSurface || "unknown"
-      }
-    };
+    return { record: null, debug: { reason: "missing item / tour / match", checks: [], manualSurface: item && item.manualSurface || "unknown" } };
   }
 
   const names = parseTrackerMatchNames(item.match);
   const manualSurface = item.manualSurface || "unknown";
 
   if (!names.playerAName || !names.playerBName) {
-    return {
-      record: null,
-      debug: {
-        reason: "unable to parse players from match",
-        checks: [],
-        manualSurface
-      }
-    };
+    return { record: null, debug: { reason: "unable to parse players from match", checks: [], manualSurface: manualSurface } };
   }
 
-  const checks = [];
+  const allChecks = [];
 
-        try {
-        // =========================
-        // PLAYER HISTORY PROBE - RESOLVING IDs & DUAL PROBE
-        // =========================
-        const resolved = await resolveSettlementPlayerIds(item, names);
-        const histA = await fetchPlayerHistorySettlementRecords(item.tour, resolved.playerAId, item.fixtureDate || item.savedAt);
-        const histB = await fetchPlayerHistorySettlementRecords(item.tour, resolved.playerBId, item.fixtureDate || item.savedAt);
+  // ─── STRATEGY 1: Event-ID fast-path (most reliable when saved) ─────────────
+  if (item.eventId || item.competitionId) {
+    try {
+      const eventProbe = await fetchSettlementRecordFromEventSummary(item, names);
+      if (eventProbe && eventProbe.debug && Array.isArray(eventProbe.debug.checks)) {
+        allChecks.push.apply(allChecks, eventProbe.debug.checks);
+      }
+      if (eventProbe && eventProbe.record) {
+        return { record: eventProbe.record, debug: { reason: "Event-ID fast-path matched", checks: allChecks, manualSurface: manualSurface } };
+      }
+    } catch (eventErr) {
+      allChecks.push({ label: "event-id-error", query: String(item.eventId || item.competitionId || ""), records: 0, exact: 0, fuzzy: 0, relaxed: 0, sample: eventErr && eventErr.message || "unknown error" });
+    }
+  }
 
-        const allRecords = dedupeRecords([].concat(histA.records || [], histB.records || []));
-        const h2h = buildH2HSeries(allRecords, resolved.playerAId, resolved.playerBId, names.playerAName, names.playerBName);
+  // ─── STRATEGY 2: Dual player-history ID probe ───────────────────────────────
+  try {
+    var resolved = await resolveSettlementPlayerIds(item, names);
 
-        const targetTs = item.fixtureDate ? Date.parse(item.fixtureDate) : (item.savedAt ? Date.parse(item.savedAt) : NaN);
-        const nearby = h2h.filter(record => {
-          const ts = Date.parse(record.date || "");
-          return Math.abs(ts - (targetTs || 0)) <= (14 * 86400000);
+    if (resolved.playerAId && resolved.playerBId) {
+      var histA = await fetchPlayerHistorySettlementRecords(item.tour, resolved.playerAId, item.fixtureDate || item.savedAt);
+      var histB = await fetchPlayerHistorySettlementRecords(item.tour, resolved.playerBId, item.fixtureDate || item.savedAt);
+
+      if (Array.isArray(histA.checks)) allChecks.push.apply(allChecks, histA.checks);
+      if (Array.isArray(histB.checks)) allChecks.push.apply(allChecks, histB.checks);
+
+      var allRecords2 = dedupeRecords([].concat(histA.records || [], histB.records || []));
+      var h2h2 = buildH2HSeries(allRecords2, resolved.playerAId, resolved.playerBId, names.playerAName, names.playerBName);
+      var targetTs2 = item.fixtureDate ? Date.parse(item.fixtureDate) : (item.savedAt ? Date.parse(item.savedAt) : NaN);
+
+      var nearby2 = Number.isFinite(targetTs2) ? h2h2.filter(function (r) {
+        var ts = Date.parse(r.date || "");
+        return Number.isFinite(ts) && Math.abs(ts - targetTs2) <= (14 * 86400000);
+      }) : h2h2;
+
+      var chosen2 = chooseBestHistorySettlementCandidate(nearby2.length ? nearby2 : h2h2, item.fixtureDate || item.savedAt);
+
+      allChecks.push({
+        label: "player-history-h2h",
+        query: "A=" + resolved.playerAId + " B=" + resolved.playerBId,
+        records: allRecords2.length,
+        exact: h2h2.length,
+        fuzzy: nearby2.length,
+        relaxed: chosen2 ? 1 : 0,
+        sample: h2h2.slice(0, 3).map(function (r) { return r.playerAName + " vs " + r.playerBName; }).join(" | ")
+      });
+
+      if (chosen2) {
+        return { record: chosen2, debug: { reason: "Dual-ID history probe matched", checks: allChecks, manualSurface: manualSurface } };
+      }
+    }
+
+    // ─── STRATEGY 3: Scoreboard date scan + relaxed name matching ───────────
+    var dateQueries3 = buildSettlementDateQueries(item.fixtureDate || item.savedAt);
+    var scanWindow = Math.min(dateQueries3.length, 5);
+    for (var qi = 0; qi < scanWindow; qi++) {
+      try {
+        var payload3 = await fetchTennisScoreboard(item.tour, dateQueries3[qi]);
+        var dayRecords = extractCompetitionRecords(payload3).filter(function (r) {
+          return r.status && r.status.completed &&
+            Number.isFinite(r.totalGames) && Number.isFinite(r.set1Total);
         });
 
-        const historyProbeRecord = chooseBestHistorySettlementCandidate(nearby.length ? nearby : h2h, item.fixtureDate || item.savedAt);
+        var exactMatches   = dayRecords.filter(function (r) { return sameTrackerMatchRecord(r, names.playerAName, names.playerBName); });
+        var fuzzyMatches   = dayRecords.filter(function (r) { return fuzzySameTrackerMatchRecord(r, names.playerAName, names.playerBName); });
+        var relaxedMatches = dayRecords.filter(function (r) { return relaxedSameTrackerMatchRecord(r, names.playerAName, names.playerBName); });
+        var found3         = exactMatches[0] || fuzzyMatches[0] || relaxedMatches[0] || null;
 
-        checks.push({
-          label: "player-history-h2h",
-          query: "Dual-ID Probe: A=" + (resolved.playerAId || 'null') + " B=" + (resolved.playerBId || 'null'),
-          records: allRecords.length,
-          exact: h2h.length,
-          fuzzy: nearby.length,
-          relaxed: historyProbeRecord ? 1 : 0,
-          sample: h2h.slice(0, 3).map(r => r.playerAName + ' vs ' + r.playerBName).join(' | ')
+        allChecks.push({
+          label: "scoreboard-scan",
+          query: dateQueries3[qi],
+          records: dayRecords.length,
+          exact: exactMatches.length,
+          fuzzy: fuzzyMatches.length,
+          relaxed: relaxedMatches.length,
+          sample: dayRecords.slice(0, 4).map(function (r) { return r.playerAName + " vs " + r.playerBName; }).join(" | ")
         });
 
-        if (historyProbeRecord) {
-          return {
-            record: historyProbeRecord,
-            debug: {
-              reason: "History probe success via Dual-ID Resolution",
-              checks: checks.concat(histA.checks || [], histB.checks || []),
-              manualSurface
-            }
-          };
+        if (found3) {
+          return { record: found3, debug: { reason: "Scoreboard scan matched: " + dateQueries3[qi], checks: allChecks, manualSurface: manualSurface } };
         }
-
-
-    // =========================
-    // NO HISTORY MATCH
-    // =========================
-    return {
-      record: null,
-      debug: {
-        reason: historyProbe?.debug?.reason
-          ? historyProbe.debug.reason
-          : "no completed player-history record match",
-
-        checks: checks.concat(historyProbe?.debug?.checks || []),
-        manualSurface
+      } catch (scanErr) {
+        allChecks.push({ label: "scoreboard-scan-error", query: dateQueries3[qi], records: 0, exact: 0, fuzzy: 0, relaxed: 0, sample: scanErr && scanErr.message || "scan failed" });
       }
-    };
-
-  } catch (historyErr) {
-    return {
-      record: null,
-      debug: {
-        reason: "player-history settlement failed",
-        checks,
-        manualSurface
-      }
-    };
+    }
+  } catch (outerErr) {
+    allChecks.push({ label: "outer-strategy-error", query: "", records: 0, exact: 0, fuzzy: 0, relaxed: 0, sample: outerErr && outerErr.message || "outer error" });
   }
+
+  return { record: null, debug: { reason: "All 3 settlement strategies exhausted — no match found.", checks: allChecks, manualSurface: manualSurface } };
 }
 
     function settleTrackerItemFromRecord(item, record) {
@@ -5818,7 +5838,7 @@ const ENGINE_INTEGRITY_SHIELD = {
                         <td style="font-size: 9px; color: var(--muted); line-height: 1.4;">
                                                    <strong>Edge:</strong> <span style="color:var(--text)">${edge}</span> | <strong>Grade:</strong> <span style="color:var(--text)">${p.confidence}</span><br>
                           <strong>Sim Hit Rate:</strong> <span style="color:var(--text)">${p.simPct ? p.simPct.toFixed(1) + '%' : htmlEscape(simNote)}</span><br>
-                          <strong>Data:</strong> ${p.tour ? p.tour.toUpperCase() : 'ATP'} | <strong>Vol:</strong> ${htmlEscape(p.notes.includes("volatility") ? "High" : "Stable")}
+                          <strong>Model:</strong> <span style="color:var(--text)">${htmlEscape(p.modelVersion || 'legacy')}</span> | <strong>Tour:</strong> ${p.tour ? p.tour.toUpperCase() : 'ATP'} | <strong>Vol:</strong> ${htmlEscape(p.notes && p.notes.includes("volatility") ? "High" : "Stable")}
                         </td>
                       </tr>
                     `;
@@ -5984,9 +6004,15 @@ const ENGINE_INTEGRITY_SHIELD = {
       return (
         '<tr data-id="' + htmlEscape(item.id) + '">' +
           '<td>' + htmlEscape(formatTrackerDate(item.fixtureDate || item.savedAt)) + '</td>' +
-          '<td>' + htmlEscape(item.match) + '</td>' +
-          '<td>' + htmlEscape(item.market) + '</td>' +
-          '<td>' + htmlEscape(item.line || "—") + '</td>' +
+                '<td>' +
+        htmlEscape(item.match) +
+        (item.modelVersion ? '<br><span style="font-size:9px;color:var(--muted);font-weight:700;letter-spacing:0.2px;">' + htmlEscape(item.modelVersion) + '</span>' : '') +
+        (item.status === "PENDING" && Number(item.settlementAttempts) > 0
+          ? '<span style="font-size:9px;color:var(--muted);font-weight:700;"> · try ' + Number(item.settlementAttempts) + '/6</span>'
+          : '') +
+      '</td>' +
+      '<td>' + htmlEscape(item.market) + '</td>' +
+      '<td>' + htmlEscape(item.line || "—") + '</td>' +
 '<td class="' + getPickCellClass(item.rawPick, item.confidence) + '">' +
   '<div style="display: flex; align-items: center; justify-content: center; gap: 4px;">' +
     '<span>' + htmlEscape(item.pick) + '</span>' +
