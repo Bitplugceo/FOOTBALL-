@@ -3748,11 +3748,26 @@ const ENGINE_INTEGRITY_SHIELD = {
     let stdB = stdDev(options.manualB);
 
     // CLEAN Volatility Floor for Bayesian-padded small samples
+    let volFloorA = marketKey === "match" ? 2.5 : 1.2;
+    let volFloorB = marketKey === "match" ? 2.5 : 1.2;
+
+    // Surface-aware adjustment (Grass = higher variance, Clay = tighter)
+    if (options.ctx && options.ctx.surface) {
+      const surf = String(options.ctx.surface).toLowerCase();
+      if (surf.includes("grass")) {
+        volFloorA *= 1.15;
+        volFloorB *= 1.15;
+      } else if (surf.includes("clay")) {
+        volFloorA *= 0.90;
+        volFloorB *= 0.90;
+      }
+    }
+
     if (options.ctx && options.ctx.isPaddedA) {
-      stdA = Math.max(stdA, marketKey === "match" ? 2.5 : 1.2);
+      stdA = Math.max(stdA, volFloorA);
     }
     if (options.ctx && options.ctx.isPaddedB) {
-      stdB = Math.max(stdB, marketKey === "match" ? 2.5 : 1.2);
+      stdB = Math.max(stdB, volFloorB);
     }
     
     // FIX: Strictly obey the UI input for H2H. Do not secretly override it with context data.
