@@ -5402,7 +5402,7 @@ const ENGINE_INTEGRITY_SHIELD = {
 
       var nearby2 = Number.isFinite(targetTs2) ? h2h2.filter(function (r) {
         var ts = Date.parse(r.date || "");
-        return Number.isFinite(ts) && Math.abs(ts - targetTs2) <= (14 * 86400000);
+        return Number.isFinite(ts) && Math.abs(ts - targetTs2) <= (21 * 86400000);
       }) : h2h2;
 
       var chosen2 = chooseBestHistorySettlementCandidate(nearby2.length ? nearby2 : h2h2, item.fixtureDate || item.savedAt);
@@ -5424,7 +5424,7 @@ const ENGINE_INTEGRITY_SHIELD = {
 
     // ─── STRATEGY 3: Scoreboard date scan + relaxed name matching ───────────
     var dateQueries3 = buildSettlementDateQueries(item.fixtureDate || item.savedAt);
-    var scanWindow = Math.min(dateQueries3.length, 5);
+    var scanWindow = Math.min(dateQueries3.length, 8); // Increased from 5 to 8
     for (var qi = 0; qi < scanWindow; qi++) {
       try {
         var payload3 = await fetchTennisScoreboard(item.tour, dateQueries3[qi]);
@@ -5459,23 +5459,34 @@ const ENGINE_INTEGRITY_SHIELD = {
     allChecks.push({ label: "outer-strategy-error", query: "", records: 0, exact: 0, fuzzy: 0, relaxed: 0, sample: outerErr && outerErr.message || "outer error" });
   }
 
-  // Final aggressive fallback: If we still have no record, try one last broad date scan
+  // ─── FINAL AGGRESSIVE FALLBACK (Much stronger) ─────────────────────────────
   if (!item.fixtureDate && item.savedAt) {
     try {
       const broadDate = item.savedAt.slice(0, 10).replace(/-/g, "");
       const payload = await fetchTennisScoreboard(item.tour, broadDate);
       const dayRecords = extractCompetitionRecords(payload).filter(r => r.status && r.status.completed);
-      const looseMatch = dayRecords.find(r => 
-        normalizeName(r.playerAName).includes(normalizeName(names.playerAName).slice(0, 6)) ||
-        normalizeName(r.playerBName).includes(normalizeName(names.playerBName).slice(0, 6))
-      );
+
+      // Much smarter loose matching
+      const looseMatch = dayRecords.find(r => {
+        const recA = normalizeName(r.playerAName);
+        const recB = normalizeName(r.playerBName);
+        const targetA = normalizeName(names.playerAName);
+        const targetB = normalizeName(names.playerBName);
+
+        return (
+          (recA.includes(targetA.slice(0, 5)) && recB.includes(targetB.slice(0, 5))) ||
+          (recA.includes(targetB.slice(0, 5)) && recB.includes(targetA.slice(0, 5))) ||
+          (targetA.includes(recA.slice(0, 5)) && targetB.includes(recB.slice(0, 5)))
+        );
+      });
+
       if (looseMatch) {
         return { record: looseMatch, debug: { reason: "Aggressive fallback match found", checks: allChecks, manualSurface: manualSurface } };
       }
     } catch (e) {}
   }
 
-  return { record: null, debug: { reason: "All 3 settlement strategies exhausted — no match found.", checks: allChecks, manualSurface: manualSurface } };
+  return { record: null, debug: { reason: "All settlement strategies exhausted — no match found.", checks: allChecks, manualSurface: manualSurface } };
 }
 
     function settleTrackerItemFromRecord(item, record) {
