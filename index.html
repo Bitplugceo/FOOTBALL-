@@ -2653,8 +2653,7 @@ body.dark-mode .tracker-analytics-section-head {
       <input id="roundDisplay" type="hidden" />
     </div>
 
-    <button class="fetch-btn" id="fetchBtn" type="button">📡 Fetch Stats</button>
-    <div id="fetchStatus">Select ATP or WTA, choose a match or type both player names, then fetch stats.</div>
+    <div id="fetchStatus">Select ATP or WTA, then pick a match to auto-fetch stats.</div>
 
     <div class="fetch-note-box" id="fetchNoteBoxA">
       <div class="fetch-note-title">Player A Fetch Notes</div>
@@ -3730,9 +3729,11 @@ const ENGINE_INTEGRITY_SHIELD = {
 
     // 1. Format Scaling (Institutional Multipliers)
     if (isMatch && isBO5) {
-      const bo5Multiplier = 1.45; // BO5 is statistically 1.45x longer than BO3
+      const bo5Multiplier = 1.45;
       avgA *= bo5Multiplier;
       avgB *= bo5Multiplier;
+      stdA *= bo5Multiplier;
+      stdB *= bo5Multiplier;
       notes.push("Format: BO5 Multiplier (1.45x)");
     }
 
@@ -3755,17 +3756,15 @@ const ENGINE_INTEGRITY_SHIELD = {
     const fatiguePenaltyA = computeFatiguePenalty(ctx.fatigueA, marketKey);
     const fatiguePenaltyB = computeFatiguePenalty(ctx.fatigueB, marketKey);
     
-    if (fatiguePenaltyA > 0) { 
-      // If Player A is tired, they win fewer games, but Player B wins MORE of them.
-      // We re-distribute 50% of the lost games to the opponent.
-      avgA = Math.max(0, avgA - fatiguePenaltyA); 
-      avgB += (fatiguePenaltyA * 0.5); 
-      notes.push("Fatigue A (Re-balanced)"); 
+    if (fatiguePenaltyA > 0) {
+      avgA = Math.max(0, avgA - fatiguePenaltyA);
+      avgB += fatiguePenaltyA;
+      notes.push("Fatigue A (Re-balanced)");
     }
-    if (fatiguePenaltyB > 0) { 
-      avgB = Math.max(0, avgB - fatiguePenaltyB); 
-      avgA += (fatiguePenaltyB * 0.5); 
-      notes.push("Fatigue B (Re-balanced)"); 
+    if (fatiguePenaltyB > 0) {
+      avgB = Math.max(0, avgB - fatiguePenaltyB);
+      avgA += fatiguePenaltyB;
+      notes.push("Fatigue B (Re-balanced)");
     }
 
     if (ctx.eventLevel) notes.push(ctx.eventLevel);
@@ -3958,21 +3957,24 @@ const ENGINE_INTEGRITY_SHIELD = {
 
     // 🏎️ MARKOV SIMULATION WIRING
     // We convert the raw game averages into point-level serve probabilities
-// 🏎️ MARKOV POINT CALIBRATION (Surface-Aware)
+    // 🏎️ MARKOV POINT CALIBRATION (Surface-Aware + Elo-Blended)
     let baseHoldProb = config.ctx?.tour === "ATP" ? 0.645 : 0.625;
-    
-    // Fast surfaces increase the "Base Hold" probability for everyone
     if (config.ctx?.surface === "Grass") baseHoldProb += 0.025;
     if (config.ctx?.surface === "Clay") baseHoldProb -= 0.025;
 
-    // Distribute the dominance based on the game-won averages
-    const pA = baseHoldProb + (config.avgA / (config.avgA + config.avgB || 1) - 0.5) * 0.18;
-    const pB = baseHoldProb + (config.avgB / (config.avgA + config.avgB || 1) - 0.5) * 0.18;
+    const _eloA = config.ctx?.eloA || 1500;
+    const _eloB = config.ctx?.eloB || 1500;
+    const _eloExpectedA = 1 / (1 + Math.pow(10, (_eloB - _eloA) / 400));
+    const _gameRatioA = config.avgA / ((config.avgA + config.avgB) || 1);
+    const _blendA = (_eloExpectedA * 0.5) + (_gameRatioA * 0.5);
+    const _blendB = 1 - _blendA;
+    const pA = baseHoldProb + (_blendA - 0.5) * 0.18;
+    const pB = baseHoldProb + (_blendB - 0.5) * 0.18;
     const isBO5 = config.ctx?.matchFormat === "BO5";
 
         // Run the point-by-point simulation
     const sim = await runTennisMarkovSimulation(pA, pB, config.lineRange.mid, isBO5, 10000);
-    const simPct = (pick === "OVER") ? sim.overPct : sim.underPct;
+    const simPct = (pick === "OVER") ? sim.overPct : (pick === "UNDER") ? sim.underPct : 50;
 
 
 
@@ -3995,11 +3997,6 @@ const ENGINE_INTEGRITY_SHIELD = {
        notes.push("VETO OVER: Set 1 Kill Rate");
        confidence = "PASS"; pick = "PASS";
        terminalVeto = true;
-    }
-
-    if (config.avgS1Kill >= 0.35 && pick === "OVER" && config.marketKey === "set1") {
-       notes.push("VETO OVER: Set 1 Kill Rate");
-       confidence = "PASS"; pick = "PASS";
     }
 
     const isRescueEligible = simPct >= 62 || Math.abs(edge) >= 4.0;
@@ -4079,6 +4076,9 @@ const ENGINE_INTEGRITY_SHIELD = {
     stdA: matchDerived.stdA,
     stdB: matchDerived.stdB,
     h2h: matchDerived.h2h,
+    avgGrind: matchDerived.avgGrind,
+    avgTb: matchDerived.avgTb,
+    avgS1Kill: matchDerived.avgS1Kill,
     lowAvgThreshold: 9,
     projectionShift: matchDerived.projectionShift,
     extraNotes: matchDerived.extraNotes,
@@ -4094,6 +4094,9 @@ const ENGINE_INTEGRITY_SHIELD = {
     stdA: set1Derived.stdA,
     stdB: set1Derived.stdB,
     h2h: set1Derived.h2h,
+    avgGrind: set1Derived.avgGrind,
+    avgTb: set1Derived.avgTb,
+    avgS1Kill: set1Derived.avgS1Kill,
     lowAvgThreshold: 4.5,
     projectionShift: set1Derived.projectionShift,
     extraNotes: set1Derived.extraNotes,
@@ -4517,7 +4520,7 @@ const ENGINE_INTEGRITY_SHIELD = {
     hideFetchNoteBoxes();
     clearReadOnlyFields();
     clearHeaderError();
-    setFetchStatus("Select ATP or WTA, choose a match or type both player names, then fetch stats.", "");
+    setFetchStatus("Select ATP or WTA, then pick a match to auto-fetch stats.", "");
     setFetchNotes("", "");
     setRunStatus("", "");
     closeDrops();
@@ -4704,6 +4707,22 @@ const ENGINE_INTEGRITY_SHIELD = {
     }
   }
 
+  function getTrackerHeaders(includeContent) {
+    const h = {
+      "X-Key": TRACKER_STORAGE_KEY,
+      "X-Session": String(window.__BETCEO_SESSION_ID || "")
+    };
+    if (includeContent) h["Content-Type"] = "application/json";
+    return h;
+  }
+
+  function exportTrackerStatePayload(state) {
+    return {
+      key: TRACKER_STORAGE_KEY,
+      state: normalizeTrackerState(state)
+    };
+  }
+
   async function pushTrackerStateToServer(stateSnapshot) {
     if (!stateSnapshot || !stateSnapshot.items || stateSnapshot.items.length === 0) {
       return { ok: true };
@@ -4778,8 +4797,9 @@ const ENGINE_INTEGRITY_SHIELD = {
       g_trackerDebug.lastSyncStatus = "running";
       g_trackerDebug.lastSyncError = "";
       try {
-        const merged = await pushTrackerStateToServer(snapshot);
-        saveTrackerStateToLocal(merged);
+        const syncResult = await pushTrackerStateToServer(snapshot);
+        const merged = syncResult && syncResult.state ? normalizeTrackerState(syncResult.state) : snapshot;
+        await saveTrackerStateToLocal(merged);
         g_trackerDebug.lastSyncEndAt = new Date().toISOString();
         g_trackerDebug.lastSyncStatus = "ok";
         renderTrackerDebug();
@@ -4804,8 +4824,8 @@ const ENGINE_INTEGRITY_SHIELD = {
       g_trackerDebug.lastHydrateStatus = "running";
       g_trackerDebug.lastHydrateError = "";
 
-      const localState = loadTrackerStateFromLocal();
-      saveTrackerStateToLocal(localState);
+      const localState = await loadTrackerStateFromLocal();
+      await saveTrackerStateToLocal(localState);
 
       try {
         const pulled = await fetchTrackerJson(TRACKER_API_URL, {
@@ -5301,17 +5321,11 @@ const ENGINE_INTEGRITY_SHIELD = {
         }
 
 
-    // =========================
-    // NO HISTORY MATCH
-    // =========================
     return {
       record: null,
       debug: {
-        reason: historyProbe?.debug?.reason
-          ? historyProbe.debug.reason
-          : "no completed player-history record match",
-
-        checks: checks.concat(historyProbe?.debug?.checks || []),
+        reason: "no completed player-history record match",
+        checks: checks,
         manualSurface
       }
     };
@@ -5798,25 +5812,22 @@ const ENGINE_INTEGRITY_SHIELD = {
 
     entries.reverse().forEach(function (entry) {
       const duplicate = items.some(function (item) {
-        // Anchor to the actual event ID or fixture date, NOT the moment you hit "Run"
-        const sameEvent = item.eventId && entry.eventId && item.eventId === entry.eventId;
-        
-        return sameEvent &&
+        const sameMatch = normalizeName(item.match) === normalizeName(entry.match);
+        if (!sameMatch) return false;
+        const sameEventId = !!(item.eventId && entry.eventId && item.eventId === entry.eventId);
+        const sameDay = (item.fixtureDate || item.savedAt || "").slice(0, 10) ===
+          (entry.fixtureDate || entry.savedAt || "").slice(0, 10);
+        return (sameEventId || sameDay) &&
           item.market === entry.market &&
           item.line === entry.line &&
           item.pick === entry.pick;
       });
 
-if (duplicate) {
-  console.warn("DUPLICATE BLOCKED:", entry);
-}
-
-if (!duplicate) {
-
+      if (duplicate) {
+        g_trackerDebug.lastDuplicateSkipped += 1;
+      } else {
         items.unshift(entry);
         g_trackerDebug.lastInsertedEntries += 1;
-      } else {
-        g_trackerDebug.lastDuplicateSkipped += 1;
       }
     });
 
@@ -6563,9 +6574,8 @@ if (!duplicate) {
       else if (surfTxt.includes("hard") || surfTxt.includes("carpet") || surfTxt.includes("indoor")) surfaceSelect.value = "Hard";
     }
 
-    setFetchStatus("Match selected. Ready to fetch recent games and full H2H.", "");
-
     accordionToggle("marketSection");
+    fetchESPNTennis();
   }
 
 
@@ -6941,8 +6951,9 @@ if (!duplicate) {
         h2h = extraBundle.h2h;
       }
 
-            const recentA10 = recentA.slice(0, 10);
-      const recentB10 = recentB.slice(0, 10);
+            const sharedSampleSize = Math.min(10, recentA.length, recentB.length);
+      const recentA10 = recentA.slice(0, sharedSampleSize);
+      const recentB10 = recentB.slice(0, sharedSampleSize);
 
       // WEAPONIZED ELO: Dynamically calculating Surface-Specific Bayesian Elo
       const fixtureSelect = qs("fixtureSelect");
@@ -7031,8 +7042,8 @@ if (!duplicate) {
         tournamentName, eventLevel, roundName, matchFormat,
         fatigueA, fatigueB, brutalA, brutalB,
         eloA, eloB, // INJECTED WEAPONIZED DATA
-        recentMatchA: aGames, recentMatchB: bGames,
-        recentSet1A: aSet1Games, recentSet1B: bSet1Games,
+        recentMatchA: bayesianA, recentMatchB: bayesianB,
+        recentSet1A: bayesianS1A, recentSet1B: bayesianS1B,
         h2hMatch: h2hMatchTotals, h2hSet1: h2hSet1Totals
       };
 
@@ -7243,11 +7254,6 @@ document.addEventListener("DOMContentLoaded", function () {
         selectedPlayerIds.B = null;
         clearFetchedAutofill();
       });
-    }
-
-    const fetchBtn = qs("fetchBtn");
-    if (fetchBtn) {
-      fetchBtn.addEventListener("click", fetchESPNTennis);
     }
 
     const runBtn = qs("runBtn");
