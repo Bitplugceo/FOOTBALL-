@@ -1946,24 +1946,7 @@ body.dark-mode .tracker-bar-stage {
   display: none !important;
 }
 
-.tracker-panel.debug-view #trackerSummary,
-.tracker-panel.debug-view #trackerMarketSummary,
-.tracker-panel.debug-view #trackerEmpty,
-.tracker-panel.debug-view .tracker-table-wrap,
-.tracker-panel.debug-view #trackerAnalyticsPanel {
-  display: none !important;
-}
-
-.tracker-panel.debug-view #trackerDebugPanel {
-  display: block !important;
-}
-
-.tracker-panel:not(.debug-view) #trackerDebugPanel {
-  display: none !important;
-}
-
-.tracker-panel.analytics-view .tracker-body-scroll,
-.tracker-panel.debug-view .tracker-body-scroll {
+.tracker-panel.analytics-view .tracker-body-scroll {
   padding-top: 0;
 }
 
@@ -2597,6 +2580,7 @@ body.dark-mode .tracker-analytics-section-head {
   <span class="brand-right">
     <button class="theme-toggle" type="button" id="themeToggleBtn" title="Toggle dark/light mode">🎾</button>
     <button class="theme-toggle" type="button" id="trackerToggleBtn" title="Open tracked picks">📊</button>
+    <button class="theme-toggle" type="button" id="afdbBtn" title="Debug Brain" onclick="AFDB.open()">🔬</button>
     PREDICTIONS
   </span>
 </header>
@@ -2741,6 +2725,7 @@ body.dark-mode .tracker-analytics-section-head {
 <div class="actions">
   <button id="runBtn" type="button">Run</button>
   <button id="clearBtn" type="button">Clear</button>
+  <button id="copyResultsBtn" type="button" onclick="(function(btn){var b=document.getElementById('resultsBody');if(!b)return;var rows=[...b.querySelectorAll('tr')];var lines=['Market\tFair Line\tEdge %\tWin Prob\tPick'];rows.forEach(function(r){var cells=[...r.querySelectorAll('td')];if(cells.length)lines.push(cells.map(function(c){return c.textContent.trim();}).join('\t'));});var text=lines.join('\n');if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){btn.textContent='✅';setTimeout(function(){btn.textContent='📋';},1500);}).catch(function(){});}else{try{var ta=Object.assign(document.createElement('textarea'),{value:text,style:'position:fixed;opacity:0'});document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);btn.textContent='✅';setTimeout(function(){btn.textContent='📋';},1500);}catch(e){}}})(this)" title="Copy results to clipboard" style="background:#3a404c!important;color:#fff!important;font-size:12px!important;padding:5px 14px!important;cursor:pointer!important;border:none!important;">📋</button>
     <div id="runStatus"></div>
 </div>
 
@@ -2770,7 +2755,6 @@ body.dark-mode .tracker-analytics-section-head {
       <span id="trackerHeadTitle">Tracked Picks</span>
       <div class="tracker-head-actions">
         <button type="button" id="trackerInsightsBtn" class="tracker-insights-btn state-idle" title="Open report" aria-label="Open report">📊 Report</button>
-        <button type="button" id="trackerDebugBtn" class="tracker-insights-btn state-idle" title="Open tracker debug" aria-label="Open tracker debug">🐞</button>
         <button type="button" id="trackerCloseBtn" class="tracker-close">✕</button>
       </div>
     </div>
@@ -2778,8 +2762,7 @@ body.dark-mode .tracker-analytics-section-head {
     <div class="tracker-market-summary" id="trackerMarketSummary"></div>
 
     <div class="tracker-body-scroll" id="trackedPicksWrap">
-      <div id="trackerAnalyticsPanel" class="tracker-analytics-panel"></div>
-      <div id="trackerDebugPanel" class="tracker-analytics-panel"></div>
+              <div id="trackerAnalyticsPanel" class="tracker-analytics-panel"></div>
 
       <div id="trackerEmpty" class="tracker-empty">
         No tracked picks saved yet.
@@ -3214,108 +3197,14 @@ const ENGINE_INTEGRITY_SHIELD = {
     el.textContent = text;
   }
 
-  // ── GOD FATHER: TENNIS X-RAY PANEL ──────────────────────────────────────────────
-  function buildGodFatherDebugHtml() {
-    const active = getTrackerItems();
-    const tableStyles = `width:100%; table-layout:fixed; border-collapse:collapse; font-size:10px; font-family:ui-monospace, monospace;`;
-    const btnStyles = `background:#f44336; color:#fff; border:1px solid #d32f2f; padding:4px 8px; border-radius:4px; font-size:9px; font-weight:bold; cursor:pointer; text-transform:uppercase; letter-spacing:0.5px;`;
-    
-    function badge(color, text) { return `<span style="background:${color};color:#000;padding:2px 5px;border-radius:3px;font-size:9px;font-weight:900;letter-spacing:0.5px;text-transform:uppercase;">${text}</span>`; }
+  function buildGodFatherDebugHtml() { return ""; }
 
-    // 1. SYSTEM & MEMORY
-    const lineMemSize = Object.keys(historyPoolCache || {}).length;
-    const sysHealthHtml = `
-      <div class="godfather-box" style="background:#111; border:1px solid #333; border-left:4px solid #4caf50; border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div style="font-size:12px; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:0.5px;">🖥️ System & Memory</div>
-          ${badge("#4caf50", "HEALTHY")}
-        </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size:10px; color:#aaa; background:#0a0a0a; padding:10px; border-radius:4px; border:1px solid #222;">
-          <div>Active Items: <b style="color:#fff">${active.length}</b></div>
-          <div>History Pool: <b style="color:#fff">${historyPoolCache.size}</b></div>
-        </div>
-      </div>`;
-
-    // 2. CLOUD SYNC CORE X-RAY
-    const isDesynced = g_trackerSaveVersion > g_trackerPersistedVersion;
-    const syncBadge = g_trackerSaveFailureCount > 0 ? badge("#f44336", "FAILING") : isDesynced ? badge("#ff9800", "DESYNCED") : badge("#4caf50", "SYNCED");
-    const syncHealthHtml = `
-      <div class="godfather-box" style="background:#111; border:1px solid ${isDesynced ? '#ff9800' : '#333'}; border-left:4px solid ${isDesynced ? '#ff9800' : '#4caf50'}; border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div style="font-size:12px; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:0.5px;">☁️ Cloud Sync X-Ray</div>
-          ${syncBadge}
-        </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size:10px; color:#aaa; background:#0a0a0a; padding:10px; border-radius:4px; border:1px solid #222;">
-          <div>Local Queue: <b style="color:#fff">${g_trackerSaveVersion}</b></div>
-          <div>Cloud Confirmed: <b style="color:#fff">${g_trackerPersistedVersion}</b></div>
-        </div>
-        ${isDesynced ? `<button style="${btnStyles} width:100%; margin-top:5px;" onclick="forceTrackerSaveNow()">🩹 Force Hard Sync</button>` : ''}
-      </div>`;
-
-    // 3. SETTLEMENT PROBES
-    let probeRows = (g_trackerDebug.lastSettlementDetails || []).map(d => `
-      <tr style="border-bottom:1px solid #1e1e1e">
-        <td style="padding:6px 4px;color:#aaa;font-size:9px;">${d.match.substring(0,15)}</td>
-        <td style="padding:6px 4px;color:#fff;font-size:9px;">${d.reason}</td>
-      </tr>`).join('');
-
-    const attemptSection = `
-      <div class="godfather-box" style="background:#111; border:1px solid #333; border-left:4px solid #2196f3; border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:8px;">
-        <div style="font-size:12px; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:0.5px;">📡 Settlement Log</div>
-        <div style="background:#0a0a0a; border:1px solid #222; border-radius:4px; max-height:150px; overflow-y:auto;">
-          <table style="${tableStyles}"><thead><tr style="color:#555; background:#151515"><th>Match</th><th>Result</th></tr></thead>
-          <tbody>${probeRows || '<tr><td colspan="2" style="padding:10px;text-align:center;">No active probes.</td></tr>'}</tbody></table>
-        </div>
-      </div>`;
-
-    return sysHealthHtml + syncHealthHtml + attemptSection;
-  }
-
-  function renderTrackerDebug() {
-    const panel = qs("trackerDebugPanel");
-    if (!panel) return;
-    
-    // Check if we are in debug view
-    const trackerModal = qs("trackerModal");
-    const isDebugView = trackerModal && trackerModal.querySelector(".tracker-panel").classList.contains("debug-view");
-    if (!isDebugView) return;
-
-    panel.innerHTML = `
-      <div class="tracker-analytics-shell">
-        <div class="tracker-analytics-topbar">
-          <div class="tracker-analytics-heading">
-            <div class="tracker-analytics-kicker" style="color:#f44336;">Immune System</div>
-            <div class="tracker-analytics-title" style="color:#fff;">God Father 🛡️</div>
-            <div class="tracker-analytics-subtitle" style="color:#888;">Tennis core diagnostics and auto-sorting health checks.</div>
-          </div>
-        </div>
-        <div id="godfatherGrid" style="padding:10px 0;">
-          ${buildGodFatherDebugHtml()}
-        </div>
-        <div style="margin-top:15px; border-top:1px solid #333; padding-top:10px;">
-           <div style="color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; margin-bottom:8px;">📜 Logic Event Log</div>
-           <div style="background:#000; border:1px solid #222; padding:10px; font-family:monospace; font-size:9px; color:#0f0; max-height:200px; overflow-y:auto;">
-             ${g_engineDebugLog.map(log => `<div>${htmlEscape(log)}</div>`).join('') || 'Waiting for events...'}
-           </div>
-        </div>
-      </div>
-    `;
-  }
+  function renderTrackerDebug() { /* replaced by AFDB — open via 🔬 */ }
 
 
-  function openTrackerDebugModal() {
-    const trackerModal = qs("trackerModal");
-    if (!trackerModal) return;
-    setTrackerView("debug");
-    trackerModal.classList.add("open");
-    trackerModal.setAttribute("aria-hidden", "false");
-    document.body.classList.add("tracker-open");
-    renderTrackerDebug();
-  }
+  function openTrackerDebugModal() { if (typeof AFDB !== "undefined") AFDB.open(); }
 
-  function closeTrackerDebugModal() {
-    closeTrackerModal();
-  }
+  function closeTrackerDebugModal() { if (typeof AFDB !== "undefined") AFDB.close(); }
 
   function setRunStatus(text, state) {
     const el = qs("runStatus");
@@ -5882,26 +5771,16 @@ const ENGINE_INTEGRITY_SHIELD = {
     const trackerModal = qs("trackerModal");
     const panel = trackerModal ? trackerModal.querySelector(".tracker-panel") : null;
     const reportBtn = qs("trackerInsightsBtn");
-    const debugBtn = qs("trackerDebugBtn");
     if (!panel) return;
 
-    const finalMode = mode === "report" || mode === "debug" ? mode : "list";
-
+    const finalMode = mode === "report" ? "report" : "list";
     panel.classList.toggle("analytics-view", finalMode === "report");
-    panel.classList.toggle("debug-view", finalMode === "debug");
 
     if (reportBtn) {
       reportBtn.classList.toggle("active", finalMode === "report");
       reportBtn.textContent = finalMode === "report" ? "📋 List" : "📊 Report";
       reportBtn.title = finalMode === "report" ? "Show tracked picks" : "Open report";
       reportBtn.setAttribute("aria-label", reportBtn.title);
-    }
-
-    if (debugBtn) {
-      debugBtn.classList.toggle("active", finalMode === "debug");
-      debugBtn.textContent = finalMode === "debug" ? "📋 List" : "🐞";
-      debugBtn.title = finalMode === "debug" ? "Show tracked picks" : "Open tracker debug";
-      debugBtn.setAttribute("aria-label", debugBtn.title);
     }
   }
 
@@ -7125,23 +7004,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
   window.engineDebug = function(msg, detail) {
     const stamp = new Date().toLocaleTimeString();
-    const line = `[${stamp}] ${msg} ${detail ? '| ' + JSON.stringify(detail) : ''}`;
+    const line = "[" + stamp + "] " + msg + (detail ? " | " + JSON.stringify(detail) : "");
     g_engineDebugLog.unshift(line);
-    if (line.toLowerCase().includes("error") || line.toLowerCase().includes("fail")) {
+    if (g_engineDebugLog.length > 180) g_engineDebugLog = g_engineDebugLog.slice(0, 180);
+    const msgLower = line.toLowerCase();
+    const isErr = msgLower.includes("error") || msgLower.includes("fail") || msgLower.includes("critical");
+    const isWarn = msgLower.includes("warn") || msgLower.includes("missing");
+    if (typeof AFDB !== "undefined") {
+      AFDB.log(isErr ? "ERROR" : isWarn ? "WARN" : "ENGINE", "ENGINE", msg, detail != null ? detail : undefined);
+    }
+    if (isErr) {
       g_engineAlertNeedsReview = true;
       renderHeaderErrorState();
     }
-    renderTrackerDebug();
   };
 
     const headerErrorBtn = qs("headerErrorBtn");
     if (headerErrorBtn) {
       headerErrorBtn.addEventListener("click", function () {
-        openTrackerModal();
-        setTrackerView("debug");
         g_engineAlertNeedsReview = false;
         document.body.classList.remove("engine-alert");
         renderHeaderErrorState();
+        if (typeof AFDB !== "undefined") AFDB.open();
       });
     }
 
@@ -7163,23 +7047,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
 
-    const trackerDebugBtn = qs("trackerDebugBtn");
-    if (trackerDebugBtn) {
-      trackerDebugBtn.addEventListener("click", function () {
-        const trackerModal = qs("trackerModal");
-        if (!trackerModal) return;
-        const panel = trackerModal.querySelector(".tracker-panel");
-        const isDebug = panel && panel.classList.contains("debug-view");
-
-        if (!isTrackerModalOpen()) {
-          openTrackerModal();
-        }
-
-        setTrackerView(isDebug ? "list" : "debug");
-        updateTrackerUI();
-        renderTrackerDebug();
-      });
-    }
+    /* trackerDebugBtn removed — use 🔬 in the header to open AFDB */
 
     const trackerDebugCloseBtn = qs("trackerDebugCloseBtn");
     if (trackerDebugCloseBtn) trackerDebugCloseBtn.addEventListener("click", closeTrackerDebugModal);
@@ -7337,6 +7205,128 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 
+})();
+</script>
+
+<div id="afdbOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,0.96);flex-direction:column;font-family:ui-monospace,Consolas,monospace;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);">
+  <div id="afdbPanel" style="width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;"></div>
+</div>
+
+<script>
+const AFDB = (function() {
+  const LOG_LIMIT = 400;
+  let _log = [];
+  let _isOpen = false;
+  let _currentLogLevel = 'ALL';
+
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function log(level, section, msg, data) {
+    const entry = { ts: new Date().toLocaleTimeString([],{hour12:false}), level: level||'INFO', section: section||'CORE', msg: String(msg||''), data: data !== undefined ? data : null };
+    _log.unshift(entry);
+    if (_log.length > LOG_LIMIT) _log = _log.slice(0, LOG_LIMIT);
+    if (_isOpen) _render();
+  }
+
+  function clear() { _log = []; _render(); }
+
+  function toggleFilter() {
+    const levels = ['ALL','ERROR','WARN'];
+    _currentLogLevel = levels[(levels.indexOf(_currentLogLevel) + 1) % levels.length];
+    _render();
+  }
+
+  function copy(btnEl) {
+    const text = _log.slice().reverse().map(function(e) {
+      var line = '[' + e.ts + '] [' + e.level + '] [' + e.section + '] ' + e.msg;
+      if (e.data !== null) { try { line += ' | ' + JSON.stringify(e.data); } catch(x) { line += ' | ' + String(e.data); } }
+      return line;
+    }).join('\n\n');
+    try {
+      navigator.clipboard.writeText(text);
+      if (btnEl) { var orig = btnEl.innerHTML; btnEl.innerHTML = '✅ COPIED!'; setTimeout(function() { if (btnEl) btnEl.innerHTML = orig; }, 1500); }
+    } catch(e) { console.log('[AFDB Log]\n' + text); }
+  }
+
+  function _render() {
+    var panel = document.getElementById('afdbPanel');
+    if (!panel) return;
+    var visible = _currentLogLevel === 'ALL' ? _log : _log.filter(function(e) { return e.level === _currentLogLevel || (_currentLogLevel === 'ERROR' && e.level === 'WARN'); });
+    var COLORS = { ERROR:'#ff5c61', WARN:'#ffcf73', SUCCESS:'#49d45f', INFO:'#aaa', ENGINE:'#d4af37', TRACKER:'#4ea9ff' };
+    var rows = visible.map(function(e) {
+      var color = COLORS[e.level] || '#ccc';
+      var dataHtml = '';
+      if (e.data !== null) {
+        var ds; try { ds = typeof e.data === 'object' ? JSON.stringify(e.data, null, 2) : String(e.data); } catch(x) { ds = String(e.data); }
+        dataHtml = '<pre style="color:#888;font-size:9px;margin:4px 0 0;padding:6px;background:#070707;border-left:2px solid #222;white-space:pre-wrap;word-break:break-all;">' + esc(ds) + '</pre>';
+      }
+      return '<div style="padding:8px;border-bottom:1px solid #151515;"><div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+        '<span style="color:#555;font-size:9px;min-width:65px;flex-shrink:0;">' + esc(e.ts) + '</span>' +
+        '<span style="color:' + color + ';font-size:10px;font-weight:900;min-width:75px;flex-shrink:0;">' + esc(e.level) + '</span>' +
+        '<span style="color:#777;font-size:9px;min-width:80px;flex-shrink:0;">[' + esc(e.section) + ']</span>' +
+        '<span style="color:' + color + ';font-size:11px;font-weight:700;flex:1;white-space:pre-wrap;">' + esc(e.msg) + '</span>' +
+        '</div>' + dataHtml + '</div>';
+    }).join('');
+
+    panel.innerHTML =
+      '<div style="background:#080808;border-bottom:1px solid #222;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;flex-shrink:0;">' +
+        '<div style="color:#d4af37;font-size:14px;font-weight:900;letter-spacing:1px;">🔬 AUTO-FETCH DEBUG BRAIN (TENNIS)</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<button onclick="AFDB.copy(this)" style="background:#111;border:1px solid #333;color:#49d45f;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;">📋 Copy Log</button>' +
+          '<button onclick="AFDB.clear()" style="background:#111;border:1px solid #333;color:#ff5c61;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;">🗑️ Clear</button>' +
+          '<button onclick="AFDB.runTestSweep()" style="background:#2a0608;border:1px solid #d91f26;color:#fff;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;box-shadow:0 0 8px rgba(217,31,38,0.4);">🚨 SWEEP</button>' +
+          '<button onclick="AFDB.close()" style="background:#111;border:1px solid #555;color:#ccc;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;">✕ Close</button>' +
+        '</div>' +
+      '</div>' +
+      '<div style="padding:10px 12px;background:#111;color:#d4af37;font-size:11px;font-weight:900;text-transform:uppercase;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">' +
+        '<span>📡 ENGINE &amp; TRACKER LOGS</span>' +
+        '<button onclick="AFDB.toggleFilter()" style="background:none;border:none;color:#4ea9ff;font-size:14px;font-weight:bold;cursor:pointer;">🎯 LEVEL: ' + _currentLogLevel + '</button>' +
+      '</div>' +
+      '<div style="flex:1;overflow-y:auto;background:#0a0a0a;">' +
+        (rows || '<div style="color:#555;font-size:12px;text-align:center;padding:30px;font-weight:bold;">No log entries yet. Run a fetch or calculation.</div>') +
+      '</div>';
+  }
+
+  function open() {
+    _isOpen = true;
+    var ov = document.getElementById('afdbOverlay');
+    if (ov) { ov.style.display = 'flex'; _render(); }
+  }
+
+  function close() {
+    _isOpen = false;
+    var ov = document.getElementById('afdbOverlay');
+    if (ov) ov.style.display = 'none';
+  }
+
+  function runTestSweep() {
+    log('INFO', 'SWEEP', 'Starting Tennis Engine diagnostic sweep...');
+    var suspects = 0;
+    var tour = (document.getElementById('leagueSelect') || {}).value || '';
+    if (!tour) { log('ERROR', 'INPUT', 'No tour selected (ATP/WTA) — fetch is blocked.'); suspects++; }
+    var pA = ((document.getElementById('teamAName') || {}).value || '').trim();
+    var pB = ((document.getElementById('teamBName') || {}).value || '').trim();
+    if (tour && (!pA || !pB)) { log('WARN', 'INPUT', 'Player name(s) missing — fetch will fail.'); suspects++; }
+    var ft = ((document.getElementById('ftMarket') || {}).value || '').trim();
+    if (!ft) { log('WARN', 'MARKETS', 'Match total line is empty.'); suspects++; }
+    try {
+      var items = typeof getTrackerItems === 'function' ? getTrackerItems() : [];
+      var pending = items.filter(function(p) { return String(p.status||'PENDING').toUpperCase() === 'PENDING'; }).length;
+      log('INFO', 'TRACKER', items.length + ' items — ' + pending + ' pending settlement.');
+      if (items.length > 490) { log('ERROR', 'STORAGE', 'Tracker near capacity (>490 items).'); suspects++; }
+    } catch(e) { log('WARN', 'TRACKER', 'Could not read tracker: ' + e.message); }
+    try {
+      var sv = window.g_trackerSaveVersion || 0;
+      var pv = window.g_trackerPersistedVersion || 0;
+      if (sv > pv) { log('WARN', 'SYNC', 'Local version (' + sv + ') ahead of cloud (' + pv + ') — force save recommended.'); suspects++; }
+    } catch(e) {}
+    var verdict = suspects === 0 ? 'Sweep complete. Tennis engine is healthy.' : 'Sweep complete. ' + suspects + ' issue(s) detected.';
+    log(suspects === 0 ? 'SUCCESS' : 'ERROR', 'SWEEP', verdict);
+  }
+
+  return { log: log, clear: clear, copy: copy, toggleFilter: toggleFilter, open: open, close: close, runTestSweep: runTestSweep, get logs() { return _log; } };
 })();
 </script>
 </body>
