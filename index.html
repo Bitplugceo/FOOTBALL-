@@ -3336,7 +3336,7 @@ const LEAGUE_FETCH_RULES = new Proxy({}, {
   get: function(target, leagueKey) {
     if (typeof leagueKey !== "string" || !leagueKey || leagueKey === "unknown") return null;
     return {
-      recentSeasons: 2,
+      recentSeasons: 3,
       scheduleTypes: ["2"], // Soccer regular season only
       h2hScheduleTypes: ["2"],
       regulationPeriods: 2 
@@ -10307,6 +10307,21 @@ async function fetchScheduleCore(base, teamId, leagueKey, requiredVenue, allowFa
     }
   });
 
+  // Raw-score fallback: ESPN summary fetches failed or returned no usable scores.
+  // The schedule endpoint already carries FT scores for every completed game —
+  // use those directly so leagues like chn.1 / nor.1 don't silently return null.
+  if (scored10.length < 2) {
+    unique.slice(0, 10).forEach(ref => {
+      if (isFinite(ref.rawS) && ref.rawS >= 0 && isFinite(ref.rawA) && ref.rawA >= 0) {
+        scored10.push(Math.round(ref.rawS));
+        allowed10.push(Math.round(ref.rawA));
+      }
+    });
+    if (scored10.length >= 2) {
+      engineDebug("fetchScheduleCore: raw-score fallback activated", { leagueKey, count: scored10.length });
+    }
+  }
+
     return scored10.length >= 2
     ? {
         scored: scored10.slice(0, 5),
@@ -10869,7 +10884,7 @@ async function loadFixtures(timeFilter = 'all') {
 
   list.innerHTML = '<div style="padding:20px; text-align:center;"><span class="spinner"></span> &#x1F6E1;&#xFE0F; Connecting to ESPN...</div>';
 
-  const getFmt = (o) => { const d = new Date(); d.setDate(d.getDate()+o); return d.toISOString().split('T')[0].replace(/-/g,''); };
+  const getFmt = (o) => { const d = new Date(); d.setDate(d.getDate()+o); const y=d.getFullYear(); const mo=String(d.getMonth()+1).padStart(2,'0'); const dy=String(d.getDate()).padStart(2,'0'); return `${y}${mo}${dy}`; };
   const isDateKey = (s) => /^\d{8}$/.test(s);
 
   let dParam;
@@ -11083,7 +11098,8 @@ function renderDateList() {
   for (let i = 2; i <= 5; i++) {
     const d = new Date();
     d.setDate(d.getDate() + i);
-    const key = d.toISOString().split('T')[0].replace(/-/g, '');
+    const y=d.getFullYear(); const mo=String(d.getMonth()+1).padStart(2,'0'); const dy=String(d.getDate()).padStart(2,'0');
+    const key = `${y}${mo}${dy}`;
     opts.push({ label: dayNames[d.getDay()], value: key });
   }
   opts.push({ label: "Weekend", value: "weekend" });
@@ -11108,7 +11124,7 @@ function applyDateFilter(value, el) {
     if (!label) {
       // value is a YYYYMMDD string — find its day name
       const y = value.slice(0,4), m = value.slice(4,6), d = value.slice(6,8);
-      label = dayNames[new Date(`${y}-${m}-${d}`).getDay()] || value;
+      label = dayNames[new Date(`${y}-${m}-${d}T12:00:00`).getDay()] || value;
     }
     const child = btn.firstChild || btn;
     if (child.nodeType === 3) child.textContent = label; else btn.textContent = label;
