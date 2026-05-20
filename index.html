@@ -2754,7 +2754,6 @@ body.dark-mode .tracker-analytics-section-head {
     <div class="tracker-head">
       <span id="trackerHeadTitle">Tracked Picks</span>
       <div class="tracker-head-actions">
-        <button type="button" id="trackerInsightsBtn" class="tracker-insights-btn state-idle" title="Open report" aria-label="Open report">📊 Report</button>
         <button type="button" id="trackerCloseBtn" class="tracker-close">✕</button>
       </div>
     </div>
@@ -5658,7 +5657,7 @@ const ENGINE_INTEGRITY_SHIELD = {
           '<td>' + htmlEscape(item.match) + '</td>' +
           '<td>' + htmlEscape(item.market) + '</td>' +
           '<td>' + htmlEscape(item.line || "—") + '</td>' +
-'<td class="' + getPickCellClass(item.rawPick, item.confidence) + '">' +
+'<td>' +
   '<div style="display: flex; align-items: center; justify-content: center; gap: 4px;">' +
     '<span>' + htmlEscape(item.pick) + '</span>' +
     (item.isLock ? '<span style="font-size: 4px; transform: translateY(0.5px);">🔒</span>' : '') +
@@ -7029,23 +7028,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
 
-    const trackerInsightsBtn = qs("trackerInsightsBtn");
-    if (trackerInsightsBtn) {
-      trackerInsightsBtn.addEventListener("click", function () {
-        const trackerModal = qs("trackerModal");
-        if (!trackerModal) return;
-        const panel = trackerModal.querySelector(".tracker-panel");
-        const isReport = panel && panel.classList.contains("analytics-view");
-
-        if (!isTrackerModalOpen()) {
-          openTrackerModal();
-        }
-
-        setTrackerView(isReport ? "list" : "report");
-        updateTrackerUI();
-        renderTrackerDebug();
-      });
-    }
+    // Report button moved to AFDB 📊 icon — no tracker insights btn handler needed
 
     /* trackerDebugBtn removed — use 🔬 in the header to open AFDB */
 
@@ -7202,6 +7185,8 @@ document.addEventListener("DOMContentLoaded", function () {
     window.loadTrackerStateFromLocal = loadTrackerStateFromLocal;
     window.saveTrackerStateToLocal = saveTrackerStateToLocal;
     window.normalizeTrackerState = normalizeTrackerState;
+    window.openTrackerModal = openTrackerModal;
+    window.setTrackerView = setTrackerView;
 
 
 
@@ -7217,7 +7202,7 @@ const AFDB = (function() {
   const LOG_LIMIT = 400;
   let _log = [];
   let _isOpen = false;
-  let _currentLogLevel = 'ALL';
+  let _currentLogLevel = 'ERROR';
 
   function esc(s) {
     return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -7277,6 +7262,7 @@ const AFDB = (function() {
           '<button onclick="AFDB.copy(this)" style="background:#111;border:1px solid #333;color:#49d45f;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;">📋 Copy Log</button>' +
           '<button onclick="AFDB.clear()" style="background:#111;border:1px solid #333;color:#ff5c61;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;">🗑️ Clear</button>' +
           '<button onclick="AFDB.runTestSweep()" style="background:#2a0608;border:1px solid #d91f26;color:#fff;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;box-shadow:0 0 8px rgba(217,31,38,0.4);">🚨 SWEEP</button>' +
+          '<button onclick="AFDB.openReport()" title="Open tracker report" style="background:#111;border:1px solid #333;color:#d4af37;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer;">📊</button>' +
           '<button onclick="AFDB.close()" style="background:#111;border:1px solid #555;color:#ccc;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer;">✕ Close</button>' +
         '</div>' +
       '</div>' +
@@ -7326,7 +7312,14 @@ const AFDB = (function() {
     log(suspects === 0 ? 'SUCCESS' : 'ERROR', 'SWEEP', verdict);
   }
 
-  return { log: log, clear: clear, copy: copy, toggleFilter: toggleFilter, open: open, close: close, runTestSweep: runTestSweep, get logs() { return _log; } };
+  function openReport() {
+    close();
+    if (typeof window.openTrackerModal === 'function') window.openTrackerModal();
+    setTimeout(function() {
+      if (typeof window.setTrackerView === 'function') window.setTrackerView('report');
+    }, 80);
+  }
+  return { log: log, clear: clear, copy: copy, toggleFilter: toggleFilter, open: open, close: close, runTestSweep: runTestSweep, openReport: openReport, get logs() { return _log; } };
 })();
 </script>
 </body>
