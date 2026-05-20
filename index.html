@@ -2909,7 +2909,7 @@ body.dark-mode .tracker-analytics-section-head {
   window.fetch = async function(...args) {
     try {
       const response = await originalFetch.apply(this, args);
-      if (!response.ok && typeof window.engineDebug === "function") {
+      if (!response.ok && response.status !== 400 && typeof window.engineDebug === "function") {
         window.engineDebug(`API ERROR: HTTP ${response.status}`, { url: args[0] });
       }
       return response;
@@ -10596,7 +10596,11 @@ const cls =
   selectedTeamIds.A = String(homeId || "");
   selectedTeamIds.B = String(awayId || "");
   validateFetchSection();
-  accordionOpen("espnSection");
+  updateSectionLocks();
+  openSection("marketSection");
+  openSection("teamASection");
+  openSection("teamBSection");
+  openSection("h2hSection");
   setStatusHTML('<span class="spinner"></span>Match selected. Fetching stats...', "loading");
   fetchESPN();
 }
