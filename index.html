@@ -2663,8 +2663,8 @@ body.dark-mode .tracker-analytics-section-head {
   </div>
 
   <div id="h2MarketSection" style="display:none;">
-    <label>BTTS (Yes/No Odds)</label>
-    <input id="h2Market" placeholder="Yes -120 / No +100" />
+    <label>2H Total Goals</label>
+    <input id="h2Market" placeholder="0.5 - 1.5" />
   </div>
 
 <label id="teamAMarketLabel">Team A Total Goals</label>
@@ -5569,6 +5569,9 @@ Any suggestion made here without proof is an audit error.
   try {
     return await fetchJson(WORKER_URL + "?url=" + encodeURIComponent(url), "Worker");
   } catch (workerErr) {
+    if (workerErr.message && workerErr.message.includes("HTTP 400")) {
+      throw workerErr;
+    }
     uiLog(`⚠️ Primary fetch failed, retrying...`, true);
     await new Promise(res => setTimeout(res, 800));
     return await fetchJson(WORKER_URL + "?url=" + encodeURIComponent(url), "Worker Retry");
@@ -6396,12 +6399,12 @@ async function primeTrackerStateForRun() {
 
   renderTrackedPicks();
   
-  // 🔥 AUTOMATIC HARD SYNC ON LOAD/REFRESH
-  // This automatically fires the same logic as the "Force Hard Sync" button
-  // a split second after the page loads, guaranteeing the UI stays fixed.
+  // 🔥 AUTOMATIC HARD SYNC ON LOAD/REFRESH — skipped when tracker is empty to avoid redundant server pushes on every fresh load.
   setTimeout(() => {
-    g_trackerSaveFailureCount = 0; 
-    forceTrackerSaveNow();
+    if (!isTrackerStateMeaningfullyEmpty(g_trackerState)) {
+      g_trackerSaveFailureCount = 0;
+      forceTrackerSaveNow();
+    }
   }, 800);
 }
 
@@ -10882,7 +10885,9 @@ async function loadFixtures(timeFilter = 'all') {
 
     if (!league || league === "all" || league === "unknown") {
       // ALL LEAGUES MODE: batch-fetch all leagues in groups of 4
-      const slugs = SOCCER_TAXONOMY.flatMap(cat => cat.leagues.map(l => l.slug));
+      // Cup competitions and international tournaments consistently 400 on ESPN's scoreboard endpoint; skip them here.
+      const BATCH_SKIP_PATTERN = /cup|pokal|copa|coupe|taca|coppa|open|nations|champions|europa|libertadores|sudamericana|concacaf|afc\.|caf\.|fifa\./i;
+      const slugs = SOCCER_TAXONOMY.flatMap(cat => cat.leagues.map(l => l.slug)).filter(s => !BATCH_SKIP_PATTERN.test(s));
       const batchSize = 4;
       for (let i = 0; i < slugs.length; i += batchSize) {
         if (myToken !== _fixtureLoadToken) return;
@@ -11211,8 +11216,8 @@ function runEngine() {
   if (aFTAllowed.length && bFTAllowed.length) {
     const aAllowedAvg = robustRecentAverage(aFTAllowed);
     const bAllowedAvg = robustRecentAverage(bFTAllowed);
-    rawProjA = (rawProjA * dynW.teamWeight) + (bAllowedAvg * dynW.oppWeight) * (rawProjA / leagueBase);
-    rawProjB = (rawProjB * dynW.teamWeight) + (aAllowedAvg * dynW.oppWeight) * (rawProjB / leagueBase);
+    rawProjA = (rawProjA * dynW.teamWeight) + (bAllowedAvg * dynW.oppWeight);
+    rawProjB = (rawProjB * dynW.teamWeight) + (aAllowedAvg * dynW.oppWeight);
   }
 
   const intPack = updateIntelligencePack(league, { ftLine, h1Line, aLine, bLine });
@@ -11387,6 +11392,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("uiSortBtn")?.addEventListener("click", () => openProModal("sort"));
   document.getElementById("runBtn")?.addEventListener("click", runEngine);
   document.getElementById("clearBtn")?.addEventListener("click", clearAll);
+  document.getElementById("fixtureSelect")?.addEventListener("change", onFixtureSelect);
   document.getElementById("teamAName")?.addEventListener("input", () => onTeamInput("A"));
   document.getElementById("teamBName")?.addEventListener("input", () => onTeamInput("B"));
   document.getElementById("teamAName")?.addEventListener("blur", () => scheduleDropClose("dropA"));
@@ -11708,8 +11714,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<div class="pro-modal-overlay" id="proModalOverlay">
-  <div class="pro-modal-content">
+<div class="pro-modal-overlay" id="proModalOverlay" onclick="closeProModal()">
+  <div class="pro-modal-content" onclick="event.stopPropagation()">
     <div class="pro-modal-header"><span id="proModalTitle">Select</span><span class="pro-modal-close" onclick="closeProModal()">&#x2715;</span></div>
     <div class="dual-pane-body" id="proDualPane" style="display:none;"><div class="pane-left" id="proPaneLeft"></div><div class="pane-right" id="proPaneRight"></div></div>
     <div class="simple-list-body" id="proSimpleList" style="display:none;"></div>
