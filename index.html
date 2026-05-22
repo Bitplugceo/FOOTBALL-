@@ -5279,12 +5279,41 @@ const ENGINE_INTEGRITY_SHIELD = {
   }
 
 
+  async function fetchCompletedMatchesForSettlement(league, dateOffsets) {
+    const all = [];
+    for (const offset of dateOffsets) {
+      try {
+        const dateQuery = dateKeyLocal(offset);
+        const payload = await fetchTennisScoreboard(league, dateQuery);
+        const records = extractCompetitionRecords(payload).filter(function (r) {
+          return r.status.completed &&
+            Number.isFinite(r.totalGames) &&
+            Number.isFinite(r.set1Total);
+        });
+        all.push(...records);
+      } catch (err) { /* silent — try next date */ }
+    }
+    return dedupeRecords(all);
+  }
+
+  function trySettleItemFromScoreboard(item, completedRecords) {
+    const names = parseTrackerMatchNames(item.match);
+    if (!names.playerAName || !names.playerBName) return null;
+    return (
+      completedRecords.find(function (r) { return sameTrackerMatchRecord(r, names.playerAName, names.playerBName); }) ||
+      completedRecords.find(function (r) { return fuzzySameTrackerMatchRecord(r, names.playerAName, names.playerBName); }) ||
+      completedRecords.find(function (r) { return relaxedSameTrackerMatchRecord(r, names.playerAName, names.playerBName); }) ||
+      null
+    );
+  }
+
   async function autoSettleTracker(isSilent) {
     g_trackerDebug.lastSettlementSummary = "Running settlement...";
     renderTrackerDebug();
     await hydrateTrackerState(false);
     const items = getTrackerItems();
     g_trackerDebug.lastSettlementDetails = [];
+
     if (!items.length) {
       g_trackerDebug.lastSettlementSummary = "No tracked picks yet.";
       renderTrackerDebug();
@@ -5292,9 +5321,39 @@ const ENGINE_INTEGRITY_SHIELD = {
       return;
     }
 
-    const recordCache = new Map();
+    // ── PHASE 1: Fast scoreboard settlement (today, yesterday, day before) ──
+    const pendingItems = items.filter(function (i) { return i.status === "PENDING"; });
+    const tourGroups = {};
+    pendingItems.forEach(function (item) {
+      const t = String(item.tour || "ATP").toUpperCase();
+      if (!tourGroups[t]) tourGroups[t] = [];
+      tourGroups[t].push(item);
+    });
+
     let settledCount = 0;
 
+    for (const tour of Object.keys(tourGroups)) {
+      const completedRecords = await fetchCompletedMatchesForSettlement(tour, [0, -1, -2]);
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.status !== "PENDING" || String(item.tour || "ATP").toUpperCase() !== tour) continue;
+        const record = trySettleItemFromScoreboard(item, completedRecords);
+        if (record) {
+          const settled = settleTrackerItemFromRecord(item, record);
+          if (settled.status !== item.status) {
+            settledCount++;
+            window.engineDebug("SETTLED via scoreboard", {
+              match: item.match, market: item.market,
+              result: settled.status, actual: settled.actualTotal
+            });
+          }
+          items[i] = settled;
+        }
+      }
+    }
+
+    // ── PHASE 2: Fallback — athlete-history for anything still pending ──
+    const recordCache = new Map();
     for (let i = 0; i < items.length; i += 1) {
       const item = items[i];
       if (item.status !== "PENDING") continue;
@@ -5334,6 +5393,7 @@ const ENGINE_INTEGRITY_SHIELD = {
       }
     }
 
+    // ── PHASE 3: Archive old settled picks ──
     const archiveResult = archiveOldTrackerItems(items);
     const finalItems = archiveResult.items;
     const archivedPending = finalItems.filter(function (item) {
@@ -5349,7 +5409,7 @@ const ENGINE_INTEGRITY_SHIELD = {
 
     if (!isSilent) {
       if (settledCount) {
-        setRunStatus("Tracker updated automatically.", "ok");
+        setRunStatus("Tracker updated: " + settledCount + " pick(s) settled.", "ok");
       } else if (archiveResult.changed && archivedPending) {
         setRunStatus("Older picks moved off the live tracker. " + archivedPending + " archived pick(s) still have no fetched final result yet.", "ok");
       } else if (archiveResult.changed) {
