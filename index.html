@@ -1,4 +1,5 @@
-A
+B
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -125,10 +126,9 @@ A
       showStatus(`✅ File loaded!`, 'var(--accent)', true);
     };
     reader.readAsText(file);
-    e.target.value = ''; // Reset input to allow re-uploading the same file path
+    e.target.value = ''; 
   });
 
-  // State-machine-based line parser to isolate active find-and-replace scopes
   function parsePatches(rawPatches) {
     const lines = rawPatches.split('\n');
     const patches = [];
@@ -175,7 +175,11 @@ A
     return patches;
   }
 
-  // Modern asynchronous clipboard handler with synchronous fallback
+  function countOccurrences(haystack, needle) {
+    if (!needle) return 0;
+    return haystack.split(needle).length - 1;
+  }
+
   async function copyToClipboard(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       try {
@@ -185,7 +189,6 @@ A
         console.warn("Clipboard API write failed, attempting fallback.", err);
       }
     }
-    // Fallback context that avoids layout shifting or zooming on mobile
     const textArea = document.createElement("textarea");
     textArea.value = text;
     textArea.style.top = "0";
@@ -220,7 +223,6 @@ A
       return;
     }
 
-    // Line ending normalization (CRLF -> LF) to prevent string mismatch on Windows environments
     master = master.replace(/\r\n/g, '\n');
     rawPatches = rawPatches.replace(/\r\n/g, '\n');
 
@@ -238,9 +240,35 @@ A
       const findText = patch.findLines.join('\n').replace(/^\n+|\n+$/g, '');
       const replaceText = patch.replaceLines.join('\n').replace(/^\n+|\n+$/g, '');
 
-      // Idempotency check with a minimum criteria threshold to avoid false positive skips on small strings
-      const isSignificant = replaceText.trim().length > 10 && replaceText.split('\n').length >= 2;
-      if (isSignificant && master.includes(replaceText) && !master.includes(findText)) {
+      const findCountInMaster = countOccurrences(master, findText);
+      const replaceCountInMaster = countOccurrences(master, replaceText);
+      const findCountInReplace = countOccurrences(replaceText, findText);
+
+      let isAlreadyApplied = false;
+
+      if (findCountInMaster === 0) {
+        // The search block is completely missing from the file
+        if (replaceText === "") {
+          // It was a code deletion patch, and it is gone
+          isAlreadyApplied = true;
+        } else if (replaceCountInMaster > 0) {
+          // The replacement is already in the file. Prevent false positive skips on short syntax (like "}")
+          const isSignificant = replaceText.trim().length > 8 || replaceText.split('\n').length >= 2;
+          if (isSignificant) {
+            isAlreadyApplied = true;
+          }
+        }
+      } else if (replaceText !== "" && replaceCountInMaster > 0) {
+        // The replacement is present, but the search text is ALSO present (i.e., replaceText contains findText)
+        if (findCountInReplace > 0) {
+          // Skip if all instances of findText are already nested inside the applied replaceText blocks
+          if (findCountInMaster === (replaceCountInMaster * findCountInReplace)) {
+            isAlreadyApplied = true;
+          }
+        }
+      }
+
+      if (isAlreadyApplied) {
         stats.verified++;
         return;
       }
@@ -278,7 +306,6 @@ A
           const matchedLinesCount = matchedText.split('\n').length;
           const origLinesCount = patch.findLines.length;
 
-          // Block sizing limits verify that the match scope does not stretch excessively
           if (matchedLinesCount <= origLinesCount * 2 + 5) {
             master = master.replace(fuzzyRegex, () => replaceText);
             stats.applied++;
@@ -310,7 +337,6 @@ A
           const matchedLinesCount = matchedText.split('\n').length;
           const origLinesCount = patch.findLines.length;
 
-          // Scope Limit Lock: Restricts boundary anchor ranges to twice the original context block height
           if (matchedLinesCount <= origLinesCount * 2 + 5) {
             master = master.replace(boundaryRegex, () => replaceText);
             stats.applied++;
