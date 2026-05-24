@@ -1,8 +1,9 @@
+A
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Auto-Patcher V12 — Idempotent Edition</title>
   <style>
     :root {
@@ -11,7 +12,7 @@
       --warning: #d29922; --blue: #1f6feb; --verified: #a371f7;
     }
     
-    body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
     .container { width: 100%; max-width: 800px; }
 
     #debugOverlay {
@@ -61,12 +62,12 @@
 </head>
 <body>
 
-  <div id="microscopeBtn" onclick="toggleDebug()" title="Toggle Debug Log">🔬</div>
+  <button id="microscopeBtn" onclick="toggleDebug()" title="Toggle Debug Log" aria-label="Toggle diagnostic log">🔬</button>
 
-  <div id="debugOverlay">
+  <div id="debugOverlay" role="dialog" aria-modal="true" aria-labelledby="debugTitle">
     <div class="debug-header">
       <button class="btn-text" style="padding: 5px 10px;" onclick="copyDebugLog()">📋 Copy Log</button>
-      <div class="debug-title">🔬 Diagnostic Log</div>
+      <div id="debugTitle" class="debug-title">🔬 Diagnostic Log</div>
       <button class="btn-text" style="margin-left:auto" onclick="toggleDebug()">Close</button>
     </div>
     <div id="failedList"></div>
@@ -77,21 +78,23 @@
 
     <div class="box">
       <div class="box-header">
-        <span>1. MASTER CODE</span>
-        <input type="file" id="fileUploader" style="font-size:11px; max-width:180px;">
+        <label for="masterCode">1. MASTER CODE</label>
+        <input type="file" id="fileUploader" style="font-size:11px; max-width:180px;" aria-label="Upload master code file">
       </div>
       <textarea id="masterCode" style="height:250px" spellcheck="false" placeholder="Paste or Upload master code..."></textarea>
     </div>
 
     <div class="box">
-      <div class="box-header">2. PATCH INSTRUCTIONS</div>
+      <div class="box-header">
+        <label for="patchCode">2. PATCH INSTRUCTIONS</label>
+      </div>
       <textarea id="patchCode" style="height:250px" spellcheck="false" placeholder="Paste AI message here..."></textarea>
     </div>
 
     <div class="icon-row">
-      <button class="btn-lg btn-run" onclick="applyPatches()" title="Apply Patch">⚙️</button>
-      <button class="btn-lg btn-dl" onclick="downloadFile()" title="Download">📥</button>
-      <button class="btn-lg btn-copy" onclick="copyMaster()" title="Copy Code">📋</button>
+      <button class="btn-lg btn-run" onclick="applyPatches()" title="Apply Patch" aria-label="Apply patches">⚙️</button>
+      <button class="btn-lg btn-dl" onclick="downloadFile()" title="Download" aria-label="Download patched master code">📥</button>
+      <button class="btn-lg btn-copy" onclick="copyMaster()" title="Copy Code" aria-label="Copy master code to clipboard">📋</button>
     </div>
 
     <div class="util-row">
@@ -99,7 +102,7 @@
       <button class="btn-text btn-danger" onclick="hardReset()">🚨 Hard Reset</button>
     </div>
 
-    <div id="statusMsg" class="status"></div>
+    <div id="statusMsg" class="status" role="status" aria-live="polite"></div>
   </div>
 
 <script>
@@ -107,25 +110,108 @@
   let isDebugOpen = false;
   let globalFailedSnippets = []; 
   let stats = { applied: 0, verified: 0, failed: 0 };
+  let hideStatusTimeout = null;
 
   document.getElementById('fileUploader').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
     currentFileName = file.name;
     const reader = new FileReader();
+    reader.onerror = () => {
+      showStatus("❌ Failed to read file.", "var(--error)", false);
+    };
     reader.onload = (event) => {
       document.getElementById('masterCode').value = event.target.result;
       showStatus(`✅ File loaded!`, 'var(--accent)', true);
     };
     reader.readAsText(file);
+    e.target.value = ''; // Reset input to allow re-uploading the same file path
   });
+
+  // State-machine-based line parser to isolate active find-and-replace scopes
+  function parsePatches(rawPatches) {
+    const lines = rawPatches.split('\n');
+    const patches = [];
+    let currentPatch = null;
+    let inFind = false;
+    let inReplace = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      if (trimmed.toUpperCase() === '---FIND---') {
+        if (currentPatch && currentPatch.findLines.length > 0) {
+          patches.push(currentPatch);
+        }
+        currentPatch = { findLines: [], replaceLines: [] };
+        inFind = true;
+        inReplace = false;
+      } else if (trimmed.toUpperCase() === '---REPLACE---') {
+        if (currentPatch && inFind) {
+          inFind = false;
+          inReplace = true;
+        }
+      } else if (trimmed.toUpperCase() === '---END---' || trimmed.startsWith('```')) {
+        if (currentPatch) {
+          if (currentPatch.findLines.length > 0) {
+            patches.push(currentPatch);
+          }
+          currentPatch = null;
+        }
+        inFind = false;
+        inReplace = false;
+      } else {
+        if (inFind && currentPatch) {
+          currentPatch.findLines.push(line);
+        } else if (inReplace && currentPatch) {
+          currentPatch.replaceLines.push(line);
+        }
+      }
+    }
+    if (currentPatch && currentPatch.findLines.length > 0) {
+      patches.push(currentPatch);
+    }
+    return patches;
+  }
+
+  // Modern asynchronous clipboard handler with synchronous fallback
+  async function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        console.warn("Clipboard API write failed, attempting fallback.", err);
+      }
+    }
+    // Fallback context that avoids layout shifting or zooming on mobile
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    textArea.style.pointerEvents = "none";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return true;
+    } catch (err) {
+      document.body.removeChild(textArea);
+      return false;
+    }
+  }
 
   function applyPatches() {
     let master = document.getElementById('masterCode').value;
     let rawPatches = document.getElementById('patchCode').value;
     const microscope = document.getElementById('microscopeBtn');
     
-    if(isDebugOpen) toggleDebug();
+    if (isDebugOpen) toggleDebug();
     microscope.style.display = 'none'; 
     microscope.classList.remove('pulse');
 
@@ -134,87 +220,117 @@
       return;
     }
 
-    let processedPatches = rawPatches
-      .replace(/```[a-z]*\n/gi, '\n')
-      .replace(/```/g, '\n---END---\n');
+    // Line ending normalization (CRLF -> LF) to prevent string mismatch on Windows environments
+    master = master.replace(/\r\n/g, '\n');
+    rawPatches = rawPatches.replace(/\r\n/g, '\n');
 
-    const patchRegex = /---FIND---\n?([\s\S]*?)\n?---REPLACE---\n?([\s\S]*?)(?=\n?---FIND---|\n?---END---|$)/g;
+    const parsedPatches = parsePatches(rawPatches);
+
+    if (parsedPatches.length === 0) {
+      showStatus("⚠️ No valid ---FIND--- markers detected!", 'var(--warning)', false);
+      return;
+    }
 
     stats = { applied: 0, verified: 0, failed: 0 };
-    globalFailedSnippets = []; 
-    let match;
-    let patchFound = false;
+    globalFailedSnippets = [];
 
-    while ((match = patchRegex.exec(processedPatches)) !== null) {
-      patchFound = true;
-      const findText = match[1].replace(/^\n+|\n+$/g, ''); 
-      const replaceText = match[2].replace(/^\n+|\n+$/g, '');
+    parsedPatches.forEach((patch) => {
+      const findText = patch.findLines.join('\n').replace(/^\n+|\n+$/g, '');
+      const replaceText = patch.replaceLines.join('\n').replace(/^\n+|\n+$/g, '');
 
-      // IDEMPOTENCY CHECK: Has this exact replacement block already been applied?
-      if (master.includes(replaceText) && !master.includes(findText)) {
+      // Idempotency check with a minimum criteria threshold to avoid false positive skips on small strings
+      const isSignificant = replaceText.trim().length > 10 && replaceText.split('\n').length >= 2;
+      if (isSignificant && master.includes(replaceText) && !master.includes(findText)) {
         stats.verified++;
-        continue;
+        return;
       }
 
-      // TIER 1: EXACT UNIQUE MATCH
+      // TIER 1: EXACT MATCH
       const occurrences = master.split(findText).length - 1;
       if (occurrences === 1) {
         master = master.split(findText).join(replaceText);
         stats.applied++;
-        continue;
+        return;
       } else if (occurrences > 1) {
         stats.failed++;
-        globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Block found multiple times. Aborted to prevent duplicating rubbish." });
-        continue;
-      } 
-      
+        globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Target block found multiple times in master file. Aborted to avoid duplication." });
+        return;
+      }
+
       // TIER 2: SAFE FUZZY MATCH
       const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const lines = findText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const linesFiltered = patch.findLines.map(l => l.trim()).filter(l => l.length > 0);
 
-      if (lines.length > 0) {
-        const fuzzyRegexStr = lines.map(l => escapeRegExp(l)).join('\\s+');
-        const fuzzyRegex = new RegExp(fuzzyRegexStr, 'g');
-        const matches = master.match(fuzzyRegex);
+      if (linesFiltered.length > 0) {
+        const fuzzyRegexStr = linesFiltered.map(l => escapeRegExp(l)).join('\\s+');
+        let fuzzyRegex;
+        try {
+          fuzzyRegex = new RegExp(fuzzyRegexStr, 'g');
+        } catch (e) {
+          stats.failed++;
+          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Failed to compile safe regular expression pattern." });
+          return;
+        }
 
+        const matches = [...master.matchAll(fuzzyRegex)];
         if (matches && matches.length === 1) {
-          master = master.replace(fuzzyRegex, () => replaceText);
-          stats.applied++;
-          continue;
+          const matchedText = matches[0][0];
+          const matchedLinesCount = matchedText.split('\n').length;
+          const origLinesCount = patch.findLines.length;
+
+          // Block sizing limits verify that the match scope does not stretch excessively
+          if (matchedLinesCount <= origLinesCount * 2 + 5) {
+            master = master.replace(fuzzyRegex, () => replaceText);
+            stats.applied++;
+            return;
+          }
         } else if (matches && matches.length > 1) {
           stats.failed++;
-          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Fuzzy match found multiple times. Aborted to prevent corruption." });
-          continue;
+          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Fuzzy match detected multiple times. Aborted to prevent corruption." });
+          return;
         }
       }
 
       // TIER 3: SAFE BOUNDARY MATCH
-      if (lines.length >= 4) {
-        const startAnchor = escapeRegExp(lines[0]) + '\\s+' + escapeRegExp(lines[1]);
-        const endAnchor = escapeRegExp(lines[lines.length - 2]) + '\\s+' + escapeRegExp(lines[lines.length - 1]);
-        const boundaryRegex = new RegExp(startAnchor + '[\\s\\S]*?' + endAnchor, 'g');
-        const boundMatches = master.match(boundaryRegex);
-        
+      if (linesFiltered.length >= 4) {
+        const startAnchor = escapeRegExp(linesFiltered[0]) + '\\s+' + escapeRegExp(linesFiltered[1]);
+        const endAnchor = escapeRegExp(linesFiltered[linesFiltered.length - 2]) + '\\s+' + escapeRegExp(linesFiltered[linesFiltered.length - 1]);
+        let boundaryRegex;
+        try {
+          boundaryRegex = new RegExp(startAnchor + '[\\s\\S]*?' + endAnchor, 'g');
+        } catch (e) {
+          stats.failed++;
+          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Failed to compile boundary regular expression pattern." });
+          return;
+        }
+
+        const boundMatches = [...master.matchAll(boundaryRegex)];
         if (boundMatches && boundMatches.length === 1) {
-          master = master.replace(boundaryRegex, () => replaceText);
-          stats.applied++;
-          continue;
+          const matchedText = boundMatches[0][0];
+          const matchedLinesCount = matchedText.split('\n').length;
+          const origLinesCount = patch.findLines.length;
+
+          // Scope Limit Lock: Restricts boundary anchor ranges to twice the original context block height
+          if (matchedLinesCount <= origLinesCount * 2 + 5) {
+            master = master.replace(boundaryRegex, () => replaceText);
+            stats.applied++;
+            return;
+          } else {
+            stats.failed++;
+            globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Scope range bounds matched, but distance between endpoints spans too many lines. Aborted to protect scope integrity." });
+            return;
+          }
         } else if (boundMatches && boundMatches.length > 1) {
           stats.failed++;
-          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Boundary match found multiple times. Aborted to prevent corruption." });
-          continue;
+          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Scope anchors found multiple times. Aborted to prevent corruption." });
+          return;
         }
       }
-        
+
       // TIER 4: TRUE FAILURE
       stats.failed++;
-      globalFailedSnippets.push({ text: findText, reason: "Block not found (Exact, Fuzzy, and Boundary searches all failed/rejected)." });
-    }
-
-    if (!patchFound) {
-      showStatus("⚠️ No valid ---FIND--- markers detected!", 'var(--warning)', false);
-      return;
-    }
+      globalFailedSnippets.push({ text: findText, reason: "Block pattern could not be found via Exact, Fuzzy, or Scope searches." });
+    });
 
     document.getElementById('masterCode').value = master;
 
@@ -224,7 +340,7 @@
     if (stats.verified > 0) {
       const banner = document.createElement('div');
       banner.className = 'verified-banner';
-      banner.innerHTML = `ℹ️ ${stats.verified} patches were skipped because they are already present in your code.`;
+      banner.textContent = `ℹ️ ${stats.verified} patches were skipped because they are already present in your code.`;
       listDiv.appendChild(banner);
     }
 
@@ -232,10 +348,16 @@
       globalFailedSnippets.forEach((snippet, index) => {
         const itemDiv = document.createElement('div');
         itemDiv.className = 'failed-item';
-        itemDiv.innerHTML = `
-          <div class="failed-reason">[Patch #${index + 1}] Reason: ${snippet.reason}</div>
-          <pre>${snippet.text.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</pre>
-        `;
+
+        const reasonDiv = document.createElement('div');
+        reasonDiv.className = 'failed-reason';
+        reasonDiv.textContent = `[Patch #${index + 1}] Reason: ${snippet.reason}`;
+
+        const pre = document.createElement('pre');
+        pre.textContent = snippet.text;
+
+        itemDiv.appendChild(reasonDiv);
+        itemDiv.appendChild(pre);
         listDiv.appendChild(itemDiv);
       });
 
@@ -256,49 +378,84 @@
     const microscope = document.getElementById('microscopeBtn');
     isDebugOpen = !isDebugOpen;
     overlay.style.display = isDebugOpen ? 'flex' : 'none';
-    if (!isDebugOpen && stats.failed > 0) microscope.classList.add('pulse');
-    else microscope.classList.remove('pulse');
-  }
-
-  function copyDebugLog() {
-    let logText = `DIAGNOSTIC SUMMARY:\nApplied: ${stats.applied}\nVerified: ${stats.verified}\nFailed: ${stats.failed}\n\n`;
-    logText += globalFailedSnippets.map((s, i) => `[Failed Patch #${i + 1}]\nReason: ${s.reason}\nCODE:\n${s.text}`).join('\n\n');
-    navigator.clipboard.writeText(logText);
-    alert("Log copied to clipboard!");
-  }
-
-  function clearPatchesOnly() { document.getElementById('patchCode').value = ''; }
-
-  function hardReset() {
-    if(confirm("Delete everything?")) {
-      location.reload();
+    if (!isDebugOpen && stats.failed > 0) {
+      microscope.classList.add('pulse');
+    } else {
+      microscope.classList.remove('pulse');
     }
   }
 
-  function copyMaster() {
-    const master = document.getElementById('masterCode');
-    master.select();
-    document.execCommand('copy');
-    showStatus("📋 Copied to clipboard!", "var(--accent)", true);
+  async function copyDebugLog() {
+    let logText = `DIAGNOSTIC SUMMARY:\nApplied: ${stats.applied}\nVerified: ${stats.verified}\nFailed: ${stats.failed}\n\n`;
+    logText += globalFailedSnippets.map((s, i) => `[Failed Patch #${i + 1}]\nReason: ${s.reason}\nCODE:\n${s.text}`).join('\n\n');
+    const success = await copyToClipboard(logText);
+    if (success) {
+      alert("Diagnostic log copied to clipboard.");
+    } else {
+      alert("Failed to copy log. Please select and copy text manually.");
+    }
+  }
+
+  function clearPatchesOnly() { 
+    document.getElementById('patchCode').value = ''; 
+  }
+
+  function hardReset() {
+    if (confirm("Clear code input fields and reset interface state?")) {
+      document.getElementById('masterCode').value = '';
+      document.getElementById('patchCode').value = '';
+      document.getElementById('fileUploader').value = '';
+      stats = { applied: 0, verified: 0, failed: 0 };
+      globalFailedSnippets = [];
+      
+      const microscope = document.getElementById('microscopeBtn');
+      microscope.style.display = 'none';
+      microscope.classList.remove('pulse');
+      
+      if (isDebugOpen) toggleDebug();
+      showStatus("🚨 Reset complete.", "var(--error)", true);
+    }
+  }
+
+  async function copyMaster() {
+    const master = document.getElementById('masterCode').value;
+    const success = await copyToClipboard(master);
+    if (success) {
+      showStatus("📋 Copied code to clipboard!", "var(--accent)", true);
+    } else {
+      showStatus("❌ Failed to copy code.", "var(--error)", false);
+    }
   }
 
   function downloadFile() {
     const code = document.getElementById('masterCode').value;
-    const blob = new Blob([code], { type: 'text/plain' });
+    const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
+    a.href = url;
     a.download = currentFileName;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 150);
   }
 
   function showStatus(msg, color, autoHide) {
+    if (hideStatusTimeout) {
+      clearTimeout(hideStatusTimeout);
+      hideStatusTimeout = null;
+    }
     const statusDiv = document.getElementById('statusMsg');
     statusDiv.style.display = 'block';
     statusDiv.style.backgroundColor = color + '20';
     statusDiv.style.color = color;
     statusDiv.style.border = `1px solid ${color}`;
-    statusDiv.innerHTML = msg;
-    if (autoHide) setTimeout(() => { statusDiv.style.display = 'none'; }, 2500);
+    statusDiv.textContent = msg;
+    if (autoHide) {
+      hideStatusTimeout = setTimeout(() => { statusDiv.style.display = 'none'; }, 2500);
+    }
   }
 </script>
 </body>
