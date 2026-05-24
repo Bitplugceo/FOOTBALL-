@@ -1,236 +1,486 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NBL1 2026 Box Score Scraper</title>
-<style>
-  :root { color-scheme: dark; }
-  body { font-family: system-ui, -apple-system, sans-serif;
-         background:#0b0b0b; color:#eee; margin:0; padding:16px; }
-  h1 { font-size:20px; margin:0 0 12px; }
-  .row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
-  button { background:#1a7f3a; color:#fff; border:0; padding:10px 14px;
-           border-radius:8px; font-weight:600; cursor:pointer; }
-  button.alt { background:#333; }
-  button:disabled { opacity:.5; cursor:not-allowed; }
-  select, input { background:#111; color:#eee; border:1px solid #333;
-                  padding:8px; border-radius:6px; }
-  #log { background:#000; border:1px solid #222; padding:10px;
-         height:200px; overflow:auto; font-family:ui-monospace,monospace;
-         font-size:12px; white-space:pre-wrap; border-radius:6px; }
-  #progress { height:6px; background:#222; border-radius:3px; overflow:hidden;
-              margin:8px 0; }
-  #bar { height:100%; width:0%; background:#1a7f3a; transition:width .2s; }
-  table { width:100%; border-collapse:collapse; font-size:12px;
-          margin-top:12px; }
-  th, td { border:1px solid #222; padding:4px 6px; text-align:left; }
-  th { background:#151515; position:sticky; top:0; }
-  .stat { display:inline-block; margin-right:12px; }
-  .stat b { color:#7fdc9c; }
-  details { background:#111; border:1px solid #222; border-radius:6px;
-            padding:8px; margin-top:10px; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto-Patcher V12 — Idempotent Edition</title>
+  <style>
+    :root {
+      --bg: #0d1117; --panel: #161b22; --text: #c9d1d9;
+      --accent: #238636; --border: #30363d; --error: #f85149;
+      --warning: #d29922; --blue: #1f6feb; --verified: #a371f7;
+    }
+    
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+    .container { width: 100%; max-width: 800px; }
+
+    #debugOverlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(13, 17, 23, 0.98); backdrop-filter: blur(5px);
+      z-index: 2000; display: none; flex-direction: column;
+      padding: 40px 15px 20px 15px; overflow-y: auto;
+    }
+
+    .debug-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid var(--error); padding-bottom: 10px; }
+    .debug-title { color: var(--error); font-size: 16px; font-weight: bold; }
+
+    #microscopeBtn {
+      position: fixed; top: 20px; right: 20px; background: var(--panel); border: 1px solid var(--error);
+      border-radius: 50%; width: 45px; height: 45px; display: none; justify-content: center;
+      align-items: center; font-size: 20px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 3000;
+    }
+    .pulse { animation: pulseError 2s infinite; }
+    @keyframes pulseError {
+      0% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(248, 81, 73, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0); }
+    }
+
+    .box { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 15px; overflow: hidden; }
+    .box-header { padding: 12px 15px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: bold; color: #8b949e; display: flex; justify-content: space-between; align-items: center;}
+    textarea { width: 100%; background: #010409; color: #e6edf3; font-family: monospace; font-size: 16px; padding: 15px; border: none; box-sizing: border-box; resize: vertical; outline: none; line-height: 1.5; }
+
+    .icon-row { display: flex; gap: 10px; margin-bottom: 15px; }
+    .btn-lg { flex: 1; padding: 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 24px; display: flex; justify-content: center; align-items: center; transition: 0.2s; }
+    .btn-run { background: var(--accent); color: white; }
+    .btn-dl { background: var(--blue); color: white; }
+    .btn-copy { background: #6e7681; color: white; }
+
+    .util-row { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+    .btn-text { background: var(--panel); color: var(--text); border: 1px solid var(--border); padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
+    .btn-danger { color: var(--error); border-color: rgba(248,81,73,0.4); }
+
+    .status { text-align: center; font-weight: bold; padding: 12px; border-radius: 6px; display: none; font-size: 14px; margin-bottom: 15px; }
+
+    .failed-item { background: #161b22; border: 1px solid #30363d; border-left: 3px solid var(--error); border-radius: 4px; margin-bottom: 10px; padding: 10px; }
+    .failed-reason { color: var(--warning); font-weight: bold; font-size: 11px; margin-bottom: 6px; }
+    .failed-item pre { background: #010409; padding: 8px; border-radius: 4px; border: 1px solid #30363d; color: #ff7b72; font-size: 10px; overflow-x: auto; margin: 0; white-space: pre-wrap; }
+    
+    .verified-banner { background: rgba(35, 134, 54, 0.1); border: 1px solid var(--accent); padding: 10px; border-radius: 4px; margin-bottom: 15px; color: var(--accent); font-size: 12px; font-weight: bold; }
+  </style>
 </head>
 <body>
 
-<h1>NBL1 2026 — Box Score Scraper</h1>
+  <button id="microscopeBtn" onclick="toggleDebug()" title="Toggle Debug Log" aria-label="Toggle diagnostic log">🔬</button>
 
-<div class="row">
-  <label>Conference:
-    <select id="conf">
-      <option value="all">All</option>
-      <option value="north">North</option>
-      <option value="east">East</option>
-      <option value="south">South</option>
-      <option value="west">West</option>
-      <option value="central">Central</option>
-    </select>
-  </label>
-  <label>Proxy:
-    <select id="proxy">
-      <option value="https://corsproxy.io/?">corsproxy.io</option>
-      <option value="https://api.allorigins.win/raw?url=">allorigins.win</option>
-      <option value="https://cors.eu.org/">cors.eu.org</option>
-    </select>
-  </label>
-</div>
+  <div id="debugOverlay" role="dialog" aria-modal="true" aria-labelledby="debugTitle">
+    <div class="debug-header">
+      <button class="btn-text" style="padding: 5px 10px;" onclick="copyDebugLog()">📋 Copy Log</button>
+      <div id="debugTitle" class="debug-title">🔬 Diagnostic Log</div>
+      <button class="btn-text" style="margin-left:auto" onclick="toggleDebug()">Close</button>
+    </div>
+    <div id="failedList"></div>
+  </div>
 
-<div class="row">
-  <button id="run">▶ Start Scrape</button>
-  <button id="stop" class="alt" disabled>■ Stop</button>
-  <button id="dlJson" class="alt" disabled>⬇ JSON</button>
-  <button id="dlCsv" class="alt" disabled>⬇ CSV</button>
-  <button id="save" class="alt">💾 Save to Browser</button>
-  <button id="load" class="alt">📂 Load Saved</button>
-</div>
+  <div class="container">
+    <h1 style="text-align:center">🛠️ Auto-Patcher V12</h1>
 
-<div id="progress"><div id="bar"></div></div>
-<div id="stats"></div>
-<div id="log"></div>
+    <div class="box">
+      <div class="box-header">
+        <label for="masterCode">1. MASTER CODE</label>
+        <input type="file" id="fileUploader" style="font-size:11px; max-width:180px;" aria-label="Upload master code file">
+      </div>
+      <textarea id="masterCode" style="height:250px" spellcheck="false" placeholder="Paste or Upload master code..."></textarea>
+    </div>
 
-<details><summary>Preview (first 200 rows)</summary>
-  <div id="preview"></div>
-</details>
+    <div class="box">
+      <div class="box-header">
+        <label for="patchCode">2. PATCH INSTRUCTIONS</label>
+      </div>
+      <textarea id="patchCode" style="height:250px" spellcheck="false" placeholder="Paste AI message here..."></textarea>
+    </div>
+
+    <div class="icon-row">
+      <button class="btn-lg btn-run" onclick="applyPatches()" title="Apply Patch" aria-label="Apply patches">⚙️</button>
+      <button class="btn-lg btn-dl" onclick="downloadFile()" title="Download" aria-label="Download patched master code">📥</button>
+      <button class="btn-lg btn-copy" onclick="copyMaster()" title="Copy Code" aria-label="Copy master code to clipboard">📋</button>
+    </div>
+
+    <div class="util-row">
+      <button class="btn-text" onclick="clearPatchesOnly()">🧹 Clear Patches</button>
+      <button class="btn-text btn-danger" onclick="hardReset()">🚨 Hard Reset</button>
+    </div>
+
+    <div id="statusMsg" class="status" role="status" aria-live="polite"></div>
+  </div>
 
 <script>
-const BASE = "https://nbl1.com.au";
-const CONFS = ["north","east","south","west","central"];
-const SEASON = 2026;
+  let currentFileName = "patched_master.txt"; 
+  let isDebugOpen = false;
+  let globalFailedSnippets = []; 
+  let stats = { applied: 0, verified: 0, failed: 0 };
+  let hideStatusTimeout = null;
 
-const $ = id => document.getElementById(id);
-const logEl = $("log");
-const log = m => { logEl.textContent += m + "\n"; logEl.scrollTop = logEl.scrollHeight; };
-let stopFlag = false;
-let dataset = { season: SEASON, generated_at: null, summary: {}, rows: [] };
-
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-const proxy = url => $("proxy").value + encodeURIComponent(url);
-
-async function fetchHTML(url) {
-  const r = await fetch(proxy(url));
-  if (!r.ok) throw new Error("HTTP " + r.status);
-  return await r.text();
-}
-
-function parseGameIds(html) {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const ids = new Set();
-  doc.querySelectorAll("a[href*='/games/']").forEach(a => {
-    const m = a.getAttribute("href").match(/\/games\/([^/?#]+)/);
-    if (m) ids.add(m[1]);
+  document.getElementById('fileUploader').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    currentFileName = file.name;
+    const reader = new FileReader();
+    reader.onerror = () => {
+      showStatus("❌ Failed to read file.", "var(--error)", false);
+    };
+    reader.onload = (event) => {
+      document.getElementById('masterCode').value = event.target.result;
+      showStatus(`✅ File loaded!`, 'var(--accent)', true);
+    };
+    reader.readAsText(file);
+    e.target.value = ''; 
   });
-  return [...ids];
-}
 
-function parseBox(html, gid, conf) {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const rows = [];
-  doc.querySelectorAll("table").forEach(tbl => {
-    const headers = [...tbl.querySelectorAll("thead th, tr th")]
-      .map(h => h.textContent.trim());
-    tbl.querySelectorAll("tr").forEach(tr => {
-      const cells = [...tr.querySelectorAll("td")].map(td => td.textContent.trim());
-      if (cells.length) rows.push({ game_id: gid, conference: conf, cells, headers });
+  function parsePatches(rawPatches) {
+    const lines = rawPatches.split('\n');
+    const patches = [];
+    let currentPatch = null;
+    let inFind = false;
+    let inReplace = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      if (trimmed.toUpperCase() === '---FIND---') {
+        if (currentPatch && currentPatch.findLines.length > 0) {
+          patches.push(currentPatch);
+        }
+        currentPatch = { findLines: [], replaceLines: [] };
+        inFind = true;
+        inReplace = false;
+      } else if (trimmed.toUpperCase() === '---REPLACE---') {
+        if (currentPatch && inFind) {
+          inFind = false;
+          inReplace = true;
+        }
+      } else if (trimmed.toUpperCase() === '---END---' || trimmed.startsWith('```')) {
+        if (currentPatch) {
+          if (currentPatch.findLines.length > 0) {
+            patches.push(currentPatch);
+          }
+          currentPatch = null;
+        }
+        inFind = false;
+        inReplace = false;
+      } else {
+        if (inFind && currentPatch) {
+          currentPatch.findLines.push(line);
+        } else if (inReplace && currentPatch) {
+          currentPatch.replaceLines.push(line);
+        }
+      }
+    }
+    if (currentPatch && currentPatch.findLines.length > 0) {
+      patches.push(currentPatch);
+    }
+    return patches;
+  }
+
+  function countOccurrences(haystack, needle) {
+    if (!needle) return 0;
+    return haystack.split(needle).length - 1;
+  }
+
+  async function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        console.warn("Clipboard API write failed, attempting fallback.", err);
+      }
+    }
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    textArea.style.pointerEvents = "none";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return true;
+    } catch (err) {
+      document.body.removeChild(textArea);
+      return false;
+    }
+  }
+
+  function applyPatches() {
+    let master = document.getElementById('masterCode').value;
+    let rawPatches = document.getElementById('patchCode').value;
+    const microscope = document.getElementById('microscopeBtn');
+    
+    if (isDebugOpen) toggleDebug();
+    microscope.style.display = 'none'; 
+    microscope.classList.remove('pulse');
+
+    if (!master.trim() || !rawPatches.trim()) {
+      showStatus("⚠️ Missing master code or patches!", 'var(--warning)', false);
+      return;
+    }
+
+    master = master.replace(/\r\n/g, '\n');
+    rawPatches = rawPatches.replace(/\r\n/g, '\n');
+
+    const parsedPatches = parsePatches(rawPatches);
+
+    if (parsedPatches.length === 0) {
+      showStatus("⚠️ No valid ---FIND--- markers detected!", 'var(--warning)', false);
+      return;
+    }
+
+    stats = { applied: 0, verified: 0, failed: 0 };
+    globalFailedSnippets = [];
+
+    parsedPatches.forEach((patch) => {
+      const findText = patch.findLines.join('\n').replace(/^\n+|\n+$/g, '');
+      const replaceText = patch.replaceLines.join('\n').replace(/^\n+|\n+$/g, '');
+
+      const findCountInMaster = countOccurrences(master, findText);
+      const replaceCountInMaster = countOccurrences(master, replaceText);
+      const findCountInReplace = countOccurrences(replaceText, findText);
+
+      let isAlreadyApplied = false;
+
+      if (findCountInMaster === 0) {
+        // The search block is completely missing from the file
+        if (replaceText === "") {
+          // It was a code deletion patch, and it is gone
+          isAlreadyApplied = true;
+        } else if (replaceCountInMaster > 0) {
+          // The replacement is already in the file. Prevent false positive skips on short syntax (like "}")
+          const isSignificant = replaceText.trim().length > 8 || replaceText.split('\n').length >= 2;
+          if (isSignificant) {
+            isAlreadyApplied = true;
+          }
+        }
+      } else if (replaceText !== "" && replaceCountInMaster > 0) {
+        // The replacement is present, but the search text is ALSO present (i.e., replaceText contains findText)
+        if (findCountInReplace > 0) {
+          // Skip if all instances of findText are already nested inside the applied replaceText blocks
+          if (findCountInMaster === (replaceCountInMaster * findCountInReplace)) {
+            isAlreadyApplied = true;
+          }
+        }
+      }
+
+      if (isAlreadyApplied) {
+        stats.verified++;
+        return;
+      }
+
+      // TIER 1: EXACT MATCH
+      const occurrences = master.split(findText).length - 1;
+      if (occurrences === 1) {
+        master = master.split(findText).join(replaceText);
+        stats.applied++;
+        return;
+      } else if (occurrences > 1) {
+        stats.failed++;
+        globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Target block found multiple times in master file. Aborted to avoid duplication." });
+        return;
+      }
+
+      // TIER 2: SAFE FUZZY MATCH
+      const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const linesFiltered = patch.findLines.map(l => l.trim()).filter(l => l.length > 0);
+
+      if (linesFiltered.length > 0) {
+        const fuzzyRegexStr = linesFiltered.map(l => escapeRegExp(l)).join('\\s+');
+        let fuzzyRegex;
+        try {
+          fuzzyRegex = new RegExp(fuzzyRegexStr, 'g');
+        } catch (e) {
+          stats.failed++;
+          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Failed to compile safe regular expression pattern." });
+          return;
+        }
+
+        const matches = [...master.matchAll(fuzzyRegex)];
+        if (matches && matches.length === 1) {
+          const matchedText = matches[0][0];
+          const matchedLinesCount = matchedText.split('\n').length;
+          const origLinesCount = patch.findLines.length;
+
+          if (matchedLinesCount <= origLinesCount * 2 + 5) {
+            master = master.replace(fuzzyRegex, () => replaceText);
+            stats.applied++;
+            return;
+          }
+        } else if (matches && matches.length > 1) {
+          stats.failed++;
+          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Fuzzy match detected multiple times. Aborted to prevent corruption." });
+          return;
+        }
+      }
+
+      // TIER 3: SAFE BOUNDARY MATCH
+      if (linesFiltered.length >= 4) {
+        const startAnchor = escapeRegExp(linesFiltered[0]) + '\\s+' + escapeRegExp(linesFiltered[1]);
+        const endAnchor = escapeRegExp(linesFiltered[linesFiltered.length - 2]) + '\\s+' + escapeRegExp(linesFiltered[linesFiltered.length - 1]);
+        let boundaryRegex;
+        try {
+          boundaryRegex = new RegExp(startAnchor + '[\\s\\S]*?' + endAnchor, 'g');
+        } catch (e) {
+          stats.failed++;
+          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Failed to compile boundary regular expression pattern." });
+          return;
+        }
+
+        const boundMatches = [...master.matchAll(boundaryRegex)];
+        if (boundMatches && boundMatches.length === 1) {
+          const matchedText = boundMatches[0][0];
+          const matchedLinesCount = matchedText.split('\n').length;
+          const origLinesCount = patch.findLines.length;
+
+          if (matchedLinesCount <= origLinesCount * 2 + 5) {
+            master = master.replace(boundaryRegex, () => replaceText);
+            stats.applied++;
+            return;
+          } else {
+            stats.failed++;
+            globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Scope range bounds matched, but distance between endpoints spans too many lines. Aborted to protect scope integrity." });
+            return;
+          }
+        } else if (boundMatches && boundMatches.length > 1) {
+          stats.failed++;
+          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Scope anchors found multiple times. Aborted to prevent corruption." });
+          return;
+        }
+      }
+
+      // TIER 4: TRUE FAILURE
+      stats.failed++;
+      globalFailedSnippets.push({ text: findText, reason: "Block pattern could not be found via Exact, Fuzzy, or Scope searches." });
     });
-  });
-  // Also try to grab final score / teams from headings
-  const title = doc.querySelector("title")?.textContent?.trim() || "";
-  return { meta: { title }, rows };
-}
 
-function toCSV(rows) {
-  const max = Math.max(...rows.map(r => r.cells.length), 0);
-  const head = ["game_id","conference", ...Array.from({length:max}, (_,i)=>"c"+i)];
-  const lines = [head.join(",")];
-  rows.forEach(r => {
-    const vals = [r.game_id, r.conference, ...r.cells];
-    lines.push(vals.map(v => `"${(v??"").replace(/"/g,'""')}"`).join(","));
-  });
-  return lines.join("\n");
-}
+    document.getElementById('masterCode').value = master;
 
-function download(name, content, type) {
-  const blob = new Blob([content], { type });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
+    const listDiv = document.getElementById('failedList');
+    listDiv.innerHTML = '';
 
-function renderPreview() {
-  const rows = dataset.rows.slice(0, 200);
-  const max = Math.max(...rows.map(r => r.cells.length), 0);
-  let h = "<table><thead><tr><th>game</th><th>conf</th>";
-  for (let i=0;i<max;i++) h += `<th>c${i}</th>`;
-  h += "</tr></thead><tbody>";
-  rows.forEach(r => {
-    h += `<tr><td>${r.game_id}</td><td>${r.conference}</td>`;
-    for (let i=0;i<max;i++) h += `<td>${r.cells[i]||""}</td>`;
-    h += "</tr>";
-  });
-  h += "</tbody></table>";
-  $("preview").innerHTML = h;
-}
+    if (stats.verified > 0) {
+      const banner = document.createElement('div');
+      banner.className = 'verified-banner';
+      banner.textContent = `ℹ️ ${stats.verified} patches were skipped because they are already present in your code.`;
+      listDiv.appendChild(banner);
+    }
 
-function renderStats() {
-  const s = dataset.summary;
-  $("stats").innerHTML =
-    `<span class="stat">Rows: <b>${dataset.rows.length}</b></span>` +
-    Object.entries(s).map(([k,v]) =>
-      `<span class="stat">${k}: <b>${v}</b> games</span>`).join("");
-}
+    if (stats.failed > 0) {
+      globalFailedSnippets.forEach((snippet, index) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'failed-item';
 
-$("run").onclick = async () => {
-  stopFlag = false;
-  dataset = { season: SEASON, generated_at: new Date().toISOString(),
-              summary: {}, rows: [] };
-  $("run").disabled = true; $("stop").disabled = false;
-  $("dlJson").disabled = true; $("dlCsv").disabled = true;
-  logEl.textContent = "";
-  const choice = $("conf").value;
-  const confs = choice === "all" ? CONFS : [choice];
+        const reasonDiv = document.createElement('div');
+        reasonDiv.className = 'failed-reason';
+        reasonDiv.textContent = `[Patch #${index + 1}] Reason: ${snippet.reason}`;
 
-  // 1) Collect game IDs
-  const allIds = [];
-  for (const c of confs) {
-    if (stopFlag) break;
-    log(`Fetching fixtures: ${c}`);
-    try {
-      const html = await fetchHTML(`${BASE}/games?conference=${c}&season=${SEASON}`);
-      const ids = parseGameIds(html);
-      dataset.summary[c] = ids.length;
-      ids.forEach(id => allIds.push({ id, conf: c }));
-      log(`  ${c}: ${ids.length} games`);
-    } catch(e) { log(`  ERR ${c}: ${e.message}`); }
-    await sleep(400);
-  }
-  renderStats();
+        const pre = document.createElement('pre');
+        pre.textContent = snippet.text;
 
-  // 2) Loop through games
-  let done = 0;
-  for (const { id, conf } of allIds) {
-    if (stopFlag) { log("Stopped."); break; }
-    try {
-      const html = await fetchHTML(`${BASE}/games/${id}`);
-      const { rows } = parseBox(html, id, conf);
-      dataset.rows.push(...rows);
-    } catch(e) { log(`ERR ${id}: ${e.message}`); }
-    done++;
-    $("bar").style.width = (done/allIds.length*100).toFixed(1) + "%";
-    if (done % 5 === 0) { renderStats(); renderPreview(); }
-    await sleep(500);
+        itemDiv.appendChild(reasonDiv);
+        itemDiv.appendChild(pre);
+        listDiv.appendChild(itemDiv);
+      });
+
+      microscope.style.display = 'flex';
+      microscope.classList.add('pulse');
+      
+      let msg = `⚠️ Applied ${stats.applied}. `;
+      if (stats.verified > 0) msg += `Verified ${stats.verified}. `;
+      msg += `Failed ${stats.failed}. Click 🔬`;
+      showStatus(msg, 'var(--warning)', false);
+    } else {
+      showStatus(`✅ Applied ${stats.applied}${stats.verified > 0 ? ' (Verified ' + stats.verified + ')' : ''} Patches!`, 'var(--accent)', true);
+    }
   }
 
-  renderStats(); renderPreview();
-  log(`Done. ${dataset.rows.length} rows collected.`);
-  $("run").disabled = false; $("stop").disabled = true;
-  $("dlJson").disabled = false; $("dlCsv").disabled = false;
-};
+  function toggleDebug() {
+    const overlay = document.getElementById('debugOverlay');
+    const microscope = document.getElementById('microscopeBtn');
+    isDebugOpen = !isDebugOpen;
+    overlay.style.display = isDebugOpen ? 'flex' : 'none';
+    if (!isDebugOpen && stats.failed > 0) {
+      microscope.classList.add('pulse');
+    } else {
+      microscope.classList.remove('pulse');
+    }
+  }
 
-$("stop").onclick = () => { stopFlag = true; };
+  async function copyDebugLog() {
+    let logText = `DIAGNOSTIC SUMMARY:\nApplied: ${stats.applied}\nVerified: ${stats.verified}\nFailed: ${stats.failed}\n\n`;
+    logText += globalFailedSnippets.map((s, i) => `[Failed Patch #${i + 1}]\nReason: ${s.reason}\nCODE:\n${s.text}`).join('\n\n');
+    const success = await copyToClipboard(logText);
+    if (success) {
+      alert("Diagnostic log copied to clipboard.");
+    } else {
+      alert("Failed to copy log. Please select and copy text manually.");
+    }
+  }
 
-$("dlJson").onclick = () =>
-  download("nbl1_2026_boxscores.json", JSON.stringify(dataset, null, 2), "application/json");
+  function clearPatchesOnly() { 
+    document.getElementById('patchCode').value = ''; 
+  }
 
-$("dlCsv").onclick = () =>
-  download("nbl1_2026_boxscores.csv", toCSV(dataset.rows), "text/csv");
+  function hardReset() {
+    if (confirm("Clear code input fields and reset interface state?")) {
+      document.getElementById('masterCode').value = '';
+      document.getElementById('patchCode').value = '';
+      document.getElementById('fileUploader').value = '';
+      stats = { applied: 0, verified: 0, failed: 0 };
+      globalFailedSnippets = [];
+      
+      const microscope = document.getElementById('microscopeBtn');
+      microscope.style.display = 'none';
+      microscope.classList.remove('pulse');
+      
+      if (isDebugOpen) toggleDebug();
+      showStatus("🚨 Reset complete.", "var(--error)", true);
+    }
+  }
 
-$("save").onclick = () => {
-  localStorage.setItem("nbl1_2026", JSON.stringify(dataset));
-  log("Saved to browser localStorage.");
-};
+  async function copyMaster() {
+    const master = document.getElementById('masterCode').value;
+    const success = await copyToClipboard(master);
+    if (success) {
+      showStatus("📋 Copied code to clipboard!", "var(--accent)", true);
+    } else {
+      showStatus("❌ Failed to copy code.", "var(--error)", false);
+    }
+  }
 
-$("load").onclick = () => {
-  const raw = localStorage.getItem("nbl1_2026");
-  if (!raw) return log("Nothing saved.");
-  dataset = JSON.parse(raw);
-  renderStats(); renderPreview();
-  $("dlJson").disabled = false; $("dlCsv").disabled = false;
-  log("Loaded from localStorage.");
-};
+  function downloadFile() {
+    const code = document.getElementById('masterCode').value;
+    const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    a.href = url;
+    a.download = currentFileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 150);
+  }
+
+  function showStatus(msg, color, autoHide) {
+    if (hideStatusTimeout) {
+      clearTimeout(hideStatusTimeout);
+      hideStatusTimeout = null;
+    }
+    const statusDiv = document.getElementById('statusMsg');
+    statusDiv.style.display = 'block';
+    statusDiv.style.backgroundColor = color + '20';
+    statusDiv.style.color = color;
+    statusDiv.style.border = `1px solid ${color}`;
+    statusDiv.textContent = msg;
+    if (autoHide) {
+      hideStatusTimeout = setTimeout(() => { statusDiv.style.display = 'none'; }, 2500);
+    }
+  }
 </script>
-
 </body>
 </html>
