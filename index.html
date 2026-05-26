@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -150,7 +151,7 @@
           inFind = false;
           inReplace = true;
         }
-      } else if (trimmed.toUpperCase() === '---END---' || trimmed.startsWith('```')) {
+      } else if (trimmed === '---' || trimmed.toUpperCase() === '---END---' || trimmed.startsWith('```')) {
         if (currentPatch) {
           if (currentPatch.findLines.length > 0) {
             patches.push(currentPatch);
