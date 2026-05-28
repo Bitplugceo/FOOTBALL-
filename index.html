@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Auto-Patcher V12 — Idempotent Edition</title>
+  <title>Auto-Patcher V13 — Transactional Idempotent Edition</title>
   <style>
     :root {
       --bg: #0d1117; --panel: #161b22; --text: #c9d1d9;
@@ -57,7 +56,7 @@
     .failed-reason { color: var(--warning); font-weight: bold; font-size: 11px; margin-bottom: 6px; }
     .failed-item pre { background: #010409; padding: 8px; border-radius: 4px; border: 1px solid #30363d; color: #ff7b72; font-size: 10px; overflow-x: auto; margin: 0; white-space: pre-wrap; }
     
-    .verified-banner { background: rgba(35, 134, 54, 0.1); border: 1px solid var(--accent); padding: 10px; border-radius: 4px; margin-bottom: 15px; color: var(--accent); font-size: 12px; font-weight: bold; }
+    .verified-banner { background: rgba(163, 113, 247, 0.1); border: 1px solid var(--verified); padding: 10px; border-radius: 4px; margin-bottom: 15px; color: var(--verified); font-size: 12px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -74,7 +73,7 @@
   </div>
 
   <div class="container">
-    <h1 style="text-align:center">🛠️ Auto-Patcher V12</h1>
+    <h1 style="text-align:center">🛠️ Auto-Patcher V13</h1>
 
     <div class="box">
       <div class="box-header">
@@ -137,21 +136,21 @@
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      const trimmed = line.trim();
+      const trimmed = line.trim().toUpperCase();
 
-      if (trimmed.toUpperCase() === '---FIND---') {
+      if (trimmed === '---FIND---') {
         if (currentPatch && currentPatch.findLines.length > 0) {
           patches.push(currentPatch);
         }
         currentPatch = { findLines: [], replaceLines: [] };
         inFind = true;
         inReplace = false;
-      } else if (trimmed.toUpperCase() === '---REPLACE---') {
+      } else if (trimmed === '---REPLACE---') {
         if (currentPatch && inFind) {
           inFind = false;
           inReplace = true;
         }
-      } else if (trimmed === '---' || trimmed.toUpperCase() === '---END---' || trimmed.startsWith('```')) {
+      } else if (trimmed === '---' || trimmed === '---END---' || line.trim().startsWith('```')) {
         if (currentPatch) {
           if (currentPatch.findLines.length > 0) {
             patches.push(currentPatch);
@@ -174,9 +173,15 @@
     return patches;
   }
 
-  function countOccurrences(haystack, needle) {
-    if (!needle) return 0;
-    return haystack.split(needle).length - 1;
+  function getAllIndices(haystack, needle) {
+    const indices = [];
+    if (!needle) return indices;
+    let idx = haystack.indexOf(needle);
+    while (idx !== -1) {
+      indices.push(idx);
+      idx = haystack.indexOf(needle, idx + 1);
+    }
+    return indices;
   }
 
   async function copyToClipboard(text) {
@@ -209,9 +214,12 @@
   }
 
   function applyPatches() {
-    let master = document.getElementById('masterCode').value;
-    let rawPatches = document.getElementById('patchCode').value;
+    const masterEl = document.getElementById('masterCode');
+    const patchEl = document.getElementById('patchCode');
     const microscope = document.getElementById('microscopeBtn');
+    
+    let master = masterEl.value;
+    let rawPatches = patchEl.value;
     
     if (isDebugOpen) toggleDebug();
     microscope.style.display = 'none'; 
@@ -234,57 +242,56 @@
 
     stats = { applied: 0, verified: 0, failed: 0 };
     globalFailedSnippets = [];
+    
+    // We collect intended changes transactionally to analyze them against static code state
+    const transactions = [];
 
-    parsedPatches.forEach((patch) => {
+    parsedPatches.forEach((patch, patchIndex) => {
       const findText = patch.findLines.join('\n').replace(/^\n+|\n+$/g, '');
       const replaceText = patch.replaceLines.join('\n').replace(/^\n+|\n+$/g, '');
 
-      const findCountInMaster = countOccurrences(master, findText);
-      const replaceCountInMaster = countOccurrences(master, replaceText);
-      const findCountInReplace = countOccurrences(replaceText, findText);
+      // Step 1: Query exact matches across the current code state
+      const exactFindMatches = getAllIndices(master, findText);
 
-      let isAlreadyApplied = false;
-
-      if (findCountInMaster === 0) {
-        // The search block is completely missing from the file
-        if (replaceText === "") {
-          // It was a code deletion patch, and it is gone
-          isAlreadyApplied = true;
-        } else if (replaceCountInMaster > 0) {
-          // The replacement is already in the file. Prevent false positive skips on short syntax (like "}")
-          const isSignificant = replaceText.trim().length > 8 || replaceText.split('\n').length >= 2;
-          if (isSignificant) {
-            isAlreadyApplied = true;
-          }
-        }
-      } else if (replaceText !== "" && replaceCountInMaster > 0) {
-        // The replacement is present, but the search text is ALSO present (i.e., replaceText contains findText)
-        if (findCountInReplace > 0) {
-          // Skip if all instances of findText are already nested inside the applied replaceText blocks
-          if (findCountInMaster === (replaceCountInMaster * findCountInReplace)) {
-            isAlreadyApplied = true;
-          }
-        }
-      }
-
-      if (isAlreadyApplied) {
-        stats.verified++;
-        return;
-      }
-
-      // TIER 1: EXACT MATCH
-      const occurrences = master.split(findText).length - 1;
-      if (occurrences === 1) {
-        master = master.split(findText).join(replaceText);
+      // TIER 1: EXACT MATCH APPLIED
+      if (exactFindMatches.length === 1) {
+        transactions.push({
+          start: exactFindMatches[0],
+          end: exactFindMatches[0] + findText.length,
+          replaceText: replaceText,
+          patchIndex: patchIndex + 1
+        });
         stats.applied++;
         return;
-      } else if (occurrences > 1) {
+      }
+
+      // TIER 2: AMBIGUITY LOCK
+      if (exactFindMatches.length > 1) {
         stats.failed++;
-        globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Target block found multiple times in master file. Aborted to avoid duplication." });
+        globalFailedSnippets.push({ 
+          text: findText, 
+          reason: `SAFETY LOCK: Target block found ${exactFindMatches.length} times exactly in code. Aborted to avoid target duplicate modifications.` 
+        });
         return;
       }
 
-      // TIER 2: SAFE FUZZY MATCH
+      // If findText count is 0, let's analyze if it's already cleanly applied (Idempotency Engine)
+      if (exactFindMatches.length === 0) {
+        if (replaceText !== "") {
+          const exactReplaceMatches = getAllIndices(master, replaceText);
+          if (exactReplaceMatches.length > 0) {
+            // Found replacement footprint cleanly, skip duplication safely
+            stats.verified++;
+            return;
+          }
+        } else {
+          // It's a selective code block deletion, and the code snippet is gone.
+          stats.verified++;
+          return;
+        }
+      }
+
+      // TIER 3: SAFE FUZZY FALLBACK (Only executes if completely missing and not verified)
       const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const linesFiltered = patch.findLines.map(l => l.trim()).filter(l => l.length > 0);
 
@@ -295,29 +302,35 @@
           fuzzyRegex = new RegExp(fuzzyRegexStr, 'g');
         } catch (e) {
           stats.failed++;
-          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Failed to compile safe regular expression pattern." });
+          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Failed compiling safe fuzzy regex sequence." });
           return;
         }
 
         const matches = [...master.matchAll(fuzzyRegex)];
         if (matches && matches.length === 1) {
           const matchedText = matches[0][0];
+          const matchIndex = matches[0].index;
           const matchedLinesCount = matchedText.split('\n').length;
           const origLinesCount = patch.findLines.length;
 
           if (matchedLinesCount <= origLinesCount * 2 + 5) {
-            master = master.replace(fuzzyRegex, () => replaceText);
+            transactions.push({
+              start: matchIndex,
+              end: matchIndex + matchedText.length,
+              replaceText: replaceText,
+              patchIndex: patchIndex + 1
+            });
             stats.applied++;
             return;
           }
         } else if (matches && matches.length > 1) {
           stats.failed++;
-          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Fuzzy match detected multiple times. Aborted to prevent corruption." });
+          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Fuzzy layout matches multiple locations. Aborted to prevent corruption." });
           return;
         }
       }
 
-      // TIER 3: SAFE BOUNDARY MATCH
+      // TIER 4: SAFE BOUNDARY FALLBACK
       if (linesFiltered.length >= 4) {
         const startAnchor = escapeRegExp(linesFiltered[0]) + '\\s+' + escapeRegExp(linesFiltered[1]);
         const endAnchor = escapeRegExp(linesFiltered[linesFiltered.length - 2]) + '\\s+' + escapeRegExp(linesFiltered[linesFiltered.length - 1]);
@@ -326,46 +339,87 @@
           boundaryRegex = new RegExp(startAnchor + '[\\s\\S]*?' + endAnchor, 'g');
         } catch (e) {
           stats.failed++;
-          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Failed to compile boundary regular expression pattern." });
+          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Failed compiling structure boundary layout regex." });
           return;
         }
 
         const boundMatches = [...master.matchAll(boundaryRegex)];
         if (boundMatches && boundMatches.length === 1) {
           const matchedText = boundMatches[0][0];
+          const matchIndex = boundMatches[0].index;
           const matchedLinesCount = matchedText.split('\n').length;
           const origLinesCount = patch.findLines.length;
 
           if (matchedLinesCount <= origLinesCount * 2 + 5) {
-            master = master.replace(boundaryRegex, () => replaceText);
+            transactions.push({
+              start: matchIndex,
+              end: matchIndex + matchedText.length,
+              replaceText: replaceText,
+              patchIndex: patchIndex + 1
+            });
             stats.applied++;
             return;
           } else {
             stats.failed++;
-            globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Scope range bounds matched, but distance between endpoints spans too many lines. Aborted to protect scope integrity." });
+            globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Boundary matched, but line span distance exceeds safety index thresholds." });
             return;
           }
         } else if (boundMatches && boundMatches.length > 1) {
           stats.failed++;
-          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Scope anchors found multiple times. Aborted to prevent corruption." });
+          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Scope boundary structures match multiple fields. Aborted." });
           return;
         }
       }
 
-      // TIER 4: TRUE FAILURE
+      // TIER 5: CRITICAL MISSING
       stats.failed++;
-      globalFailedSnippets.push({ text: findText, reason: "Block pattern could not be found via Exact, Fuzzy, or Scope searches." });
+      globalFailedSnippets.push({ text: findText, reason: "Block sequence structural pattern not found in code source (Exact, Fuzzy, or Boundary)." });
     });
 
-    document.getElementById('masterCode').value = master;
+    // --- TRANSACTION CORRELATION & EXECUTION PASS ---
+    // Sort transactions by original code positions ascending to evaluate collisions
+    transactions.sort((a, b) => a.start - b.start);
+    
+    let configurationConflict = false;
+    for (let i = 0; i < transactions.length - 1; i++) {
+      if (transactions[i].end > transactions[i+1].start) {
+        configurationConflict = true;
+        // Append context error to log reports
+        stats.failed++;
+        stats.applied--;
+        globalFailedSnippets.unshift({
+          text: `Patch Collision Location: Index ${transactions[i+1].start}`,
+          reason: `COLLISION CONFLICT: Patch #${transactions[i].patchIndex} and Patch #${transactions[i+1].patchIndex} are targeted to modify overlapping text lines.`
+        });
+      }
+    }
 
+    if (configurationConflict) {
+      showStatus("❌ Mutated state conflict: Patches overlaps caught! Aborted edits execution.", "var(--error)", false);
+      renderDebugUI(microscope);
+      return;
+    }
+
+    // Sort transactions descending to safely write modifications backwards without index calculation contamination
+    transactions.sort((a, b) => b.start - a.start);
+    
+    let finalizedCode = master;
+    transactions.forEach(t => {
+      finalizedCode = finalizedCode.slice(0, t.start) + t.replaceText + finalizedCode.slice(t.end);
+    });
+
+    masterEl.value = finalizedCode;
+    renderDebugUI(microscope);
+  }
+
+  function renderDebugUI(microscope) {
     const listDiv = document.getElementById('failedList');
     listDiv.innerHTML = '';
 
     if (stats.verified > 0) {
       const banner = document.createElement('div');
       banner.className = 'verified-banner';
-      banner.textContent = `ℹ️ ${stats.verified} patches were skipped because they are already present in your code.`;
+      banner.textContent = `ℹ️ ${stats.verified} patch sequences verified as already cleanly integrated in code. (Skipped Duplication)`;
       listDiv.appendChild(banner);
     }
 
@@ -376,7 +430,7 @@
 
         const reasonDiv = document.createElement('div');
         reasonDiv.className = 'failed-reason';
-        reasonDiv.textContent = `[Patch #${index + 1}] Reason: ${snippet.reason}`;
+        reasonDiv.textContent = `[Report Entry #${index + 1}] ${snippet.reason}`;
 
         const pre = document.createElement('pre');
         pre.textContent = snippet.text;
@@ -391,10 +445,10 @@
       
       let msg = `⚠️ Applied ${stats.applied}. `;
       if (stats.verified > 0) msg += `Verified ${stats.verified}. `;
-      msg += `Failed ${stats.failed}. Click 🔬`;
+      msg += `Failed/Blocked ${stats.failed}. Click 🔬`;
       showStatus(msg, 'var(--warning)', false);
     } else {
-      showStatus(`✅ Applied ${stats.applied}${stats.verified > 0 ? ' (Verified ' + stats.verified + ')' : ''} Patches!`, 'var(--accent)', true);
+      showStatus(`✅ Applied ${stats.applied}${stats.verified > 0 ? ' (Verified & Safeguarded ' + stats.verified + ')' : ''} Patches cleanly!`, 'var(--accent)', true);
     }
   }
 
