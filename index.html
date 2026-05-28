@@ -1,10 +1,10 @@
-B
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Auto-Patcher V14 — Intelligent Diagnostics Edition</title>
+  <title>Auto-Patcher V12 — Idempotent Edition</title>
   <style>
     :root {
       --bg: #0d1117; --panel: #161b22; --text: #c9d1d9;
@@ -54,27 +54,27 @@ B
     .status { text-align: center; font-weight: bold; padding: 12px; border-radius: 6px; display: none; font-size: 14px; margin-bottom: 15px; }
 
     .failed-item { background: #161b22; border: 1px solid #30363d; border-left: 3px solid var(--error); border-radius: 4px; margin-bottom: 10px; padding: 10px; }
-    .failed-reason { color: var(--warning); font-weight: bold; font-size: 12px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .failed-item pre { background: #010409; padding: 8px; border-radius: 4px; border: 1px solid #30363d; color: #ff7b72; font-size: 11px; overflow-x: auto; margin: 0; white-space: pre-wrap; }
+    .failed-reason { color: var(--warning); font-weight: bold; font-size: 11px; margin-bottom: 6px; }
+    .failed-item pre { background: #010409; padding: 8px; border-radius: 4px; border: 1px solid #30363d; color: #ff7b72; font-size: 10px; overflow-x: auto; margin: 0; white-space: pre-wrap; }
     
-    .verified-banner { background: rgba(163, 113, 247, 0.1); border: 1px solid var(--verified); padding: 10px; border-radius: 4px; margin-bottom: 15px; color: var(--verified); font-size: 12px; font-weight: bold; }
+    .verified-banner { background: rgba(35, 134, 54, 0.1); border: 1px solid var(--accent); padding: 10px; border-radius: 4px; margin-bottom: 15px; color: var(--accent); font-size: 12px; font-weight: bold; }
   </style>
 </head>
 <body>
 
-  <button id="microscopeBtn" onclick="toggleDebug()" title="Toggle Diagnostic Log" aria-label="Toggle diagnostic log">🔬</button>
+  <button id="microscopeBtn" onclick="toggleDebug()" title="Toggle Debug Log" aria-label="Toggle diagnostic log">🔬</button>
 
   <div id="debugOverlay" role="dialog" aria-modal="true" aria-labelledby="debugTitle">
     <div class="debug-header">
-      <button class="btn-text" style="padding: 5px 10px;" onclick="copyDebugLog()">📋 Copy Diagnostic Report</button>
-      <div id="debugTitle" class="debug-title">🔬 Detailed Patcher Diagnostics</div>
+      <button class="btn-text" style="padding: 5px 10px;" onclick="copyDebugLog()">📋 Copy Log</button>
+      <div id="debugTitle" class="debug-title">🔬 Diagnostic Log</div>
       <button class="btn-text" style="margin-left:auto" onclick="toggleDebug()">Close</button>
     </div>
     <div id="failedList"></div>
   </div>
 
   <div class="container">
-    <h1 style="text-align:center">🛠️ Auto-Patcher V14</h1>
+    <h1 style="text-align:center">🛠️ Auto-Patcher V12</h1>
 
     <div class="box">
       <div class="box-header">
@@ -117,7 +117,9 @@ B
     if (!file) return;
     currentFileName = file.name;
     const reader = new FileReader();
-    reader.onerror = () => { showStatus("❌ Failed to read file.", "var(--error)", false); };
+    reader.onerror = () => {
+      showStatus("❌ Failed to read file.", "var(--error)", false);
+    };
     reader.onload = (event) => {
       document.getElementById('masterCode').value = event.target.result;
       showStatus(`✅ File loaded!`, 'var(--accent)', true);
@@ -135,64 +137,81 @@ B
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      const trimmed = line.trim().toUpperCase();
+      const trimmed = line.trim();
 
-      if (trimmed === '---FIND---') {
-        if (currentPatch && currentPatch.findLines.length > 0) { patches.push(currentPatch); }
+      if (trimmed.toUpperCase() === '---FIND---') {
+        if (currentPatch && currentPatch.findLines.length > 0) {
+          patches.push(currentPatch);
+        }
         currentPatch = { findLines: [], replaceLines: [] };
         inFind = true;
         inReplace = false;
-      } else if (trimmed === '---REPLACE---') {
-        if (currentPatch && inFind) { inFind = false; inReplace = true; }
-      } else if (trimmed === '---' || trimmed === '---END---' || line.trim().startsWith('```')) {
+      } else if (trimmed.toUpperCase() === '---REPLACE---') {
+        if (currentPatch && inFind) {
+          inFind = false;
+          inReplace = true;
+        }
+      } else if (trimmed === '---' || trimmed.toUpperCase() === '---END---' || trimmed.startsWith('```')) {
         if (currentPatch) {
-          if (currentPatch.findLines.length > 0) { patches.push(currentPatch); }
+          if (currentPatch.findLines.length > 0) {
+            patches.push(currentPatch);
+          }
           currentPatch = null;
         }
-        inFind = false; inReplace = false;
+        inFind = false;
+        inReplace = false;
       } else {
-        if (inFind && currentPatch) { currentPatch.findLines.push(line); }
-        else if (inReplace && currentPatch) { currentPatch.replaceLines.push(line); }
+        if (inFind && currentPatch) {
+          currentPatch.findLines.push(line);
+        } else if (inReplace && currentPatch) {
+          currentPatch.replaceLines.push(line);
+        }
       }
     }
-    if (currentPatch && currentPatch.findLines.length > 0) { patches.push(currentPatch); }
+    if (currentPatch && currentPatch.findLines.length > 0) {
+      patches.push(currentPatch);
+    }
     return patches;
   }
 
-  function getAllIndices(haystack, needle) {
-    const indices = [];
-    if (!needle) return indices;
-    let idx = haystack.indexOf(needle);
-    while (idx !== -1) {
-      indices.push(idx);
-      idx = haystack.indexOf(needle, idx + 1);
-    }
-    return indices;
-  }
-
-  // Normalizes spaces and trims trailing characters for precision analysis
-  function cleanWhitespace(str) {
-    return str.split('\n').map(line => line.trimEnd()).join('\n').trim();
+  function countOccurrences(haystack, needle) {
+    if (!needle) return 0;
+    return haystack.split(needle).length - 1;
   }
 
   async function copyToClipboard(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      try { await navigator.clipboard.writeText(text); return true; } catch (err) {}
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        console.warn("Clipboard API write failed, attempting fallback.", err);
+      }
     }
     const textArea = document.createElement("textarea");
     textArea.value = text;
-    textArea.style.position = "fixed"; textArea.style.opacity = "0";
-    document.body.appendChild(textArea); textArea.focus(); textArea.select();
-    try { document.execCommand('copy'); document.body.removeChild(textArea); return true; } catch (err) { document.body.removeChild(textArea); return false; }
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    textArea.style.pointerEvents = "none";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return true;
+    } catch (err) {
+      document.body.removeChild(textArea);
+      return false;
+    }
   }
 
   function applyPatches() {
-    const masterEl = document.getElementById('masterCode');
-    const patchEl = document.getElementById('patchCode');
+    let master = document.getElementById('masterCode').value;
+    let rawPatches = document.getElementById('patchCode').value;
     const microscope = document.getElementById('microscopeBtn');
-    
-    let master = masterEl.value;
-    let rawPatches = patchEl.value;
     
     if (isDebugOpen) toggleDebug();
     microscope.style.display = 'none'; 
@@ -207,6 +226,7 @@ B
     rawPatches = rawPatches.replace(/\r\n/g, '\n');
 
     const parsedPatches = parsePatches(rawPatches);
+
     if (parsedPatches.length === 0) {
       showStatus("⚠️ No valid ---FIND--- markers detected!", 'var(--warning)', false);
       return;
@@ -214,138 +234,138 @@ B
 
     stats = { applied: 0, verified: 0, failed: 0 };
     globalFailedSnippets = [];
-    const transactions = [];
 
-    parsedPatches.forEach((patch, patchIndex) => {
+    parsedPatches.forEach((patch) => {
       const findText = patch.findLines.join('\n').replace(/^\n+|\n+$/g, '');
       const replaceText = patch.replaceLines.join('\n').replace(/^\n+|\n+$/g, '');
 
-      // Check Exact Match
-      const exactFindMatches = getAllIndices(master, findText);
+      const findCountInMaster = countOccurrences(master, findText);
+      const replaceCountInMaster = countOccurrences(master, replaceText);
+      const findCountInReplace = countOccurrences(replaceText, findText);
 
-      if (exactFindMatches.length === 1) {
-        transactions.push({ start: exactFindMatches[0], end: exactFindMatches[0] + findText.length, replaceText: replaceText, patchIndex: patchIndex + 1 });
-        stats.applied++;
-        return;
-      }
+      let isAlreadyApplied = false;
 
-      // Check for Idempotency (Has this already been applied?)
-      if (exactFindMatches.length === 0 && replaceText !== "") {
-        if (getAllIndices(master, replaceText).length > 0) {
-          stats.verified++;
-          return;
+      if (findCountInMaster === 0) {
+        // The search block is completely missing from the file
+        if (replaceText === "") {
+          // It was a code deletion patch, and it is gone
+          isAlreadyApplied = true;
+        } else if (replaceCountInMaster > 0) {
+          // The replacement is already in the file. Prevent false positive skips on short syntax (like "}")
+          const isSignificant = replaceText.trim().length > 8 || replaceText.split('\n').length >= 2;
+          if (isSignificant) {
+            isAlreadyApplied = true;
+          }
+        }
+      } else if (replaceText !== "" && replaceCountInMaster > 0) {
+        // The replacement is present, but the search text is ALSO present (i.e., replaceText contains findText)
+        if (findCountInReplace > 0) {
+          // Skip if all instances of findText are already nested inside the applied replaceText blocks
+          if (findCountInMaster === (replaceCountInMaster * findCountInReplace)) {
+            isAlreadyApplied = true;
+          }
         }
       }
 
-      // --- ADVANCED DIAGNOSTICS ENGINE ---
-      const cleanFind = cleanWhitespace(findText);
-      const cleanMaster = cleanWhitespace(master);
-      const cleanMatches = getAllIndices(cleanMaster, cleanFind);
-
-      // Diagnostic Tier A: Ambiguity Lock Check
-      if (exactFindMatches.length > 1 || cleanMatches.length > 1) {
-        stats.failed++;
-        globalFailedSnippets.push({
-          text: findText,
-          reason: `AMBIGUITY LOCK: This exact block pattern matches ${Math.max(exactFindMatches.length, cleanMatches.length)} locations in your code (e.g., Team A and Team B have identical logic structures). Aborted execution to prevent corrupting the wrong block. SOLUTION: Please expand your ---FIND--- block to include more unique surrounding context lines.`
-        });
+      if (isAlreadyApplied) {
+        stats.verified++;
         return;
       }
 
-      // Diagnostic Tier B: Trailing Whitespace / Empty Line Discrepancy
-      if (exactFindMatches.length === 0 && cleanMatches.length === 1) {
+      // TIER 1: EXACT MATCH
+      const occurrences = master.split(findText).length - 1;
+      if (occurrences === 1) {
+        master = master.split(findText).join(replaceText);
+        stats.applied++;
+        return;
+      } else if (occurrences > 1) {
         stats.failed++;
-        globalFailedSnippets.push({
-          text: findText,
-          reason: `WHITESPACE MISMATCH DETECTED: The structural code logic matches completely, but application failed due to subtle hidden trailing whitespaces or line-break differences on blank lines between your code and the patch instruction.`
-        });
+        globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Target block found multiple times in master file. Aborted to avoid duplication." });
         return;
       }
 
-      // Diagnostic Tier C: Structural Fuzzy & Boundary Checks
-      const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // TIER 2: SAFE FUZZY MATCH
+      const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const linesFiltered = patch.findLines.map(l => l.trim()).filter(l => l.length > 0);
 
       if (linesFiltered.length > 0) {
         const fuzzyRegexStr = linesFiltered.map(l => escapeRegExp(l)).join('\\s+');
         let fuzzyRegex;
-        try { fuzzyRegex = new RegExp(fuzzyRegexStr, 'g'); } catch (e) {}
+        try {
+          fuzzyRegex = new RegExp(fuzzyRegexStr, 'g');
+        } catch (e) {
+          stats.failed++;
+          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Failed to compile safe regular expression pattern." });
+          return;
+        }
 
-        if (fuzzyRegex) {
-          const matches = [...master.matchAll(fuzzyRegex)];
-          if (matches.length === 1) {
-            const matchedText = matches[0][0];
-            if (matchedText.split('\n').length <= patch.findLines.length * 2) {
-              transactions.push({ start: matches[0].index, end: matches[0].index + matchedText.length, replaceText: replaceText, patchIndex: patchIndex + 1 });
-              stats.applied++;
-              return;
-            }
+        const matches = [...master.matchAll(fuzzyRegex)];
+        if (matches && matches.length === 1) {
+          const matchedText = matches[0][0];
+          const matchedLinesCount = matchedText.split('\n').length;
+          const origLinesCount = patch.findLines.length;
+
+          if (matchedLinesCount <= origLinesCount * 2 + 5) {
+            master = master.replace(fuzzyRegex, () => replaceText);
+            stats.applied++;
+            return;
           }
+        } else if (matches && matches.length > 1) {
+          stats.failed++;
+          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Fuzzy match detected multiple times. Aborted to prevent corruption." });
+          return;
         }
       }
 
-      // Diagnostic Tier D: Broken Component / Missing Context Check
-      let matchingLinesCount = 0;
-      patch.findLines.forEach(line => {
-        if (line.trim() && master.includes(line.trim())) matchingLinesCount++;
-      });
+      // TIER 3: SAFE BOUNDARY MATCH
+      if (linesFiltered.length >= 4) {
+        const startAnchor = escapeRegExp(linesFiltered[0]) + '\\s+' + escapeRegExp(linesFiltered[1]);
+        const endAnchor = escapeRegExp(linesFiltered[linesFiltered.length - 2]) + '\\s+' + escapeRegExp(linesFiltered[linesFiltered.length - 1]);
+        let boundaryRegex;
+        try {
+          boundaryRegex = new RegExp(startAnchor + '[\\s\\S]*?' + endAnchor, 'g');
+        } catch (e) {
+          stats.failed++;
+          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Failed to compile boundary regular expression pattern." });
+          return;
+        }
 
-      if (matchingLinesCount > 0) {
-        stats.failed++;
-        globalFailedSnippets.push({
-          text: findText,
-          reason: `BROKEN STRUCTURE PARTIAL MATCH: Found ${matchingLinesCount} of the targeted lines scattered inside your master file, but the sequence as a continuous block is broken. Check if some of these lines were already manually altered or shifted out of sequence.`
-        });
-        return;
+        const boundMatches = [...master.matchAll(boundaryRegex)];
+        if (boundMatches && boundMatches.length === 1) {
+          const matchedText = boundMatches[0][0];
+          const matchedLinesCount = matchedText.split('\n').length;
+          const origLinesCount = patch.findLines.length;
+
+          if (matchedLinesCount <= origLinesCount * 2 + 5) {
+            master = master.replace(boundaryRegex, () => replaceText);
+            stats.applied++;
+            return;
+          } else {
+            stats.failed++;
+            globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Scope range bounds matched, but distance between endpoints spans too many lines. Aborted to protect scope integrity." });
+            return;
+          }
+        } else if (boundMatches && boundMatches.length > 1) {
+          stats.failed++;
+          globalFailedSnippets.push({ text: findText, reason: "SAFETY LOCK: Scope anchors found multiple times. Aborted to prevent corruption." });
+          return;
+        }
       }
 
-      // Fallback True Absolute Missing
+      // TIER 4: TRUE FAILURE
       stats.failed++;
-      globalFailedSnippets.push({
-        text: findText,
-        reason: `TARGET PATH COMPLETELY NOT FOUND: This block, or its structural variations, does not exist anywhere in the targeted code file.`
-      });
+      globalFailedSnippets.push({ text: findText, reason: "Block pattern could not be found via Exact, Fuzzy, or Scope searches." });
     });
 
-    // Sort transactions and check overlapping collision conflicts
-    transactions.sort((a, b) => a.start - b.start);
-    let hasConflict = false;
-    for (let i = 0; i < transactions.length - 1; i++) {
-      if (transactions[i].end > transactions[i+1].start) {
-        hasConflict = true;
-        stats.failed++; stats.applied--;
-        globalFailedSnippets.unshift({
-          text: `Overlapping conflict at text offset ${transactions[i+1].start}`,
-          reason: `MUTATION COLLISION: Patch blocks #${transactions[i].patchIndex} and #${transactions[i+1].patchIndex} are fighting to rewrite the exact same line of code simultaneously.`
-        });
-      }
-    }
+    document.getElementById('masterCode').value = master;
 
-    if (hasConflict) {
-      showStatus("❌ Conflict detected: Overlapping mutations blocked!", "var(--error)", false);
-      renderDebugUI(microscope);
-      return;
-    }
-
-    // Execute safe reverse transactional pass
-    transactions.sort((a, b) => b.start - a.start);
-    let finalizedCode = master;
-    transactions.forEach(t => {
-      finalizedCode = finalizedCode.slice(0, t.start) + t.replaceText + finalizedCode.slice(t.end);
-    });
-
-    masterEl.value = finalizedCode;
-    renderDebugUI(microscope);
-  }
-
-  function renderDebugUI(microscope) {
     const listDiv = document.getElementById('failedList');
     listDiv.innerHTML = '';
 
     if (stats.verified > 0) {
       const banner = document.createElement('div');
       banner.className = 'verified-banner';
-      banner.textContent = `ℹ️ ${stats.verified} patch sequence(s) verified as cleanly applied/already existing in source code.`;
+      banner.textContent = `ℹ️ ${stats.verified} patches were skipped because they are already present in your code.`;
       listDiv.appendChild(banner);
     }
 
@@ -356,7 +376,7 @@ B
 
         const reasonDiv = document.createElement('div');
         reasonDiv.className = 'failed-reason';
-        reasonDiv.textContent = `🚨 [Diagnostic Finding] ${snippet.reason}`;
+        reasonDiv.textContent = `[Patch #${index + 1}] Reason: ${snippet.reason}`;
 
         const pre = document.createElement('pre');
         pre.textContent = snippet.text;
@@ -371,10 +391,10 @@ B
       
       let msg = `⚠️ Applied ${stats.applied}. `;
       if (stats.verified > 0) msg += `Verified ${stats.verified}. `;
-      msg += `Failed/Blocked ${stats.failed}. Click 🔬 for exact logs.`;
+      msg += `Failed ${stats.failed}. Click 🔬`;
       showStatus(msg, 'var(--warning)', false);
     } else {
-      showStatus(`✅ Applied ${stats.applied}${stats.verified > 0 ? ' (Skipped ' + stats.verified + ' duplicates safely)' : ''} Patches cleanly!`, 'var(--accent)', true);
+      showStatus(`✅ Applied ${stats.applied}${stats.verified > 0 ? ' (Verified ' + stats.verified + ')' : ''} Patches!`, 'var(--accent)', true);
     }
   }
 
@@ -383,34 +403,52 @@ B
     const microscope = document.getElementById('microscopeBtn');
     isDebugOpen = !isDebugOpen;
     overlay.style.display = isDebugOpen ? 'flex' : 'none';
-    if (!isDebugOpen && stats.failed > 0) microscope.classList.add('pulse');
-    else microscope.classList.remove('pulse');
+    if (!isDebugOpen && stats.failed > 0) {
+      microscope.classList.add('pulse');
+    } else {
+      microscope.classList.remove('pulse');
+    }
   }
 
   async function copyDebugLog() {
     let logText = `DIAGNOSTIC SUMMARY:\nApplied: ${stats.applied}\nVerified: ${stats.verified}\nFailed: ${stats.failed}\n\n`;
-    logText += globalFailedSnippets.map((s, i) => `[Entry #${i + 1}]\nReason: ${s.reason}\nTarget Snippet:\n${s.text}`).join('\n\n');
-    if (await copyToClipboard(logText)) alert("Diagnostic report copied.");
+    logText += globalFailedSnippets.map((s, i) => `[Failed Patch #${i + 1}]\nReason: ${s.reason}\nCODE:\n${s.text}`).join('\n\n');
+    const success = await copyToClipboard(logText);
+    if (success) {
+      alert("Diagnostic log copied to clipboard.");
+    } else {
+      alert("Failed to copy log. Please select and copy text manually.");
+    }
   }
 
-  function clearPatchesOnly() { document.getElementById('patchCode').value = ''; }
+  function clearPatchesOnly() { 
+    document.getElementById('patchCode').value = ''; 
+  }
 
   function hardReset() {
-    if (confirm("Reset layout state and clear inputs?")) {
+    if (confirm("Clear code input fields and reset interface state?")) {
       document.getElementById('masterCode').value = '';
       document.getElementById('patchCode').value = '';
       document.getElementById('fileUploader').value = '';
       stats = { applied: 0, verified: 0, failed: 0 };
       globalFailedSnippets = [];
-      document.getElementById('microscopeBtn').style.display = 'none';
+      
+      const microscope = document.getElementById('microscopeBtn');
+      microscope.style.display = 'none';
+      microscope.classList.remove('pulse');
+      
       if (isDebugOpen) toggleDebug();
       showStatus("🚨 Reset complete.", "var(--error)", true);
     }
   }
 
   async function copyMaster() {
-    if (await copyToClipboard(document.getElementById('masterCode').value)) {
+    const master = document.getElementById('masterCode').value;
+    const success = await copyToClipboard(master);
+    if (success) {
       showStatus("📋 Copied code to clipboard!", "var(--accent)", true);
+    } else {
+      showStatus("❌ Failed to copy code.", "var(--error)", false);
     }
   }
 
@@ -419,20 +457,30 @@ B
     const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
     const a = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    a.href = url; a.download = currentFileName;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(() => { URL.revokeObjectURL(url); }, 150);
+    a.href = url;
+    a.download = currentFileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 150);
   }
 
   function showStatus(msg, color, autoHide) {
-    if (hideStatusTimeout) clearTimeout(hideStatusTimeout);
+    if (hideStatusTimeout) {
+      clearTimeout(hideStatusTimeout);
+      hideStatusTimeout = null;
+    }
     const statusDiv = document.getElementById('statusMsg');
     statusDiv.style.display = 'block';
     statusDiv.style.backgroundColor = color + '20';
     statusDiv.style.color = color;
     statusDiv.style.border = `1px solid ${color}`;
     statusDiv.textContent = msg;
-    if (autoHide) hideStatusTimeout = setTimeout(() => { statusDiv.style.display = 'none'; }, 2500);
+    if (autoHide) {
+      hideStatusTimeout = setTimeout(() => { statusDiv.style.display = 'none'; }, 2500);
+    }
   }
 </script>
 </body>
