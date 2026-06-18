@@ -1,10 +1,9 @@
-C
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Auto-Patcher V14 – Context-Fixed</title>
+  <title>Auto-Patcher V16 – Context Before & After</title>
   <style>
     :root { --bg: #0d1117; --panel: #161b22; --text: #c9d1d9; --accent: #238636; --border: #30363d; --error: #f85149; --warning: #d29922; --blue: #1f6feb; }
     body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
@@ -46,7 +45,7 @@ C
   </div>
 
   <div class="container">
-    <h1 style="text-align:center">🛠️ Auto-Patcher V14 (Fixed)</h1>
+    <h1 style="text-align:center">🛠️ Auto-Patcher V16 (Context Before & After)</h1>
     <div class="box">
       <div class="box-header">
         <label for="masterCode">1. MASTER CODE</label>
@@ -71,24 +70,26 @@ C
   </div>
 
   <script>
-    // ----- GLOBALS -----
+    // ============================================================
+    // V16 – Strict Context with Surrounding Lines
+    // - Context is mandatory and must be found exactly.
+    // - The FIND block must appear exactly once inside that context.
+    // - No fallback; if ambiguous or missing → fail.
+    // - Hard Reset fully clears everything.
+    // ============================================================
+
     let currentFileName = "patched_master.txt";
     let isDebugOpen = false;
     let globalFailed = [];
     let stats = { applied: 0, skipped: 0, failed: 0 };
     let hideStatusTimeout = null;
 
-    // ----- HELPERS -----
-    const escapeRegExp = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     function countOccurrences(haystack, needle) {
       if (!needle) return 0;
       return haystack.split(needle).length - 1;
     }
-    function normalizeWhitespace(str) {
-      return str.replace(/\s+/g, ' ').trim();
-    }
 
-    // ----- PARSER (supports ---CONTEXT---) -----
+    // ----- Parser (supports ---CONTEXT---) -----
     function parsePatches(raw) {
       const lines = raw.split(/\r?\n/);
       const patches = [];
@@ -133,42 +134,38 @@ C
       return patches;
     }
 
-    // ----- CORE MATCHING (FIXED: context restricts search) -----
-    function findBestMatch(master, findText, contextText) {
+    // ----- Strict matching inside context (must be exact or fuzzy) -----
+    function findBestMatchStrict(master, findText, contextText) {
       master = master.replace(/\r\n/g, '\n');
       const findNorm = findText.replace(/\r\n/g, '\n');
 
-      // If context is provided, we MUST find it and restrict search to that area.
-      let searchArea = master;
-      if (contextText) {
-        const ctxNorm = contextText.replace(/\r\n/g, '\n');
-        const idx = master.indexOf(ctxNorm);
-        if (idx === -1) {
-          // Context not found – abort.
-          return null;
-        }
-        // Search only inside the context block (from idx to idx+ctxNorm.length)
-        searchArea = master.substring(idx, idx + ctxNorm.length);
+      // Context is MANDATORY
+      if (!contextText) {
+        return null; // missing context → fail
       }
 
-      // 1) Exact match within searchArea
-      let occ = countOccurrences(searchArea, findNorm);
+      const ctxNorm = contextText.replace(/\r\n/g, '\n');
+      const ctxIndex = master.indexOf(ctxNorm);
+      if (ctxIndex === -1) {
+        return null; // context not found → fail
+      }
+
+      const searchArea = master.substring(ctxIndex, ctxIndex + ctxNorm.length);
+
+      // 1) Exact match inside context – must be exactly one
+      const occ = countOccurrences(searchArea, findNorm);
       if (occ === 1) {
         const index = searchArea.indexOf(findNorm);
-        // map back to global index (if context was used)
         const globalIndex = master.indexOf(searchArea) + index;
         return { match: findNorm, index: globalIndex, type: 'exact' };
       }
       if (occ > 1) {
-        // Even with context, if there are multiple exact matches, we cannot disambiguate.
-        // We'll fall back to fuzzy only if there is no context, otherwise fail.
-        if (contextText) return null;
-        // else continue to fuzzy
+        return null; // ambiguous inside context → fail
       }
 
-      // 2) Fuzzy (whitespace-insensitive) within searchArea
-      const fuzzyFind = normalizeWhitespace(findNorm);
-      const fuzzySearch = normalizeWhitespace(searchArea);
+      // 2) Fuzzy (whitespace-insensitive) inside context – must be exactly one
+      const fuzzyFind = findNorm.replace(/\s+/g, ' ').trim();
+      const fuzzySearch = searchArea.replace(/\s+/g, ' ').trim();
       let fuzzyMatches = [];
       let start = 0;
       while (true) {
@@ -178,8 +175,8 @@ C
         start = idx + fuzzyFind.length;
       }
       if (fuzzyMatches.length === 1) {
-        // Retrieve the actual substring from searchArea that matches the fuzzy pattern
-        const regexStr = findNorm.split(/\s+/).map(escapeRegExp).join('\\s+');
+        // Retrieve the actual substring from searchArea
+        const regexStr = findNorm.split(/\s+/).map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s+');
         const re = new RegExp(regexStr, 'g');
         let m;
         let candidates = [];
@@ -192,149 +189,102 @@ C
         }
       }
 
-      // 3) Only if NO context was provided, try expanding surrounding lines (up to 5)
-      if (!contextText) {
-        const masterLines = master.split('\n');
-        const findLines = findNorm.split('\n');
-        for (let extra = 1; extra <= 5; extra++) {
-          const regexStr = findNorm.split(/\s+/).map(escapeRegExp).join('\\s+');
-          const re = new RegExp(regexStr, 'g');
-          let allOcc = [];
-          let m;
-          while ((m = re.exec(master)) !== null) {
-            allOcc.push({ match: m[0], index: m.index });
-          }
-          if (allOcc.length === 0) break;
-          if (allOcc.length === 1) {
-            return { match: allOcc[0].match, index: allOcc[0].index, type: 'expanded' };
-          }
-
-          // Build signatures for each occurrence
-          let signatures = allOcc.map(occ => {
-            const before = master.substring(0, occ.index);
-            const lineStart = before.split('\n').length - 1;
-            const lines = master.split('\n');
-            const startLine = Math.max(0, lineStart - extra);
-            const endLine = Math.min(lines.length, lineStart + findLines.length + extra);
-            const ctxBlock = lines.slice(startLine, endLine).join('\n');
-            return { occ, ctxBlock };
-          });
-
-          let uniqueSig = null;
-          for (let i = 0; i < signatures.length; i++) {
-            let isUnique = true;
-            for (let j = 0; j < signatures.length; j++) {
-              if (i === j) continue;
-              if (signatures[i].ctxBlock === signatures[j].ctxBlock) {
-                isUnique = false;
-                break;
-              }
-            }
-            if (isUnique) {
-              uniqueSig = signatures[i];
-              break;
-            }
-          }
-          if (uniqueSig) {
-            return { match: uniqueSig.occ.match, index: uniqueSig.occ.index, type: 'expanded' };
-          }
-        }
-      }
-
-      // Still not found – give up
-      return null;
+      return null; // not found or ambiguous → fail
     }
 
-    // ----- APPLY PATCHES -----
+    // ----- Apply Patches -----
     function applyPatches() {
-      let master = document.getElementById('masterCode').value;
-      const rawPatches = document.getElementById('patchCode').value;
+      try {
+        let master = document.getElementById('masterCode').value;
+        const rawPatches = document.getElementById('patchCode').value;
 
-      if (!master.trim() || !rawPatches.trim()) {
-        showStatus('⚠️ Missing master or patches.', 'warning', false);
-        return;
-      }
-
-      master = master.replace(/\r\n/g, '\n');
-      const patches = parsePatches(rawPatches);
-      if (patches.length === 0) {
-        showStatus('⚠️ No valid patches found.', 'warning', false);
-        return;
-      }
-
-      stats = { applied: 0, skipped: 0, failed: 0 };
-      globalFailed = [];
-
-      for (const patch of patches) {
-        const findText = patch.findLines.join('\n').replace(/^\n+|\n+$/g, '');
-        const replaceText = patch.replaceLines.join('\n').replace(/^\n+|\n+$/g, '');
-        const contextText = patch.contextLines ? patch.contextLines.join('\n').replace(/^\n+|\n+$/g, '') : null;
-
-        if (!findText) {
-          stats.failed++;
-          globalFailed.push({ text: '(empty)', reason: 'Find block is empty.' });
-          continue;
+        if (!master.trim() || !rawPatches.trim()) {
+          showStatus('⚠️ Missing master or patches.', 'warning', false);
+          return;
         }
 
-        // Idempotency: if findText is not present, skip
-        if (!master.includes(findText)) {
-          stats.skipped++;
-          continue;
+        master = master.replace(/\r\n/g, '\n');
+        const patches = parsePatches(rawPatches);
+        if (patches.length === 0) {
+          showStatus('⚠️ No valid patches found.', 'warning', false);
+          return;
         }
 
-        const result = findBestMatch(master, findText, contextText);
-        if (!result) {
-          stats.failed++;
-          globalFailed.push({
-            text: findText,
-            reason: contextText ? 'Context block not found or ambiguous within context.' : 'Could not uniquely locate block. Add ---CONTEXT--- for disambiguation.'
+        stats = { applied: 0, skipped: 0, failed: 0 };
+        globalFailed = [];
+
+        for (const patch of patches) {
+          const findText = patch.findLines.join('\n').replace(/^\n+|\n+$/g, '');
+          const replaceText = patch.replaceLines.join('\n').replace(/^\n+|\n+$/g, '');
+          const contextText = patch.contextLines ? patch.contextLines.join('\n').replace(/^\n+|\n+$/g, '') : null;
+
+          if (!findText) {
+            stats.failed++;
+            globalFailed.push({ text: '(empty)', reason: 'Find block is empty.' });
+            continue;
+          }
+
+          // Idempotency: if findText is not present, skip
+          if (!master.includes(findText)) {
+            stats.skipped++;
+            continue;
+          }
+
+          // Strict match – context is mandatory
+          const result = findBestMatchStrict(master, findText, contextText);
+          if (!result) {
+            stats.failed++;
+            let reason = contextText ? 'Context not found or ambiguous within context.' : 'MISSING ---CONTEXT--- block (mandatory).';
+            globalFailed.push({ text: findText, reason });
+            continue;
+          }
+
+          // Apply replacement
+          const before = master.substring(0, result.index);
+          const after = master.substring(result.index + result.match.length);
+          master = before + replaceText + after;
+          stats.applied++;
+        }
+
+        document.getElementById('masterCode').value = master;
+
+        const listDiv = document.getElementById('failedList');
+        listDiv.innerHTML = '';
+        if (stats.skipped > 0) {
+          const banner = document.createElement('div');
+          banner.className = 'verified-banner';
+          banner.textContent = `ℹ️ ${stats.skipped} patch(es) skipped (already applied).`;
+          listDiv.appendChild(banner);
+        }
+
+        if (stats.failed > 0) {
+          globalFailed.forEach((item, i) => {
+            const div = document.createElement('div');
+            div.className = 'failed-item';
+            const reason = document.createElement('div');
+            reason.style.color = 'var(--warning)';
+            reason.textContent = `[Patch ${i+1}] Reason: ${item.reason}`;
+            const pre = document.createElement('pre');
+            pre.textContent = item.text;
+            div.appendChild(reason);
+            div.appendChild(pre);
+            listDiv.appendChild(div);
           });
-          continue;
+          const microscope = document.getElementById('microscopeBtn');
+          microscope.style.display = 'flex';
+          microscope.classList.add('pulse');
+          showStatus(`⚠️ Applied ${stats.applied}, Skipped ${stats.skipped}, Failed ${stats.failed}. Click 🔬`, 'warning', false);
+        } else {
+          showStatus(`✅ Applied ${stats.applied}${stats.skipped > 0 ? ' (skipped '+stats.skipped+')' : ''} patches.`, 'success', true);
+          document.getElementById('microscopeBtn').style.display = 'none';
+          document.getElementById('microscopeBtn').classList.remove('pulse');
         }
-
-        // Apply replacement
-        const before = master.substring(0, result.index);
-        const after = master.substring(result.index + result.match.length);
-        master = before + replaceText + after;
-        stats.applied++;
-      }
-
-      document.getElementById('masterCode').value = master;
-
-      const listDiv = document.getElementById('failedList');
-      listDiv.innerHTML = '';
-      if (stats.skipped > 0) {
-        const banner = document.createElement('div');
-        banner.className = 'verified-banner';
-        banner.textContent = `ℹ️ ${stats.skipped} patch(es) skipped (already applied).`;
-        listDiv.appendChild(banner);
-      }
-
-      if (stats.failed > 0) {
-        globalFailed.forEach((item, i) => {
-          const div = document.createElement('div');
-          div.className = 'failed-item';
-          const reason = document.createElement('div');
-          reason.style.color = 'var(--warning)';
-          reason.textContent = `[Patch ${i+1}] Reason: ${item.reason}`;
-          const pre = document.createElement('pre');
-          pre.textContent = item.text;
-          div.appendChild(reason);
-          div.appendChild(pre);
-          listDiv.appendChild(div);
-        });
-        const microscope = document.getElementById('microscopeBtn');
-        microscope.style.display = 'flex';
-        microscope.classList.add('pulse');
-        showStatus(`⚠️ Applied ${stats.applied}, Skipped ${stats.skipped}, Failed ${stats.failed}. Click 🔬`, 'warning', false);
-      } else {
-        showStatus(`✅ Applied ${stats.applied}${stats.skipped > 0 ? ' (skipped '+stats.skipped+')' : ''} patches.`, 'success', true);
-        document.getElementById('microscopeBtn').style.display = 'none';
-        document.getElementById('microscopeBtn').classList.remove('pulse');
+      } catch (e) {
+        showStatus('❌ Error: ' + e.message, 'error', false);
       }
     }
 
-    // ----- UI HELPERS (Hard Reset is now bulletproof) -----
+    // ----- UI Helpers (Hard Reset fully fixed) -----
     function toggleDebug() {
       const overlay = document.getElementById('debugOverlay');
       isDebugOpen = !isDebugOpen;
@@ -355,20 +305,24 @@ C
     }
 
     function hardReset() {
-      if (!confirm('Clear all code and reset everything?')) return;
-      document.getElementById('masterCode').value = '';
-      document.getElementById('patchCode').value = '';
-      document.getElementById('fileUploader').value = '';
-      document.getElementById('failedList').innerHTML = '';
-      document.getElementById('statusMsg').style.display = 'none';
-      document.getElementById('statusMsg').className = 'status';
-      document.getElementById('microscopeBtn').style.display = 'none';
-      document.getElementById('microscopeBtn').classList.remove('pulse');
-      stats = { applied: 0, skipped: 0, failed: 0 };
-      globalFailed = [];
-      currentFileName = 'patched_master.txt';
-      if (isDebugOpen) toggleDebug();
-      showStatus('🧹 Reset complete.', 'error', true);
+      try {
+        if (!confirm('Clear all code and reset everything?')) return;
+        document.getElementById('masterCode').value = '';
+        document.getElementById('patchCode').value = '';
+        document.getElementById('fileUploader').value = '';
+        document.getElementById('failedList').innerHTML = '';
+        document.getElementById('statusMsg').style.display = 'none';
+        document.getElementById('statusMsg').className = 'status';
+        document.getElementById('microscopeBtn').style.display = 'none';
+        document.getElementById('microscopeBtn').classList.remove('pulse');
+        stats = { applied: 0, skipped: 0, failed: 0 };
+        globalFailed = [];
+        currentFileName = 'patched_master.txt';
+        if (isDebugOpen) toggleDebug();
+        showStatus('🧹 Reset complete.', 'error', true);
+      } catch (e) {
+        alert('Reset error: ' + e.message);
+      }
     }
 
     function copyMaster() {
@@ -396,7 +350,6 @@ C
       }
     }
 
-    // File upload
     document.getElementById('fileUploader').addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (!file) return;
