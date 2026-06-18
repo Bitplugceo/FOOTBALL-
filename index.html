@@ -1,4 +1,3 @@
-B
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -337,13 +336,19 @@ MANDATORY RULES:
    - You MUST include at least 4 to 6 lines of exact, literal code directly following the target change.
    Never target a raw, standalone line that appears elsewhere in the file. Use this surrounding context to pinpoint exactly ONE unique spot.
 
-2. NO PLACEHOLDERS, ELLIPSES, OR TRUNCATIONS:
+2. INCLUDE COMMENTS AND HEADERS INSIDE THE BLOCKS:
+   If the target code is near unique comments (e.g., "// ---- first calc ----"), those comments MUST be written directly INSIDE the ---FIND--- and ---REPLACE--- blocks. 
+
+3. DO NOT INVENT CUSTOM MARKERS:
+   Never write, create, or use custom headers like "---CONTEXT---" or "---COMMENT---". All code, including surrounding comments or files headers, must go inside the ---FIND--- and ---REPLACE--- blocks.
+
+4. NO PLACEHOLDERS, ELLIPSES, OR TRUNCATIONS:
    The code inside ---FIND--- and ---REPLACE--- must be complete and exact. Never use "..." or skip any lines within the context blocks.
 
-3. SINGLE MARKDOWN BLOCK:
+5. SINGLE MARKDOWN BLOCK:
    Place all sequential patches inside ONE continuous \`\`\`markdown block. Do not include conversational remarks, comments, or explanations inside this block.
 
-4. 100% MIRRORED REPLACE BLOCK (CRITICAL):
+6. 100% MIRRORED REPLACE BLOCK (CRITICAL):
    The preceding and succeeding context lines inside your ---REPLACE--- block MUST be 100% identical, line-for-line, to the context lines inside your ---FIND--- block. 
    
    If you omit or truncate these context lines from the ---REPLACE--- block, the patcher will permanently delete them from my code. You must mirror them exactly.
@@ -351,7 +356,7 @@ MANDATORY RULES:
    Structure your blocks precisely like this:
 
    ---FIND---
-   [4-6 lines of exact preceding context]
+   [4-6 lines of exact preceding context (including any comments)]
    [original code line(s) to be replaced]
    [4-6 lines of exact succeeding context]
    ---REPLACE---
