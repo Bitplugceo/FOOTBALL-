@@ -375,6 +375,8 @@ let isDebugOpen     = false;
 let diagItems       = [];
 let stats           = { applied: 0, verified: 0, failed: 0 };
 let statusTimer     = null;
+let resetPending    = false;
+let resetTimer      = null;
 
 // ═══════════════════════════════════════════════════════════════
 //  CLIPBOARD
@@ -701,9 +703,9 @@ async function copyDebugLog() {
       `[Patch #${d.num}] [${d.tier}]\nReason: ${d.reason}\n--- FIND ---\n${d.text}`
     ).join('\n\n─────────────────────────────────\n\n');
     const ok = await copyToClipboard(hdr + body);
-    alert(ok ? 'Diagnostic log copied to clipboard.' : 'Copy failed — select text manually.');
+    showStatus(ok ? '📋 Diagnostic log copied!' : '❌ Copy failed — select text manually.', ok ? 'success' : 'error', true);
   } catch (err) {
-    alert('Failed to construct log: ' + err.message);
+    showStatus('❌ Failed to construct log: ' + err.message, 'error', false);
   }
 }
 
@@ -720,7 +722,19 @@ function clearPatches() {
 
 function hardReset() {
   try {
-    if (!confirm('Clear all fields and reset the patcher?')) return;
+    const btn = document.querySelector('.btn-sm.danger');
+    if (!resetPending) {
+      resetPending = true;
+      btn.textContent = '⚠️ Tap again to confirm';
+      resetTimer = setTimeout(() => {
+        resetPending = false;
+        btn.textContent = '🚨 Hard Reset';
+      }, 2500);
+      return;
+    }
+    clearTimeout(resetTimer);
+    resetPending = false;
+    btn.textContent = '🚨 Hard Reset';
     document.getElementById('masterCode').value = '';
     document.getElementById('patchCode').value  = '';
     document.getElementById('fileUploader').value = '';
