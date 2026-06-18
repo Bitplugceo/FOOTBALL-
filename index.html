@@ -1,581 +1,546 @@
-D
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Auto-Patcher V12 — Idempotent Edition (Fixed)</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auto‑Patcher V13 – Context‑Aware</title>
   <style>
     :root {
       --bg: #0d1117; --panel: #161b22; --text: #c9d1d9;
       --accent: #238636; --border: #30363d; --error: #f85149;
       --warning: #d29922; --blue: #1f6feb;
     }
-    
+    * { box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: var(--bg); color: var(--text); margin: 0; padding: 20px;
       display: flex; flex-direction: column; align-items: center;
     }
-    .container { width: 100%; max-width: 800px; }
-
-    #debugOverlay {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(13, 17, 23, 0.98); backdrop-filter: blur(5px);
-      z-index: 2000; display: none; flex-direction: column;
-      padding: 40px 15px 20px 15px; overflow-y: auto;
-    }
-
-    .debug-header {
-      display: flex; align-items: center; gap: 10px; margin-bottom: 15px;
-      border-bottom: 1px solid var(--error); padding-bottom: 10px;
-    }
-    .debug-title { color: var(--error); font-size: 16px; font-weight: bold; }
-
-    #microscopeBtn {
-      position: fixed; top: 20px; right: 20px; background: var(--panel);
-      border: 1px solid var(--error); border-radius: 50%; width: 45px; height: 45px;
-      display: none; justify-content: center; align-items: center; font-size: 20px;
-      cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 3000;
-    }
-    .pulse { animation: pulseError 2s infinite; }
-    @keyframes pulseError {
-      0% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0.4); }
-      70% { box-shadow: 0 0 0 10px rgba(248, 81, 73, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0); }
-    }
-
+    .container { width: 100%; max-width: 900px; }
     .box {
-      background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
-      margin-bottom: 15px; overflow: hidden;
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 8px; margin-bottom: 15px; overflow: hidden;
     }
     .box-header {
-      padding: 12px 15px; border-bottom: 1px solid var(--border);
+      padding: 10px 15px; border-bottom: 1px solid var(--border);
       font-size: 13px; font-weight: bold; color: #8b949e;
       display: flex; justify-content: space-between; align-items: center;
     }
     textarea {
-      width: 100%; background: #010409; color: #e6edf3; font-family: monospace;
-      font-size: 16px; padding: 15px; border: none; box-sizing: border-box;
-      resize: vertical; outline: none; line-height: 1.5;
+      width: 100%; background: #010409; color: #e6edf3;
+      font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+      font-size: 14px; padding: 15px; border: none; box-sizing: border-box;
+      resize: vertical; outline: none; line-height: 1.6;
+      tab-size: 2;
     }
-
-    .icon-row { display: flex; gap: 10px; margin-bottom: 15px; }
-    .btn-lg {
-      flex: 1; padding: 12px; border-radius: 8px; border: none; cursor: pointer;
-      font-size: 24px; display: flex; justify-content: center; align-items: center;
+    textarea:focus { background: #0a0e14; }
+    .btn-row {
+      display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0;
+    }
+    .btn {
+      padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer;
+      font-weight: bold; font-size: 14px; background: var(--panel);
+      color: var(--text); border: 1px solid var(--border);
       transition: 0.2s;
     }
-    .btn-run { background: var(--accent); color: white; }
-    .btn-dl { background: var(--blue); color: white; }
-    .btn-copy { background: #6e7681; color: white; }
-
-    .util-row {
-      display: flex; justify-content: center; gap: 10px; margin-bottom: 15px;
-    }
-    .btn-text {
-      background: var(--panel); color: var(--text); border: 1px solid var(--border);
-      padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: bold;
-      cursor: pointer;
-    }
-    .btn-danger { color: var(--error); border-color: rgba(248,81,73,0.4); }
-
-    /* Status message classes – fix the broken inline background */
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-blue    { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .btn-danger  { color: var(--error); border-color: rgba(248,81,73,0.4); }
+    .btn:hover { opacity: 0.8; transform: scale(0.98); }
     .status {
-      text-align: center; font-weight: bold; padding: 12px; border-radius: 6px;
-      display: none; font-size: 14px; margin-bottom: 15px;
+      padding: 12px; border-radius: 6px; display: none;
+      font-weight: bold; margin: 10px 0;
     }
-    .status-success {
-      background: rgba(35, 134, 54, 0.2); color: var(--accent);
-      border: 1px solid var(--accent);
-    }
-    .status-warning {
-      background: rgba(210, 153, 34, 0.2); color: var(--warning);
-      border: 1px solid var(--warning);
-    }
-    .status-error {
-      background: rgba(248, 81, 73, 0.2); color: var(--error);
-      border: 1px solid var(--error);
-    }
-
+    .status-success { background: rgba(35,134,54,0.2); color: var(--accent); border: 1px solid var(--accent); }
+    .status-warning { background: rgba(210,153,34,0.2); color: var(--warning); border: 1px solid var(--warning); }
+    .status-error   { background: rgba(248,81,73,0.2); color: var(--error); border: 1px solid var(--error); }
     .failed-item {
-      background: #161b22; border: 1px solid #30363d;
-      border-left: 3px solid var(--error); border-radius: 4px;
-      margin-bottom: 10px; padding: 10px;
-    }
-    .failed-reason {
-      color: var(--warning); font-weight: bold; font-size: 11px; margin-bottom: 6px;
+      background: #161b22; border-left: 3px solid var(--error);
+      padding: 10px; margin: 8px 0; border-radius: 4px;
     }
     .failed-item pre {
-      background: #010409; padding: 8px; border-radius: 4px; border: 1px solid #30363d;
-      color: #ff7b72; font-size: 10px; overflow-x: auto; margin: 0; white-space: pre-wrap;
+      background: #010409; padding: 8px; border-radius: 4px;
+      white-space: pre-wrap; overflow-x: auto; margin: 5px 0 0;
+      font-size: 12px; color: #ff7b72;
     }
-    
     .verified-banner {
-      background: rgba(35, 134, 54, 0.1); border: 1px solid var(--accent);
-      padding: 10px; border-radius: 4px; margin-bottom: 15px;
-      color: var(--accent); font-size: 12px; font-weight: bold;
+      background: rgba(35,134,54,0.1); border: 1px solid var(--accent);
+      padding: 10px; border-radius: 4px; color: var(--accent);
+      font-size: 13px; margin-bottom: 10px;
+    }
+    #debugOverlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(13,17,23,0.98); backdrop-filter: blur(4px);
+      z-index: 1000; display: none; flex-direction: column;
+      padding: 30px 20px; overflow-y: auto;
+    }
+    .debug-header {
+      display: flex; align-items: center; gap: 15px;
+      border-bottom: 1px solid var(--error); padding-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    #microscopeBtn {
+      position: fixed; top: 20px; right: 20px;
+      background: var(--panel); border: 1px solid var(--error);
+      border-radius: 50%; width: 45px; height: 45px;
+      display: none; justify-content: center; align-items: center;
+      font-size: 20px; cursor: pointer; z-index: 1100;
+      box-shadow: 0 0 15px rgba(248,81,73,0.3);
+    }
+    .pulse { animation: pulseError 2s infinite; }
+    @keyframes pulseError {
+      0% { box-shadow: 0 0 0 0 rgba(248,81,73,0.5); }
+      70% { box-shadow: 0 0 0 12px rgba(248,81,73,0); }
+      100% { box-shadow: 0 0 0 0 rgba(248,81,73,0); }
+    }
+    .util-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    @media (max-width: 600px) {
+      .btn-row, .util-row { flex-direction: column; }
     }
   </style>
 </head>
 <body>
 
-  <button id="microscopeBtn" onclick="toggleDebug()" title="Toggle Debug Log" aria-label="Toggle diagnostic log">🔬</button>
+<button id="microscopeBtn" onclick="toggleDebug()" title="Diagnostic Log">🔬</button>
 
-  <div id="debugOverlay" role="dialog" aria-modal="true" aria-labelledby="debugTitle">
-    <div class="debug-header">
-      <button class="btn-text" style="padding: 5px 10px;" onclick="copyDebugLog()">📋 Copy Log</button>
-      <div id="debugTitle" class="debug-title">🔬 Diagnostic Log</div>
-      <button class="btn-text" style="margin-left:auto" onclick="toggleDebug()">Close</button>
+<div id="debugOverlay">
+  <div class="debug-header">
+    <span style="color:var(--error); font-weight:bold;">🔬 Diagnostic Log</span>
+    <button class="btn" onclick="copyDebugLog()">📋 Copy Log</button>
+    <button class="btn" onclick="toggleDebug()" style="margin-left:auto;">Close</button>
+  </div>
+  <div id="failedList"></div>
+</div>
+
+<div class="container">
+  <h1 style="text-align:center;">🛠️ Auto‑Patcher V13</h1>
+  <p style="text-align:center; color:#8b949e; font-size:14px;">
+    Context‑Aware · Whitespace‑Tolerant · Idempotent
+  </p>
+
+  <div class="box">
+    <div class="box-header">
+      <label for="masterCode">📄 Master Code</label>
+      <input type="file" id="fileUploader" style="font-size:11px; max-width:180px;" />
     </div>
-    <div id="failedList"></div>
+    <textarea id="masterCode" style="height:300px;" spellcheck="false"></textarea>
   </div>
 
-  <div class="container">
-    <h1 style="text-align:center">🛠️ Auto-Patcher V12</h1>
-
-    <div class="box">
-      <div class="box-header">
-        <label for="masterCode">1. MASTER CODE</label>
-        <input type="file" id="fileUploader" style="font-size:11px; max-width:180px;" aria-label="Upload master code file">
-      </div>
-      <textarea id="masterCode" style="height:250px" spellcheck="false" placeholder="Paste or Upload master code..."></textarea>
+  <div class="box">
+    <div class="box-header">
+      <label for="patchCode">🧩 Patches (with optional <code>---CONTEXT---</code>)</label>
     </div>
-
-    <div class="box">
-      <div class="box-header">
-        <label for="patchCode">2. PATCH INSTRUCTIONS</label>
-      </div>
-      <textarea id="patchCode" style="height:250px" spellcheck="false" placeholder="Paste AI message here..."></textarea>
-    </div>
-
-    <div class="icon-row">
-      <button class="btn-lg btn-run" onclick="applyPatches()" title="Apply Patch" aria-label="Apply patches">⚙️</button>
-      <button class="btn-lg btn-dl" onclick="downloadFile()" title="Download" aria-label="Download patched master code">📥</button>
-      <button class="btn-lg btn-copy" onclick="copyMaster()" title="Copy Code" aria-label="Copy master code to clipboard">📋</button>
-    </div>
-
-    <div class="util-row">
-      <button class="btn-text" onclick="clearPatchesOnly()">🧹 Clear Patches</button>
-      <button class="btn-text btn-danger" onclick="hardReset()">🚨 Hard Reset</button>
-    </div>
-
-    <div id="statusMsg" class="status" role="status" aria-live="polite"></div>
+    <textarea id="patchCode" style="height:250px;" spellcheck="false"
+      placeholder="---FIND---\n...\n---REPLACE---\n...\n---END---\n\n(You can also include ---CONTEXT--- before ---FIND---)"></textarea>
   </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="applyPatches()">⚙️ Apply Patches</button>
+    <button class="btn btn-blue" onclick="downloadFile()">📥 Download</button>
+    <button class="btn" onclick="copyMaster()">📋 Copy Code</button>
+    <button class="btn btn-danger" onclick="hardReset()">🚨 Reset</button>
+  </div>
+  <div class="util-row">
+    <button class="btn" onclick="clearPatches()">🧹 Clear Patches</button>
+  </div>
+
+  <div id="statusMsg" class="status"></div>
+</div>
 
 <script>
-  let currentFileName = "patched_master.txt"; 
-  let isDebugOpen = false;
-  let globalFailedSnippets = []; 
-  let stats = { applied: 0, verified: 0, failed: 0 };
-  let hideStatusTimeout = null;
+// ============================================================
+//  AUTO-PATCHER ENGINE  –  Context-Aware, Idempotent, Fuzzy
+// ============================================================
 
-  // --- Hoisted helpers (fix escapeRegExp re-creation) ---
-  const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// ----- global state -----
+let currentFileName = "patched_master.txt";
+let isDebugOpen = false;
+let globalFailed = [];
+let stats = { applied: 0, skipped: 0, failed: 0 };
 
-  const copyToClipboard = async (text) => {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      try {
-        await navigator.clipboard.writeText(text);
-        return true;
-      } catch (err) {
-        console.warn("Clipboard API failed, trying fallback.", err);
+// ----- helpers -----
+const escapeRegExp = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+function countOccurrences(haystack, needle) {
+  if (!needle) return 0;
+  return haystack.split(needle).length - 1;
+}
+
+function normalizeWhitespace(str) {
+  return str.replace(/\s+/g, ' ').trim();
+}
+
+function showStatus(msg, type, autoHide = true) {
+  const el = document.getElementById('statusMsg');
+  el.className = 'status status-' + type;
+  el.textContent = msg;
+  el.style.display = 'block';
+  if (autoHide) {
+    setTimeout(() => { el.style.display = 'none'; }, 4000);
+  }
+}
+
+// ----- file upload -----
+document.getElementById('fileUploader').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  currentFileName = file.name;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('masterCode').value = ev.target.result;
+    showStatus('✅ File loaded: ' + file.name, 'success');
+  };
+  reader.onerror = () => showStatus('❌ Failed to read file.', 'error');
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+// ----- parse patches (supports ---CONTEXT---) -----
+function parsePatches(raw) {
+  const lines = raw.split(/\r?\n/);
+  const patches = [];
+  let current = null;
+  let inFind = false, inReplace = false, inContext = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim().toUpperCase();
+
+    if (trimmed === '---CONTEXT---') {
+      if (current) {
+        // if we were already building a patch, finalize it
+        if (current.findLines.length > 0) patches.push(current);
+        current = null;
       }
+      current = { findLines: [], replaceLines: [], contextLines: [] };
+      inContext = true;
+      inFind = false;
+      inReplace = false;
+      continue;
     }
-    // Fallback
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-    textArea.style.position = "fixed";
-    textArea.style.top = "0";
-    textArea.style.left = "0";
-    textArea.style.opacity = "0";
-    textArea.style.pointerEvents = "none";
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    try {
-      document.execCommand('copy');
-      return true;
-    } catch (err) {
-      return false;
-    } finally {
-      document.body.removeChild(textArea); // always clean up
+
+    if (trimmed === '---FIND---') {
+      if (current && current.findLines.length > 0) {
+        patches.push(current);
+      }
+      current = current || { findLines: [], replaceLines: [], contextLines: [] };
+      inFind = true;
+      inReplace = false;
+      inContext = false;
+      continue;
     }
-  };
 
-  const countOccurrences = (haystack, needle) => {
-    if (!needle) return 0;
-    return haystack.split(needle).length - 1;
-  };
-
-  // --- File upload ---
-  document.getElementById('fileUploader').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    currentFileName = file.name;
-    const reader = new FileReader();
-    reader.onerror = () => {
-      showStatus("❌ Failed to read file.", "error", false);
-    };
-    reader.onload = (event) => {
-      document.getElementById('masterCode').value = event.target.result;
-      showStatus(`✅ File loaded!`, "success", true);
-    };
-    reader.readAsText(file);
-    e.target.value = ''; 
-  });
-
-  // --- Patch parser (now safe from Markdown backticks) ---
-  function parsePatches(rawPatches) {
-    const lines = rawPatches.split('\n');
-    const patches = [];
-    let currentPatch = null;
-    let inFind = false;
-    let inReplace = false;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const trimmed = line.trim();
-
-      if (trimmed.toUpperCase() === '---FIND---') {
-        if (currentPatch && currentPatch.findLines.length > 0) {
-          patches.push(currentPatch);
-        }
-        currentPatch = { findLines: [], replaceLines: [] };
-        inFind = true;
-        inReplace = false;
-      } else if (trimmed.toUpperCase() === '---REPLACE---') {
-        if (currentPatch && inFind) {
-          inFind = false;
-          inReplace = true;
-        }
-      } else if (trimmed.toUpperCase() === '---END---') {
-        // ---END--- is the only end-of-patch marker now
-        if (currentPatch) {
-          if (currentPatch.findLines.length > 0) {
-            patches.push(currentPatch);
-          }
-          currentPatch = null;
-        }
+    if (trimmed === '---REPLACE---') {
+      if (current && inFind) {
         inFind = false;
-        inReplace = false;
-      } else {
-        if (inFind && currentPatch) {
-          currentPatch.findLines.push(line);
-        } else if (inReplace && currentPatch) {
-          currentPatch.replaceLines.push(line);
+        inReplace = true;
+      }
+      continue;
+    }
+
+    if (trimmed === '---END---') {
+      if (current) {
+        if (current.findLines.length > 0) {
+          patches.push(current);
         }
-        // Lines outside any block are ignored (including Markdown fences)
+        current = null;
+      }
+      inFind = inReplace = inContext = false;
+      continue;
+    }
+
+    // Collect lines based on current section
+    if (current) {
+      if (inContext) {
+        current.contextLines.push(line);
+      } else if (inFind) {
+        current.findLines.push(line);
+      } else if (inReplace) {
+        current.replaceLines.push(line);
       }
     }
-    if (currentPatch && currentPatch.findLines.length > 0) {
-      patches.push(currentPatch);
-    }
-    return patches;
   }
 
-  // --- Core patching engine (rewritten idempotency) ---
-  function applyPatches() {
-    let master = document.getElementById('masterCode').value;
-    let rawPatches = document.getElementById('patchCode').value;
-    const microscope = document.getElementById('microscopeBtn');
-    
-    if (isDebugOpen) toggleDebug();
-    microscope.style.display = 'none'; 
-    microscope.classList.remove('pulse');
+  // last patch if any
+  if (current && current.findLines.length > 0) {
+    patches.push(current);
+  }
 
-    if (!master.trim() || !rawPatches.trim()) {
-      showStatus("⚠️ Missing master code or patches!", "warning", false);
-      return;
+  return patches;
+}
+
+// ----- core matching: find best occurrence of findText in master -----
+function findBestMatch(master, findText, contextText = null) {
+  // Normalize line endings
+  master = master.replace(/\r\n/g, '\n');
+  const findNorm = findText.replace(/\r\n/g, '\n');
+
+  // If context is provided, search only inside that context
+  let searchArea = master;
+  if (contextText) {
+    const ctxNorm = contextText.replace(/\r\n/g, '\n');
+    // Try to locate the context in master; if not found, fallback to full master
+    const ctxIndex = master.indexOf(ctxNorm);
+    if (ctxIndex !== -1) {
+      searchArea = master.substring(ctxIndex, ctxIndex + ctxNorm.length);
+    } else {
+      // fuzzy context search? we'll just use full master
+      console.warn('Context block not found exactly, falling back to full search.');
+    }
+  }
+
+  // 1. Exact match
+  let occurrences = countOccurrences(searchArea, findNorm);
+  if (occurrences === 1) {
+    return { match: findNorm, index: searchArea.indexOf(findNorm), type: 'exact', area: searchArea };
+  }
+
+  // 2. Whitespace‑insensitive fuzzy match (collapse all whitespace)
+  const fuzzyFind = normalizeWhitespace(findNorm);
+  const fuzzySearch = normalizeWhitespace(searchArea);
+  let fuzzyMatches = [];
+  let start = 0;
+  while (true) {
+    const idx = fuzzySearch.indexOf(fuzzyFind, start);
+    if (idx === -1) break;
+    // map back to original searchArea index by counting chars (approximate)
+    // simpler: we'll use a sliding window to find the actual substring
+    // but for uniqueness we can check if the normalized version appears once
+    fuzzyMatches.push(idx);
+    start = idx + fuzzyFind.length;
+  }
+  if (fuzzyMatches.length === 1) {
+    // We need the actual substring from searchArea
+    // approximate: find the exact substring that normalizes to fuzzyFind
+    // we'll use a regex to locate it with whitespace flexibility
+    const regexStr = findNorm.split(/\s+/).map(escapeRegExp).join('\\s+');
+    const re = new RegExp(regexStr, 'g');
+    let m;
+    let candidates = [];
+    while ((m = re.exec(searchArea)) !== null) {
+      candidates.push({ match: m[0], index: m.index });
+    }
+    if (candidates.length === 1) {
+      return { match: candidates[0].match, index: candidates[0].index, type: 'fuzzy', area: searchArea };
+    }
+  }
+
+  // 3. Expand context: take 2 lines before and 2 lines after, repeat until unique
+  const findLines = findNorm.split('\n');
+  const totalLines = findLines.length;
+  // Try expanding by adding surrounding lines from the original master (not just searchArea?)
+  // We'll operate on the original master because context may have been limited.
+  // Use full master for expansion.
+  const masterLines = master.split('\n');
+  // We'll try to find a unique match by increasing context size
+  for (let extra = 1; extra <= 5; extra++) {
+    // create a pattern: lines from start-extra to end+extra
+    // but we need to locate in master
+    // This is heuristic; we'll build a pattern that matches the find block with optional surrounding lines.
+    // We'll use a regex with line anchors and whitespace tolerance.
+    // Simpler: we'll try to locate the find block in the master using a fuzzy approach
+    // and then check if the surrounding lines make it unique.
+    // We'll collect all occurrences of the find block (fuzzy) and then check their surrounding lines.
+    let allOccurrences = [];
+    const regexStr = findNorm.split(/\s+/).map(escapeRegExp).join('\\s+');
+    const re = new RegExp(regexStr, 'g');
+    let m;
+    while ((m = re.exec(master)) !== null) {
+      allOccurrences.push({ match: m[0], index: m.index });
+    }
+    if (allOccurrences.length === 0) break; // not found
+
+    if (allOccurrences.length === 1) {
+      return { match: allOccurrences[0].match, index: allOccurrences[0].index, type: 'fuzzy', area: master };
     }
 
-    master = master.replace(/\r\n/g, '\n');
-    rawPatches = rawPatches.replace(/\r\n/g, '\n');
-
-    const parsedPatches = parsePatches(rawPatches);
-
-    if (parsedPatches.length === 0) {
-      showStatus("⚠️ No valid ---FIND--- markers detected!", "warning", false);
-      return;
-    }
-
-    stats = { applied: 0, verified: 0, failed: 0 };
-    globalFailedSnippets = [];
-
-    parsedPatches.forEach((patch) => {
-      const findText = patch.findLines.join('\n').replace(/^\n+|\n+$/g, '');
-      const replaceText = patch.replaceLines.join('\n').replace(/^\n+|\n+$/g, '');
-
-      // ---- ROBUST IDEMPOTENCY CHECK ----
-      // Strategy: If the exact replacement text already exists ANYWHERE in the
-      // current master, we assume the patch was already applied and skip it.
-      // This prevents duplicate code on re‑runs, even when the find block
-      // still appears somewhere else.
-      // For deletions (replaceText is empty), we check if the find block is
-      // already absent.
-      if (replaceText.length > 0) {
-        if (countOccurrences(master, replaceText) > 0) {
-          // Replacement text is present – patch already applied (or at least
-          // some version of it exists). To be safe, skip.
-          stats.verified++;
-          return;
-        }
-      } else {
-        // Deletion patch: already applied if findText is nowhere to be found.
-        if (countOccurrences(master, findText) === 0) {
-          stats.verified++;
-          return;
-        }
-      }
-
-      // ---- TIER 1: EXACT MATCH ----
-      const occurrences = countOccurrences(master, findText);
-      if (occurrences === 1) {
-        master = master.split(findText).join(replaceText);
-        stats.applied++;
-        return;
-      } else if (occurrences > 1) {
-        stats.failed++;
-        globalFailedSnippets.push({
-          text: findText,
-          reason: "SAFETY LOCK: Target block found multiple times in master file. Aborted to avoid duplication."
-        });
-        return;
-      }
-
-      // ---- TIER 2: SAFE FUZZY MATCH ----
-      const linesFiltered = patch.findLines.map(l => l.trim()).filter(l => l.length > 0);
-
-      if (linesFiltered.length > 0) {
-        const fuzzyRegexStr = linesFiltered.map(l => escapeRegExp(l)).join('\\s+');
-        let fuzzyRegex;
-        try {
-          fuzzyRegex = new RegExp(fuzzyRegexStr, 'g');
-        } catch (e) {
-          stats.failed++;
-          globalFailedSnippets.push({
-            text: findText,
-            reason: "SAFETY LOCK: Failed to compile safe regular expression pattern."
-          });
-          return;
-        }
-
-        const matches = [...master.matchAll(fuzzyRegex)];
-        if (matches.length === 1) {
-          const matchedText = matches[0][0];
-          const matchedLinesCount = matchedText.split('\n').length;
-          const origLinesCount = patch.findLines.length;
-
-          if (matchedLinesCount <= origLinesCount * 2 + 5) {
-            master = master.replace(fuzzyRegex, () => replaceText);
-            stats.applied++;
-            return;
-          }
-          // Fall through to Tier 3 if scope is too wide (no warning needed)
-        } else if (matches.length > 1) {
-          stats.failed++;
-          globalFailedSnippets.push({
-            text: findText,
-            reason: "SAFETY LOCK: Fuzzy match detected multiple times. Aborted to prevent corruption."
-          });
-          return;
-        }
-      }
-
-      // ---- TIER 3: SAFE BOUNDARY MATCH ----
-      if (linesFiltered.length >= 4) {
-        const startAnchor = escapeRegExp(linesFiltered[0]) + '\\s+' + escapeRegExp(linesFiltered[1]);
-        const endAnchor = escapeRegExp(linesFiltered[linesFiltered.length - 2]) + '\\s+' + escapeRegExp(linesFiltered[linesFiltered.length - 1]);
-        let boundaryRegex;
-        try {
-          boundaryRegex = new RegExp(startAnchor + '[\\s\\S]*?' + endAnchor, 'g');
-        } catch (e) {
-          stats.failed++;
-          globalFailedSnippets.push({
-            text: findText,
-            reason: "SAFETY LOCK: Failed to compile boundary regular expression pattern."
-          });
-          return;
-        }
-
-        const boundMatches = [...master.matchAll(boundaryRegex)];
-        if (boundMatches.length === 1) {
-          const matchedText = boundMatches[0][0];
-          const matchedLinesCount = matchedText.split('\n').length;
-          const origLinesCount = patch.findLines.length;
-
-          if (matchedLinesCount <= origLinesCount * 2 + 5) {
-            master = master.replace(boundaryRegex, () => replaceText);
-            stats.applied++;
-            return;
-          } else {
-            stats.failed++;
-            globalFailedSnippets.push({
-              text: findText,
-              reason: "SAFETY LOCK: Scope range bounds matched, but distance between endpoints spans too many lines. Aborted to protect scope integrity."
-            });
-            return;
-          }
-        } else if (boundMatches.length > 1) {
-          stats.failed++;
-          globalFailedSnippets.push({
-            text: findText,
-            reason: "SAFETY LOCK: Scope anchors found multiple times. Aborted to prevent corruption."
-          });
-          return;
-        }
-      }
-
-      // ---- TIER 4: TRUE FAILURE ----
-      stats.failed++;
-      globalFailedSnippets.push({
-        text: findText,
-        reason: "Block pattern could not be found via Exact, Fuzzy, or Scope searches."
-      });
+    // For each occurrence, compute a signature of surrounding lines
+    let signatures = allOccurrences.map(occ => {
+      // get line number where match starts
+      const before = master.substring(0, occ.index);
+      const lineStart = before.split('\n').length - 1;
+      const lines = master.split('\n');
+      const startLine = Math.max(0, lineStart - extra);
+      const endLine = Math.min(lines.length, lineStart + findLines.length + extra);
+      const contextBlock = lines.slice(startLine, endLine).join('\n');
+      return { occ, contextBlock, startLine };
     });
 
-    document.getElementById('masterCode').value = master;
+    // Check if any signature is unique
+    let uniqueSig = null;
+    for (let i = 0; i < signatures.length; i++) {
+      let isUnique = true;
+      for (let j = 0; j < signatures.length; j++) {
+        if (i === j) continue;
+        if (signatures[i].contextBlock === signatures[j].contextBlock) {
+          isUnique = false;
+          break;
+        }
+      }
+      if (isUnique) {
+        uniqueSig = signatures[i];
+        break;
+      }
+    }
+    if (uniqueSig) {
+      // We found a unique surrounding context, use that occurrence
+      return { match: uniqueSig.occ.match, index: uniqueSig.occ.index, type: 'expanded', area: master };
+    }
+  }
 
-    // Update UI with results
-    const listDiv = document.getElementById('failedList');
-    listDiv.innerHTML = '';
+  // 4. Still ambiguous – return null
+  return null;
+}
 
-    if (stats.verified > 0) {
-      const banner = document.createElement('div');
-      banner.className = 'verified-banner';
-      banner.textContent = `ℹ️ ${stats.verified} patches were skipped because they are already present in your code.`;
-      listDiv.appendChild(banner);
+// ----- apply patches -----
+function applyPatches() {
+  let master = document.getElementById('masterCode').value;
+  const rawPatches = document.getElementById('patchCode').value;
+
+  if (!master.trim() || !rawPatches.trim()) {
+    showStatus('⚠️ Missing master or patches.', 'warning');
+    return;
+  }
+
+  // Normalize line endings
+  master = master.replace(/\r\n/g, '\n');
+  const patches = parsePatches(rawPatches);
+
+  if (patches.length === 0) {
+    showStatus('⚠️ No valid patches found (need ---FIND--- and ---END---).', 'warning');
+    return;
+  }
+
+  stats = { applied: 0, skipped: 0, failed: 0 };
+  globalFailed = [];
+
+  for (let idx = 0; idx < patches.length; idx++) {
+    const patch = patches[idx];
+    const findText = patch.findLines.join('\n').replace(/^\n+|\n+$/g, '');
+    const replaceText = patch.replaceLines.join('\n').replace(/^\n+|\n+$/g, '');
+    const contextText = patch.contextLines ? patch.contextLines.join('\n').replace(/^\n+|\n+$/g, '') : null;
+
+    if (!findText) {
+      stats.failed++;
+      globalFailed.push({ text: '(empty find)', reason: 'Find block is empty.' });
+      continue;
     }
 
-    if (stats.failed > 0) {
-      globalFailedSnippets.forEach((snippet, index) => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'failed-item';
+    // ---- Idempotency check: if findText is not present, skip (already applied) ----
+    if (!master.includes(findText)) {
+      stats.skipped++;
+      continue;
+    }
 
-        const reasonDiv = document.createElement('div');
-        reasonDiv.className = 'failed-reason';
-        reasonDiv.textContent = `[Patch #${index + 1}] Reason: ${snippet.reason}`;
-
-        const pre = document.createElement('pre');
-        pre.textContent = snippet.text;
-
-        itemDiv.appendChild(reasonDiv);
-        itemDiv.appendChild(pre);
-        listDiv.appendChild(itemDiv);
+    // ---- Find the best match ----
+    const result = findBestMatch(master, findText, contextText);
+    if (!result) {
+      stats.failed++;
+      globalFailed.push({
+        text: findText,
+        reason: 'Could not uniquely locate the block. Try adding ---CONTEXT--- with more surrounding lines.'
       });
-
-      microscope.style.display = 'flex';
-      microscope.classList.add('pulse');
-      
-      let msg = `⚠️ Applied ${stats.applied}. `;
-      if (stats.verified > 0) msg += `Verified ${stats.verified}. `;
-      msg += `Failed ${stats.failed}. Click 🔬`;
-      showStatus(msg, "warning", false);
-    } else if (stats.applied === 0 && stats.verified > 0) {
-      // All patches already applied – clear message
-      showStatus(`✅ All ${stats.verified} patches were already applied.`, "success", true);
-    } else {
-      showStatus(`✅ Applied ${stats.applied}${stats.verified > 0 ? ' (Verified ' + stats.verified + ')' : ''} Patches!`, "success", true);
+      continue;
     }
+
+    // ---- Apply the replacement ----
+    const before = master.substring(0, result.index);
+    const after = master.substring(result.index + result.match.length);
+    master = before + replaceText + after;
+    stats.applied++;
   }
 
-  // --- UI Helpers ---
-  function toggleDebug() {
-    const overlay = document.getElementById('debugOverlay');
+  // Update textarea
+  document.getElementById('masterCode').value = master;
+
+  // ---- Show results ----
+  const listDiv = document.getElementById('failedList');
+  listDiv.innerHTML = '';
+
+  if (stats.skipped > 0) {
+    const banner = document.createElement('div');
+    banner.className = 'verified-banner';
+    banner.textContent = `ℹ️ ${stats.skipped} patch(es) were skipped (already applied).`;
+    listDiv.appendChild(banner);
+  }
+
+  if (stats.failed > 0) {
+    globalFailed.forEach((item, i) => {
+      const div = document.createElement('div');
+      div.className = 'failed-item';
+      const reason = document.createElement('div');
+      reason.style.color = 'var(--warning)';
+      reason.textContent = `[Patch ${i+1}] Reason: ${item.reason}`;
+      const pre = document.createElement('pre');
+      pre.textContent = item.text;
+      div.appendChild(reason);
+      div.appendChild(pre);
+      listDiv.appendChild(div);
+    });
+
     const microscope = document.getElementById('microscopeBtn');
-    isDebugOpen = !isDebugOpen;
-    overlay.style.display = isDebugOpen ? 'flex' : 'none';
-    if (!isDebugOpen && stats.failed > 0) {
-      microscope.classList.add('pulse');
-    } else {
-      microscope.classList.remove('pulse');
-    }
+    microscope.style.display = 'flex';
+    microscope.classList.add('pulse');
+    showStatus(`⚠️ Applied ${stats.applied}, Skipped ${stats.skipped}, Failed ${stats.failed}. Click 🔬`, 'warning');
+  } else {
+    const msg = `✅ Applied ${stats.applied} patch(es)${stats.skipped > 0 ? ' (skipped '+stats.skipped+')' : ''}.`;
+    showStatus(msg, 'success');
+    const microscope = document.getElementById('microscopeBtn');
+    microscope.style.display = 'none';
+    microscope.classList.remove('pulse');
   }
+}
 
-  async function copyDebugLog() {
-    let logText = `DIAGNOSTIC SUMMARY:\nApplied: ${stats.applied}\nVerified: ${stats.verified}\nFailed: ${stats.failed}\n\n`;
-    logText += globalFailedSnippets.map((s, i) =>
-      `[Failed Patch #${i + 1}]\nReason: ${s.reason}\nCODE:\n${s.text}`
-    ).join('\n\n');
-    const success = await copyToClipboard(logText);
-    if (success) {
-      alert("Diagnostic log copied to clipboard.");
-    } else {
-      alert("Failed to copy log. Please select and copy text manually.");
-    }
+// ----- UI helpers -----
+function toggleDebug() {
+  const overlay = document.getElementById('debugOverlay');
+  isDebugOpen = !isDebugOpen;
+  overlay.style.display = isDebugOpen ? 'flex' : 'none';
+  if (!isDebugOpen) {
+    document.getElementById('microscopeBtn').classList.remove('pulse');
   }
+}
 
-  function clearPatchesOnly() { 
-    document.getElementById('patchCode').value = ''; 
-  }
-
-  function hardReset() {
-    if (confirm("Clear code input fields and reset interface state?")) {
-      document.getElementById('masterCode').value = '';
-      document.getElementById('patchCode').value = '';
-      document.getElementById('fileUploader').value = '';
-      stats = { applied: 0, verified: 0, failed: 0 };
-      globalFailedSnippets = [];
-      currentFileName = "patched_master.txt";   // fix: reset filename
-      
-      const microscope = document.getElementById('microscopeBtn');
-      microscope.style.display = 'none';
-      microscope.classList.remove('pulse');
-      
-      if (isDebugOpen) toggleDebug();
-      showStatus("🚨 Reset complete.", "error", true);
-    }
-  }
-
-  async function copyMaster() {
-    const master = document.getElementById('masterCode').value;
-    const success = await copyToClipboard(master);
-    if (success) {
-      showStatus("📋 Copied code to clipboard!", "success", true);
-    } else {
-      showStatus("❌ Failed to copy code.", "error", false);
-    }
-  }
-
-  function downloadFile() {
-    const code = document.getElementById('masterCode').value;
-    const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
-    const a = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    a.href = url;
-    a.download = currentFileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    // Safer revocation – wait for click to propagate
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-
-  function showStatus(msg, type, autoHide) {
-    if (hideStatusTimeout) {
-      clearTimeout(hideStatusTimeout);
-      hideStatusTimeout = null;
-    }
-    const statusDiv = document.getElementById('statusMsg');
-    // Remove old classes, set new ones
-    statusDiv.className = 'status';
-    if (type === 'success') statusDiv.classList.add('status-success');
-    else if (type === 'warning') statusDiv.classList.add('status-warning');
-    else if (type === 'error') statusDiv.classList.add('status-error');
-    
-    statusDiv.style.display = 'block';
-    statusDiv.textContent = msg;
-    if (autoHide) {
-      hideStatusTimeout = setTimeout(() => { statusDiv.style.display = 'none'; }, 2500);
-    }
-  }
-
-  // --- Keyboard accessibility: close debug overlay on Escape ---
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && isDebugOpen) {
-      toggleDebug();
-    }
+function copyDebugLog() {
+  let log = `Applied: ${stats.applied}\nSkipped: ${stats.skipped}\nFailed: ${stats.failed}\n\n`;
+  globalFailed.forEach((f, i) => {
+    log += `[Patch ${i+1}] ${f.reason}\n${f.text}\n\n`;
   });
+  navigator.clipboard?.writeText(log) || alert('Copy failed. Select and copy manually.');
+}
+
+function clearPatches() { document.getElementById('patchCode').value = ''; }
+
+function hardReset() {
+  if (confirm('Clear all code and reset?')) {
+    document.getElementById('masterCode').value = '';
+    document.getElementById('patchCode').value = '';
+    document.getElementById('fileUploader').value = '';
+    stats = { applied: 0, skipped: 0, failed: 0 };
+    globalFailed = [];
+    currentFileName = 'patched_master.txt';
+    document.getElementById('microscopeBtn').style.display = 'none';
+    if (isDebugOpen) toggleDebug();
+    showStatus('🚀 Reset complete.', 'error');
+  }
+}
+
+function copyMaster() {
+  const code = document.getElementById('masterCode').value;
+  navigator.clipboard?.writeText(code) || alert('Copy failed.');
+}
+
+function downloadFile() {
+  const blob = new Blob([document.getElementById('masterCode').value], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = currentFileName;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+// Keyboard shortcut: Escape to close debug
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && isDebugOpen) toggleDebug(); });
 </script>
 </body>
 </html>
