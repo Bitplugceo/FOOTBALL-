@@ -1,4 +1,3 @@
-A
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -94,7 +93,7 @@ A
       color: #8b949e;
       white-space: pre-wrap;
       line-height: 1.55;
-      max-height: 180px;
+      max-height: 220px;
       overflow-y: auto;
     }
 
@@ -353,7 +352,43 @@ MANDATORY RULES:
    [4-6 lines of preceding context]
    [modified code]
    [4-6 lines of succeeding context]
-   ---END---`;
+   ---END---
+
+5. VISUAL EXAMPLE OF STRICT MATCHING:
+   If the master code contains:
+   \`\`\`javascript
+   function calculateAverage(arr) {
+     if (!arr || arr.length === 0) return 0;
+     let sum = 0;
+     for (let i = 0; i < arr.length; i++) {
+       sum += arr[i];
+     }
+     return sum / arr.length;
+   }
+   \`\`\`
+
+   To change ONLY the line "sum += arr[i];", your patch MUST look like this:
+   \`\`\`markdown
+   ---FIND---
+   function calculateAverage(arr) {
+     if (!arr || arr.length === 0) return 0;
+     let sum = 0;
+     for (let i = 0; i < arr.length; i++) {
+       sum += arr[i];
+     }
+     return sum / arr.length;
+   }
+   ---REPLACE---
+   function calculateAverage(arr) {
+     if (!arr || arr.length === 0) return 0;
+     let sum = 0;
+     for (let i = 0; i < arr.length; i++) {
+       sum += Number(arr[i]);
+     }
+     return sum / arr.length;
+   }
+   ---END---
+   \`\`\``;
 
 document.getElementById('promptContent').textContent = PROMPT;
 
