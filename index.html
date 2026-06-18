@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Auto-Patcher V14 — Precision Edition</title>
+  <title>Auto-Patcher V13 — Context-Aware Edition</title>
   <style>
     :root {
       --bg:      #0d1117;
@@ -18,533 +17,396 @@
       --muted:   #8b949e;
     }
 
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px 16px 48px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  padding: 24px 16px 56px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-height: 100vh;
-}
+    .container { width: 100%; max-width: 840px; }
 
-.container { width: 100%; max-width: 860px; }
+    /* ── Header ── */
+    .header {
+      text-align: center;
+      margin-bottom: 22px;
+    }
+    .header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .header p {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
 
-/* ── Header ─────────────────────────────────────────── */
-.header { text-align: center; margin-bottom: 22px; }
-.header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
-.header p  { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+    /* ── Box ── */
+    .box {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .box.blue  { border-color: rgba(31,111,235,0.45); }
+    .box-header {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .box.blue .box-header { border-bottom-color: rgba(31,111,235,0.2); color: var(--blue); }
 
-/* ── Box ─────────────────────────────────────────────── */
-.box {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  margin-bottom: 14px;
-  overflow: hidden;
-}
-.box.blue { border-color: rgba(31,111,235,.5); }
+    /* ── Textarea ── */
+    textarea {
+      width: 100%;
+      background: #010409;
+      color: #e6edf3;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 12px;
+      line-height: 1.65;
+      padding: 14px;
+      border: none;
+      resize: vertical;
+      outline: none;
+    }
+    textarea::placeholder { color: #484f58; }
 
-.box-header {
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .06em;
-  color: var(--muted);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.box.blue .box-header { color: var(--blue); border-bottom-color: rgba(31,111,235,.2); }
+    /* ── Prompt preview ── */
+    #promptContent {
+      padding: 12px 14px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #8b949e;
+      white-space: pre-wrap;
+      line-height: 1.55;
+      max-height: 180px;
+      overflow-y: auto;
+    }
 
-/* ── Textarea ─────────────────────────────────────────── */
-textarea {
-  width: 100%;
-  background: #010409;
-  color: #e6edf3;
-  font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
-  font-size: 12px;
-  line-height: 1.65;
-  padding: 14px;
-  border: none;
-  resize: vertical;
-  outline: none;
-  display: block;
-}
-textarea::placeholder { color: #484f58; }
+    /* ── Buttons ── */
+    .icon-row { display: flex; gap: 10px; margin-bottom: 12px; }
+    .btn-lg {
+      flex: 1;
+      padding: 14px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 22px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: filter .15s, transform .1s;
+    }
+    .btn-lg:hover  { filter: brightness(1.15); }
+    .btn-lg:active { transform: scale(0.97); }
+    .btn-run  { background: var(--accent); color: #fff; }
+    .btn-dl   { background: var(--blue);   color: #fff; }
+    .btn-copy { background: #6e7681;        color: #fff; }
 
-/* ── Prompt preview ───────────────────────────────────── */
-#promptContent {
-  padding: 12px 14px;
-  font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
-  font-size: 10.5px;
-  color: var(--muted);
-  white-space: pre-wrap;
-  line-height: 1.6;
-  max-height: 220px;
-  overflow-y: auto;
-}
+    .util-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .btn-sm {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color .15s;
+    }
+    .btn-sm:hover      { border-color: var(--muted); }
+    .btn-sm.danger     { color: var(--error);   border-color: rgba(248,81,73,.3); }
+    .btn-sm.blue-btn   { color: var(--blue);    border-color: rgba(31,111,235,.3); font-size: 11px; padding: 4px 10px; }
+    .btn-sm.danger:hover { border-color: var(--error); }
 
-/* ── Action buttons ────────────────────────────────────── */
-.icon-row { display: flex; gap: 10px; margin-bottom: 12px; }
-.btn-lg {
-  flex: 1;
-  padding: 14px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  font-size: 22px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: filter .15s, transform .1s;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-}
-.btn-lg:hover  { filter: brightness(1.12); }
-.btn-lg:active { transform: scale(.96); }
-.btn-run  { background: var(--accent); }
-.btn-dl   { background: var(--blue);   }
-.btn-copy { background: #6e7681;       }
+    /* ── Status bar ── */
+    .status {
+      text-align: center;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 11px 14px;
+      border-radius: 6px;
+      display: none;
+      margin-bottom: 14px;
+    }
+    .st-success { background: rgba(35,134,54,.15);  color: var(--accent);  border: 1px solid rgba(35,134,54,.4); }
+    .st-warning { background: rgba(210,153,34,.15); color: var(--warning); border: 1px solid rgba(210,153,34,.4); }
+    .st-error   { background: rgba(248,81,73,.15);  color: var(--error);   border: 1px solid rgba(248,81,73,.4); }
 
-.util-row {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-}
-.btn-sm {
-  background: var(--panel);
-  color: var(--text);
-  border: 1px solid var(--border);
-  padding: 7px 16px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color .15s;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-}
-.btn-sm:hover          { border-color: var(--muted); }
-.btn-sm.danger         { color: var(--error); border-color: rgba(248,81,73,.3); }
-.btn-sm.danger:hover   { border-color: var(--error); }
-.btn-sm.blue-btn       { color: var(--blue); border-color: rgba(31,111,235,.3); font-size: 11px; padding: 4px 12px; }
+    /* ── Microscope button ── */
+    #scopeBtn {
+      position: fixed;
+      top: 20px; right: 20px;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--panel);
+      border: 1px solid var(--error);
+      font-size: 22px;
+      cursor: pointer;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 3000;
+      box-shadow: 0 4px 16px rgba(0,0,0,.5);
+      transition: filter .15s;
+    }
+    #scopeBtn:hover { filter: brightness(1.2); }
+    .pulse { animation: glow 2s infinite; }
+    @keyframes glow {
+      0%   { box-shadow: 0 0 0   0 rgba(248,81,73,.5); }
+      60%  { box-shadow: 0 0 0 10px rgba(248,81,73,0);  }
+      100% { box-shadow: 0 0 0   0 rgba(248,81,73,0);  }
+    }
 
-/* ── Status bar ────────────────────────────────────────── */
-.status {
-  text-align: center;
-  font-weight: 600;
-  font-size: 13px;
-  padding: 11px 14px;
-  border-radius: 6px;
-  display: none;
-  margin-bottom: 14px;
-  line-height: 1.45;
-}
-.st-success { background: rgba(35,134,54,.15);  color: var(--accent);  border: 1px solid rgba(35,134,54,.4); }
-.st-warning { background: rgba(210,153,34,.15); color: var(--warning); border: 1px solid rgba(210,153,34,.4); }
-.st-error   { background: rgba(248,81,73,.15);  color: var(--error);   border: 1px solid rgba(248,81,73,.4); }
+    /* ── Debug overlay ── */
+    #debugOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(13,17,23,.97);
+      backdrop-filter: blur(6px);
+      z-index: 2000;
+      display: none;
+      flex-direction: column;
+      padding: 0 0 24px;
+      overflow-y: auto;
+    }
+    .debug-bar {
+      position: sticky;
+      top: 0;
+      background: rgba(13,17,23,.95);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--error);
+      z-index: 1;
+    }
+    .debug-title { color: var(--error); font-size: 15px; font-weight: 700; }
+    #diagList { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
 
-/* ── Floating scope button ─────────────────────────────── */
-#scopeBtn {
-  position: fixed;
-  top: 16px; right: 16px;
-  width: 50px; height: 50px;
-  border-radius: 50%;
-  background: var(--panel);
-  border: 2px solid var(--error);
-  font-size: 22px;
-  cursor: pointer;
-  display: none;
-  justify-content: center;
-  align-items: center;
-  z-index: 3000;
-  box-shadow: 0 4px 20px rgba(0,0,0,.6);
-  -webkit-tap-highlight-color: transparent;
-}
-.pulse { animation: glow 2s infinite; }
-@keyframes glow {
-  0%, 100% { box-shadow: 0 0 0   0 rgba(248,81,73,.5); }
-  50%       { box-shadow: 0 0 0 10px rgba(248,81,73,0); }
-}
+    /* ── Diagnostic items ── */
+    .diag-item {
+      border-radius: 6px;
+      padding: 11px 13px;
+      border: 1px solid var(--border);
+    }
+    .diag-fail { border-left: 3px solid var(--error);   background: rgba(248,81,73,.05); }
+    .diag-pass { border-left: 3px solid var(--accent);  background: rgba(35,134,54,.05); }
+    .diag-warn { border-left: 3px solid var(--warning); background: rgba(210,153,34,.05); }
 
-/* ── Debug overlay ─────────────────────────────────────── */
-#debugOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(13,17,23,.97);
-  z-index: 2000;
-  display: none;
-  flex-direction: column;
-  overflow-y: auto;
-}
-.debug-bar {
-  position: sticky;
-  top: 0;
-  background: rgba(13,17,23,.96);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 18px;
-  border-bottom: 2px solid var(--error);
-  z-index: 1;
-}
-.debug-title { color: var(--error); font-size: 15px; font-weight: 700; flex: 1; text-align: center; }
-#diagList    { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+    .diag-label {
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 7px;
+    }
+    .diag-fail .diag-label { color: var(--error); }
+    .diag-pass .diag-label { color: var(--accent); }
+    .diag-warn .diag-label { color: var(--warning); }
 
-.diag-item { border-radius: 6px; padding: 11px 13px; border: 1px solid var(--border); }
-.diag-fail { border-left: 3px solid var(--error);   background: rgba(248,81,73,.05); }
-.diag-pass { border-left: 3px solid var(--accent);  background: rgba(35,134,54,.05); }
-.diag-warn { border-left: 3px solid var(--warning); background: rgba(210,153,34,.05); }
+    .diag-item pre {
+      background: #010409;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      padding: 9px;
+      font-size: 10px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      margin: 0;
+      color: #ff7b72;
+    }
+    .diag-pass pre { color: #7ee787; }
+    .diag-warn pre { color: #e3b341; }
 
-.diag-label { font-size: 11px; font-weight: 700; margin-bottom: 7px; white-space: pre-wrap; line-height: 1.5; }
-.diag-fail .diag-label { color: var(--error); }
-.diag-pass .diag-label { color: var(--accent); }
-.diag-warn .diag-label { color: var(--warning); }
-
-.diag-item pre {
-  background: #010409;
-  border: 1px solid #30363d;
-  border-radius: 4px;
-  padding: 9px;
-  font-size: 10px;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-  color: #ff7b72;
-}
-.diag-pass pre { color: #7ee787; }
-.diag-warn pre { color: #e3b341; }
-
-/* ── Stats row ─────────────────────────────────────────── */
-.stats-row { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
-.stat-chip  { padding: 4px 13px; border-radius: 20px; font-size: 12px; font-weight: 700; border: 1px solid; }
-.sc-green { color: var(--accent); border-color: rgba(35,134,54,.4);  background: rgba(35,134,54,.1); }
-.sc-blue  { color: var(--blue);   border-color: rgba(31,111,235,.4); background: rgba(31,111,235,.1); }
-.sc-red   { color: var(--error);  border-color: rgba(248,81,73,.4);  background: rgba(248,81,73,.1); }
-.sc-warn  { color: var(--warning); border-color: rgba(210,153,34,.4); background: rgba(210,153,34,.1); }
-
-/* ── Custom confirm modal (replaces window.confirm) ─────── */
-#confirmModal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.78);
-  z-index: 9000;
-  display: none;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-}
-.confirm-box {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-top: 3px solid var(--error);
-  border-radius: 10px;
-  padding: 28px 22px 22px;
-  max-width: 360px;
-  width: 100%;
-  text-align: center;
-}
-.confirm-box h3 { font-size: 16px; margin-bottom: 10px; }
-.confirm-box p  { font-size: 13px; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
-.confirm-btns   { display: flex; gap: 10px; justify-content: center; }
-.confirm-yes {
-  background: var(--error); color: #fff; border: none;
-  padding: 10px 24px; border-radius: 6px;
-  font-size: 13px; font-weight: 700; cursor: pointer;
-}
-.confirm-no {
-  background: transparent; color: var(--text); border: 1px solid var(--border);
-  padding: 10px 24px; border-radius: 6px;
-  font-size: 13px; font-weight: 600; cursor: pointer;
-}
-.confirm-yes:hover { filter: brightness(1.1); }
-.confirm-no:hover  { border-color: var(--muted); }
-
+    /* ── Stats row ── */
+    .stats-row {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .stat-chip {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid;
+    }
+    .sc-green  { color: var(--accent);  border-color: rgba(35,134,54,.4);  background: rgba(35,134,54,.1); }
+    .sc-blue   { color: var(--blue);    border-color: rgba(31,111,235,.4); background: rgba(31,111,235,.1); }
+    .sc-red    { color: var(--error);   border-color: rgba(248,81,73,.4);  background: rgba(248,81,73,.1); }
   </style>
 </head>
 <body>
 
-
 <!-- Floating scope button -->
-
 <button id="scopeBtn" onclick="toggleDebug()" aria-label="Open diagnostic log">🔬</button>
 
 <!-- Debug overlay -->
-
 <div id="debugOverlay" role="dialog" aria-modal="true" aria-labelledby="dbTitle">
   <div class="debug-bar">
     <button class="btn-sm" style="padding:5px 12px" onclick="copyDebugLog()">📋 Copy Log</button>
     <span id="dbTitle" class="debug-title">🔬 Diagnostic Log</span>
-    <button class="btn-sm" style="padding:5px 12px" onclick="toggleDebug()">✕ Close</button>
+    <button class="btn-sm" style="margin-left:auto" onclick="toggleDebug()">✕ Close</button>
   </div>
   <div id="diagList"></div>
 </div>
 
-
-<!-- Custom confirm modal — no window.confirm() anywhere -->
-
-<div id="confirmModal">
-  <div class="confirm-box">
-    <h3>🚨 Hard Reset</h3>
-    <p>This will erase all code, patches, and logs.<br>This cannot be undone.</p>
-    <div class="confirm-btns">
-      <button class="confirm-yes" id="confirmYes">Yes, Reset Everything</button>
-      <button class="confirm-no"  id="confirmNo">Cancel</button>
-    </div>
-  </div>
-</div>
-
-
 <!-- Main UI -->
-
 <div class="container">
   <div class="header">
-    <h1>🛠️ Auto-Patcher <span style="color:var(--blue)">V14</span></h1>
-    <p>Precision Context Engine · Diff-Based Duplicate Resolution · Freeze-Free UI</p>
+    <h1>🛠️ Auto-Patcher <span style="color:var(--blue)">V13</span></h1>
+    <p>Context-Aware · Line-Based Matching · Whitespace-Tolerant · Duplicate-Safe</p>
   </div>
 
-
-  <!-- Prompt box -->
-
+  <!-- AI Prompt Helper -->
   <div class="box blue">
     <div class="box-header">
-      <span>🤖 GIVE THIS PROMPT TO YOUR AI BEFORE REQUESTING ANY PATCHES</span>
+      <span>🤖 COPY THIS PROMPT BEFORE ASKING YOUR AI FOR PATCHES</span>
       <button class="btn-sm blue-btn" onclick="copyPrompt()">📋 Copy Prompt</button>
     </div>
     <div id="promptContent"></div>
   </div>
 
-
-  <!-- Master code -->
-
+  <!-- Master Code -->
   <div class="box">
     <div class="box-header">
       <label for="masterCode">1 · MASTER CODE</label>
-      <input type="file" id="fileUploader" style="font-size:11px;max-width:180px" aria-label="Upload code file">
+      <input type="file" id="fileUploader" style="font-size:11px;max-width:200px" aria-label="Upload master code file">
     </div>
     <textarea id="masterCode" style="height:260px" spellcheck="false"
       placeholder="Paste or upload your master code here..."></textarea>
   </div>
 
-
-  <!-- Patch block -->
-
+  <!-- Patch Block -->
   <div class="box">
     <div class="box-header">
       <label for="patchCode">2 · PATCH INSTRUCTIONS (from AI)</label>
     </div>
     <textarea id="patchCode" style="height:200px" spellcheck="false"
-      placeholder="Paste AI patch output here...&#10;&#10;Required format:&#10;---FIND---&#10;[5+ real context lines above]&#10;[line(s) to change]&#10;[5+ real context lines below]&#10;---REPLACE---&#10;[same context above]&#10;[new code]&#10;[same context below]&#10;---END---"></textarea>
+      placeholder="Paste AI patch output here...&#10;&#10;Expected format:&#10;---FIND---&#10;[code to locate]&#10;---REPLACE---&#10;[replacement code]&#10;---END---"></textarea>
   </div>
-
 
   <!-- Action buttons -->
-
   <div class="icon-row">
     <button class="btn-lg btn-run"  onclick="applyPatches()" title="Apply Patches" aria-label="Apply patches">⚙️</button>
-    <button class="btn-lg btn-dl"   onclick="downloadFile()" title="Download"      aria-label="Download file">📥</button>
-    <button class="btn-lg btn-copy" onclick="copyMaster()"   title="Copy Code"     aria-label="Copy code">📋</button>
+    <button class="btn-lg btn-dl"   onclick="downloadFile()" title="Download File"  aria-label="Download file">📥</button>
+    <button class="btn-lg btn-copy" onclick="copyMaster()"   title="Copy Code"      aria-label="Copy code">📋</button>
   </div>
-
 
   <div class="util-row">
     <button class="btn-sm"        onclick="clearPatches()">🧹 Clear Patches</button>
-    <button class="btn-sm danger" onclick="showConfirmModal()">🚨 Hard Reset</button>
+    <button class="btn-sm danger" onclick="hardReset()">🚨 Hard Reset</button>
   </div>
-
 
   <div id="statusMsg" class="status" role="status" aria-live="polite"></div>
 </div>
 
-
 <script>
-'use strict';
+// ═══════════════════════════════════════════════════════════════
+//  PROMPT TEMPLATE
+// ═══════════════════════════════════════════════════════════════
+const PROMPT = `I am using a custom Auto-Patcher (V13). You must format your modifications with extreme precision to ensure they match safely.
 
-// ═══════════════════════════════════════════════════════════════════
-//  PROMPT  — brutal, mandatory context, no ambiguity ever
-// ═══════════════════════════════════════════════════════════════════
-const PROMPT = `You are generating patches for Auto-Patcher V14. Every rule is ABSOLUTE. Zero exceptions.
+MANDATORY RULES:
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  PATCH FORMAT — V14 STRICT MODE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. BRUTAL SURROUNDING CONTEXT:
+   Your ---FIND--- block must lock the target code inside a strict "context prison". 
+   - You MUST include at least 4 to 6 lines of exact, literal code directly preceding the target change.
+   - You MUST include at least 4 to 6 lines of exact, literal code directly following the target change.
+   Never target a raw, standalone line that appears elsewhere in the file. Use this surrounding context to pinpoint exactly ONE unique spot.
 
-① ONE MARKDOWN BLOCK
-   All patches go inside a single \`\`\`markdown … \`\`\` block.
-   Zero prose, comments, or text inside the block.
+2. NO PLACEHOLDERS OR TRUNCATIONS:
+   The code inside ---FIND--- must be complete and exact. Never use "..." or skip any lines within the context block.
 
-② MANDATORY CONTEXT — THE IRON RULE
-   Every ---FIND--- block MUST contain:
-   ▸ At least 5 REAL lines of existing code ABOVE the changed line(s)
-   ▸ The exact line(s) being changed
-   ▸ At least 5 REAL lines of existing code BELOW the changed line(s)
+3. SINGLE MARKDOWN BLOCK:
+   Place all sequential patches inside ONE continuous \`\`\`markdown block. Do not include conversational remarks, comments, or explanations inside this block.
 
-   "Real lines" = verbatim lines from the actual file.
-   NOT allowed:
-     ✗  Ellipses: ...  or  // ...  or  /* ... */
-     ✗  Comments like: // more code here
-     ✗  Blank lines used only to inflate the count
-     ✗  Paraphrased or approximated code
-
-   If fewer than 5 real lines exist above or below the change,
-   use every line available up to the file boundary.
-
-③ REPLACE MIRRORS THE CONTEXT EXACTLY
-   ---REPLACE--- must contain the IDENTICAL context lines from
-   ---FIND--- (above and below), with ONLY the target portion
-   changed in the middle. Context lines must be copied verbatim —
-   character for character.
-
-④ ZERO ABBREVIATION
-   Every line in ---FIND--- must exactly match the actual file.
-   Never shorten, paraphrase, reorder, or skip any line.
-
-⑤ UNIQUENESS IS ENFORCED BY CONTEXT
-   With 5+ distinctive real lines above AND 5+ below, the FIND
-   block pinpoints exactly one location. If immediate neighbors
-   are repeated boilerplate, expand outward until you reach lines
-   that appear only once in the entire file. There is always a
-   unique anchor somewhere nearby — find it.
-
-⑥ ONE LOGICAL CHANGE PER PATCH
-   Never combine unrelated edits into a single FIND/REPLACE pair.
-   Stack separate patches for separate changes.
-
-⑦ ALWAYS CLOSE WITH ---END---
-
-⑧ DELETIONS
-   FIND:    [5+ context lines above] + [lines to delete] + [5+ context lines below]
-   REPLACE: [same context lines above] + [same context lines below]
-   The deleted lines are simply absent from REPLACE.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-EXAMPLE — changing one function call with full context:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-\`\`\`markdown
----FIND---
-const express = require('express');
-const router  = express.Router();
-const db      = require('./database');
-
-router.get('/api/users', async (req, res) => {
-  const list = await db.fetchAll('users');
-  const data = formatLegacy(list);
-  res.status(200).json(data);
-});
-
-router.post('/api/users', async (req, res) => {
----REPLACE---
-const express = require('express');
-const router  = express.Router();
-const db      = require('./database');
-
-router.get('/api/users', async (req, res) => {
-  const list = await db.fetchAll('users');
-  const data = formatModern(list);
-  res.status(200).json(data);
-});
-
-router.post('/api/users', async (req, res) => {
----END---
-\`\`\`
-
-Notice: 5 lines of real context above the change, 2 lines below
-(file ends), entire block is unique, REPLACE is identical except
-the one changed line. This is the required standard for every patch.`;
+4. MATCHING MARKERS:
+   Each patch block must be structured as:
+   ---FIND---
+   [4-6 lines of preceding context]
+   [original code to edit]
+   [4-6 lines of succeeding context]
+   ---REPLACE---
+   [4-6 lines of preceding context]
+   [modified code]
+   [4-6 lines of succeeding context]
+   ---END---`;
 
 document.getElementById('promptContent').textContent = PROMPT;
 
-
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 //  STATE
-// ═══════════════════════════════════════════════════════════════════
-let fileName    = 'patched_master.txt';
-let debugOpen   = false;
-let diagItems   = [];
-let patchStats  = { applied: 0, resolved: 0, verified: 0, failed: 0 };
-let statusTimer = null;
+// ═══════════════════════════════════════════════════════════════
+let currentFileName = 'patched_master.txt';
+let isDebugOpen     = false;
+let diagItems       = [];
+let stats           = { applied: 0, verified: 0, failed: 0 };
+let statusTimer     = null;
 
-
-// ═══════════════════════════════════════════════════════════════════
-//  CONFIRM MODAL  — replaces window.confirm() which freezes in iframes
-// ═══════════════════════════════════════════════════════════════════
-function showConfirmModal() {
-  document.getElementById('confirmModal').style.display = 'flex';
-}
-function hideConfirmModal() {
-  document.getElementById('confirmModal').style.display = 'none';
-}
-
-document.getElementById('confirmYes').addEventListener('click', () => {
-  hideConfirmModal();
-  doHardReset();
-});
-document.getElementById('confirmNo').addEventListener('click', hideConfirmModal);
-document.getElementById('confirmModal').addEventListener('click', e => {
-  if (e.target = document.getElementById('confirmModal')) hideConfirmModal();
-});
-
-
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 //  CLIPBOARD
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 async function copyToClipboard(text) {
   if (navigator.clipboard?.writeText) {
     try { await navigator.clipboard.writeText(text); return true; } catch {}
   }
-  try {
-    const ta = document.createElement('textarea');
-    Object.assign(ta.style, { position: 'fixed', top: '-9999px', opacity: '0', pointerEvents: 'none' });
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    const ok = document.execCommand('copy');
-    document.body.removeChild(ta);
-    return ok;
-  } catch { return false; }
+  const ta = document.createElement('textarea');
+  Object.assign(ta.style, { position:'fixed', top:'0', left:'0', opacity:'0', pointerEvents:'none' });
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try { return document.execCommand('copy'); }
+  catch { return false; }
+  finally { document.body.removeChild(ta); }
 }
 
 async function copyPrompt() {
   const ok = await copyToClipboard(PROMPT);
-  showStatus(ok ? '📋 Prompt copied to clipboard!' : '❌ Copy failed — select text manually.', ok ? 'success' : 'error', true);
+  showStatus(ok ? '📋 Prompt copied to clipboard!' : '❌ Copy failed — select manually.', ok ? 'success' : 'error', true);
 }
 
-
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 //  FILE UPLOAD
-// ═══════════════════════════════════════════════════════════════════
-document.getElementById('fileUploader').addEventListener('change', function(e) {
-  const file = e.target.files?.[0];
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('fileUploader').addEventListener('change', function (e) {
+  const file = e.target.files[0];
   if (!file) return;
-  fileName = file.name;
-  const r  = new FileReader();
-  r.onerror = () => showStatus('❌ File read error.', 'error', false);
+  currentFileName = file.name;
+  const r = new FileReader();
+  r.onerror = () => showStatus('❌ Failed to read file.', 'error', false);
   r.onload  = ev => {
     document.getElementById('masterCode').value = ev.target.result;
-    const lines = (ev.target.result.match(/\n/g) || []).length + 1;
-    showStatus(`✅ "${file.name}" loaded — ${lines.toLocaleString()} lines.`, 'success', true);
+    showStatus(`✅ "${file.name}" loaded.`, 'success', true);
   };
   r.readAsText(file);
-  // Safe reset of file input (deferred to avoid browser issues)
-  setTimeout(() => { try { e.target.value = ''; } catch {} }, 60);
+  e.target.value = '';
 });
 
-
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 //  PATCH PARSER
-//  Recognises ---FIND--- / ---REPLACE--- / ---END--- markers.
-//  All other lines (markdown fences, prose) are silently discarded.
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 function parsePatches(raw) {
   const patches = [];
   let cur = null, inFind = false, inReplace = false;
@@ -552,467 +414,322 @@ function parsePatches(raw) {
   for (const line of raw.split('\n')) {
     const t = line.trim().toUpperCase();
 
-    if (t = '---FIND---') {
+    if (t === '---FIND---') {
       if (cur?.findLines.length) patches.push(cur);
       cur = { findLines: [], replaceLines: [] };
       inFind = true; inReplace = false;
 
-    } else if (t = '---REPLACE---' && cur && inFind) {
+    } else if (t === '---REPLACE---' && cur && inFind) {
       inFind = false; inReplace = true;
 
-    } else if (t = '---END---') {
+    } else if (t === '---END---') {
       if (cur?.findLines.length) patches.push(cur);
       cur = null; inFind = false; inReplace = false;
 
-    } else if (inFind    && cur) { cur.findLines.push(line);
+    } else if (inFind && cur)    { cur.findLines.push(line);
     } else if (inReplace && cur) { cur.replaceLines.push(line); }
   }
+
   if (cur?.findLines.length) patches.push(cur);
   return patches;
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  LINE-BASED MATCHING ENGINE
+// ═══════════════════════════════════════════════════════════════
 
-// ═══════════════════════════════════════════════════════════════════
-//  LINE UTILITIES
-// ═══════════════════════════════════════════════════════════════════
-
-/** Normalise a single line for comparison. */
-function normLine(line, mode) {
-  const t = line.trim();
-  return mode = 'fuzzy' ? t.replace(/\s+/g, ' ') : t;
-}
-
-/** Strip leading/trailing blank-only lines from an array. */
+/** Remove leading and trailing blank-only lines from a line array. */
 function stripBlanks(lines) {
   let s = 0, e = lines.length - 1;
-  while (s <= e && !lines[s].trim()) s;
-  while (e >= s && !lines[e].trim()) e--;
+  while (s <= e && lines[s].trim() === '') s++;
+  while (e >= s && lines[e].trim() === '') e--;
   return s > e ? [] : lines.slice(s, e + 1);
 }
 
-
-// ═══════════════════════════════════════════════════════════════════
-//  SLIDING WINDOW SEARCH
-//  Returns all positions where `needle` matches inside `masterLines`.
-// ═══════════════════════════════════════════════════════════════════
-function findWindows(masterLines, needle, mode) {
-  if (!needle.length) return [];
-  const out = [];
-  const lim = masterLines.length - needle.length;
-
-  outer:
-  for (let i = 0; i <= lim; i) {
-    for (let j = 0; j < needle.length; j) {
-      if (normLine(masterLines[i + j], mode) ! normLine(needle[j], mode)) continue outer;
-    }
-    out.push({ start: i, count: needle.length });
-  }
-  return out;
+/** Normalise a single line for comparison. */
+function norm(line, mode) {
+  if (!line) return '';
+  const t = line.trim();
+  return mode === 'fuzzy' ? t.replace(/\s+/g, ' ') : t;
 }
 
+/** Slide needleLines across masterLines and collect all matching windows. */
+function findWindows(masterLines, needleLines, mode) {
+  if (!needleLines.length) return [];
+  const matches = [];
+  const limit   = masterLines.length - needleLines.length;
 
-// ═══════════════════════════════════════════════════════════════════
-//  ★ DIFF-BASED DUPLICATE RESOLUTION (the key new capability)
-//
-//  When 2+ windows all match the FIND block, use the diff between
-//  FIND and REPLACE to figure out which window(s) still carry the
-//  OLD (unpatched) code, then apply only to that one.
-//
-//  Intuition: context lines are the same in FIND and REPLACE.
-//  Only the "target" lines differ. So we can check each candidate
-//  window: does it still have the FIND version of the differing
-//  lines? Exactly one window should → that's where we patch.
-//
-//  Results:
-//   'apply'         — exactly one window needs the change → go
-//   'idempotent'    — all windows already have REPLACE content → skip
-//   'noop'          — FIND and REPLACE are identical → skip
-//   'true-duplicate'— multiple windows STILL need the same change
-//   'ambiguous'     — length-only change, cannot diff-resolve
-// ═══════════════════════════════════════════════════════════════════
-function resolveDuplicates(masterLines, windows, needle, replacement) {
-  const minLen = Math.min(needle.length, replacement.length);
-
-  // Compute which line positions differ between FIND and REPLACE
-  const diffIdx = [];
-  for (let i = 0; i < minLen; i) {
-    if (normLine(needle[i], 'fuzzy') ! normLine(replacement[i], 'fuzzy')) {
-      diffIdx.push(i);
+  for (let i = 0; i <= limit; i++) {
+    if (needleLines.every((nl, j) => norm(masterLines[i + j], mode) === norm(nl, mode))) {
+      matches.push({ start: i, count: needleLines.length });
     }
   }
-
-  // Edge: FIND = REPLACE (exact same content, nothing to do)
-  if (!diffIdx.length && needle.length = replacement.length) {
-    return { result: 'noop' };
-  }
-
-  // Edge: pure length change (add/remove lines with no per-line diffs in overlap)
-  // Can't use diff-based resolution → fall back to ambiguous
-  if (!diffIdx.length) {
-    return { result: 'ambiguous', count: windows.length };
-  }
-
-  // For each window, check if it still has the FIND (old) version
-  // at the positions that differ between FIND and REPLACE
-  const needsChange = windows.filter(w => {
-    const slice = masterLines.slice(w.start, w.start + needle.length);
-    return diffIdx.every(i =>
-      normLine(slice[i] ?? '', 'fuzzy') = normLine(needle[i], 'fuzzy')
-    );
-  });
-
-  if (needsChange.length = 1) return { result: 'apply',          window: needsChange[0] };
-  if (needsChange.length = 0) return { result: 'idempotent' };
-                                return { result: 'true-duplicate', count: needsChange.length };
+  return matches;
 }
 
-
-// ═══════════════════════════════════════════════════════════════════
-//  IDEMPOTENCY HEURISTIC
-//  Sample 3 anchor lines from REPLACE and check if they all exist
-//  in master (fuzzy). If yes, patch was probably already applied.
-// ═══════════════════════════════════════════════════════════════════
-function looksApplied(masterLines, rawReplaceLines) {
-  const eff = stripBlanks(rawReplaceLines);
+/** Heuristic check to see if replacement is already in place. */
+function looksAlreadyApplied(masterLines, replaceLines) {
+  const eff = stripBlanks(replaceLines);
   if (!eff.length) return false;
 
   const anchors = [
     eff[0],
     eff[Math.floor(eff.length / 2)],
     eff[eff.length - 1]
-  ].map(l => normLine(l, 'fuzzy')).filter(s => s.length > 8);
+  ].map(l => norm(l, 'fuzzy')).filter(s => s.length > 8);
 
   if (!anchors.length) return false;
-  return anchors.every(a => masterLines.some(l => normLine(l, 'fuzzy') = a));
+  return anchors.every(a => masterLines.some(l => norm(l, 'fuzzy') === a));
 }
 
-
-// ═══════════════════════════════════════════════════════════════════
-//  CORE ENGINE — public entry point (wrapped in try/catch)
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+//  CORE ENGINE
+// ═══════════════════════════════════════════════════════════════
 function applyPatches() {
-  try { _applyPatches(); }
-  catch (err) {
-    showStatus('❌ Engine error: ' + err.message, 'error', false);
-    console.error('[AutoPatcher V14]', err);
-  }
-}
-
-function _applyPatches() {
   const masterEl = document.getElementById('masterCode');
   const patchEl  = document.getElementById('patchCode');
   const scopeBtn = document.getElementById('scopeBtn');
 
-  // Force-close debug panel if open
-  if (debugOpen) {
-    debugOpen = false;
-    document.getElementById('debugOverlay').style.display = 'none';
-  }
+  if (isDebugOpen) toggleDebug();
   scopeBtn.style.display = 'none';
   scopeBtn.classList.remove('pulse');
 
-  // Guard empty inputs
-  if (!masterEl.value.trim()) { showStatus('⚠️ Master code is empty.', 'warning', false); return; }
-  if (!patchEl.value.trim())  { showStatus('⚠️ Patch block is empty.', 'warning', false); return; }
-
-  const parsed = parsePatches(patchEl.value.replace(/\r\n/g, '\n'));
-  if (!parsed.length) {
-    showStatus('⚠️ No ---FIND--- markers found in patch block.', 'warning', false);
+  if (!masterEl.value.trim() || !patchEl.value.trim()) {
+    showStatus('⚠️ Master code or patch instructions are empty.', 'warning', false);
     return;
   }
 
-  // Reset state
-  patchStats = { applied: 0, resolved: 0, verified: 0, failed: 0 };
-  diagItems  = [];
+  const masterText = masterEl.value.replace(/\r\n/g, '\n');
+  const rawPatches = patchEl.value.replace(/\r\n/g, '\n');
+  const parsed     = parsePatches(rawPatches);
 
-  let masterLines = masterEl.value.replace(/\r\n/g, '\n').split('\n');
-
-  // ── Process each patch ──────────────────────────────────────────
-  for (let idx = 0; idx < parsed.length; idx) {
-    const patch    = parsed[idx];
-    const num      = idx + 1;
-    const needle   = stripBlanks(patch.findLines);
-    const replace  = stripBlanks(patch.replaceLines);
-    const isDelete = replace.length = 0;
-    const rawFind  = patch.findLines.join('\n');
-
-    // Guard: empty FIND block
-    if (!needle.length) {
-      patchStats.failed;
-      diagItems.push({ type: 'fail', num, tier: '!', text: rawFind,
-        reason: 'Empty ---FIND--- block — nothing to search for.' });
-      continue;
-    }
-
-    // ── TIER 1: Trim-normalised match ───────────────────────────
-    let wins = findWindows(masterLines, needle, 'trim');
-
-    if (wins.length = 1) {
-      masterLines.splice(wins[0].start, wins[0].count, ...replace);
-      patchStats.applied;
-      continue; // perfect match, no diagnostic needed
-    }
-
-    // ── TIER 2: Fuzzy match (collapse internal whitespace) ───────
-    if (wins.length = 0) {
-      wins = findWindows(masterLines, needle, 'fuzzy');
-    }
-
-    if (wins.length = 1) {
-      masterLines.splice(wins[0].start, wins[0].count, ...replace);
-      patchStats.applied;
-      continue; // fuzzy match, applied cleanly
-    }
-
-    // ── TIER 3: Diff-based duplicate resolution ★ ────────────────
-    //   (only reached when wins.length > 1)
-    if (wins.length > 1) {
-      const res = resolveDuplicates(masterLines, wins, needle, replace);
-
-      switch (res.result) {
-
-        case 'apply':
-          // Diff analysis identified exactly one window still needing the change
-          masterLines.splice(res.window.start, res.window.count, ...replace);
-          patchStats.applied;
-          patchStats.resolved;
-          diagItems.push({ type: 'warn', num, tier: 'DR', text: rawFind,
-            reason: `Found at ${wins.length} locations — diff analysis resolved to the single unpatched copy. Applied successfully.` });
-          break;
-
-        case 'idempotent':
-        case 'noop':
-          patchStats.verified;
-          diagItems.push({ type: 'pass', num, tier: 'V', text: rawFind,
-            reason: `All ${wins.length} matching locations already contain the replacement content. Already applied — skipped.` });
-          break;
-
-        case 'true-duplicate':
-          // Multiple copies ALL still need this change — context not unique enough
-          patchStats.failed;
-          diagItems.push({ type: 'fail', num, tier: 'TD', text: rawFind,
-            reason: `${res.count} copies of this block all still carry the old code.\n` +
-                    `The context lines in ---FIND--- are repeated too many times to distinguish them.\n` +
-                    `Expand ---FIND--- outward (above, below, or both) until you reach\n` +
-                    `surrounding lines that appear at exactly one location in the file.` });
-          break;
-
-        default: // 'ambiguous' — pure length-change with no per-line diff available
-          patchStats.failed;
-          diagItems.push({ type: 'fail', num, tier: 'AMB', text: rawFind,
-            reason: `${wins.length} matching locations found. The change adds/removes lines without\n` +
-                    `any differing content in the overlapping region — can't auto-resolve.\n` +
-                    `Add more distinctive context lines so only one location matches.` });
-      }
-      continue;
-    }
-
-    // ── wins.length = 0 beyond this point ─────────────────────
-
-    // ── TIER 4: Idempotency check ────────────────────────────────
-    if (!isDelete && looksApplied(masterLines, patch.replaceLines)) {
-      patchStats.verified;
-      diagItems.push({ type: 'pass', num, tier: 'V', text: rawFind,
-        reason: 'Replacement content already present in master — patch was already applied. Skipped.' });
-      continue;
-    }
-
-    // ── TIER 5: Deletion already gone ───────────────────────────
-    if (isDelete) {
-      patchStats.verified;
-      diagItems.push({ type: 'pass', num, tier: 'V', text: rawFind,
-        reason: 'Deletion target not found — block may have already been removed. Skipped.' });
-      continue;
-    }
-
-    // ── TIER 6: True failure — not found anywhere ────────────────
-    patchStats.failed;
-    diagItems.push({ type: 'fail', num, tier: 'NF', text: rawFind,
-      reason: 'Block not found (exact or fuzzy). Possible causes:\n' +
-              '• Lines in ---FIND--- do not match the current file exactly\n' +
-              '• Invisible characters or mixed line endings\n' +
-              '• A previous patch already changed this area\n' +
-              'Fix: copy a fresh excerpt from the current master code and rebuild this patch.' });
+  if (!parsed.length) {
+    showStatus('⚠️ No ---FIND--- markers found in patch instructions.', 'warning', false);
+    return;
   }
 
-  // Write result back to textarea
+  stats     = { applied: 0, verified: 0, failed: 0 };
+  diagItems = [];
+
+  let masterLines = masterText.split('\n');
+
+  parsed.forEach((patch, idx) => {
+    const num         = idx + 1;
+    const rawFindText = patch.findLines.join('\n');
+    const needle      = stripBlanks(patch.findLines);
+    const replacement = stripBlanks(patch.replaceLines);
+    const isDeletion  = replacement.length === 0;
+
+    // ── Guard: empty FIND ──────────────────────────────────────
+    if (!needle.length) {
+      stats.failed++;
+      diagItems.push({
+        type: 'fail', num, tier: '!',
+        text: rawFindText,
+        reason: 'Empty ---FIND--- block — nothing to search for.'
+      });
+      return;
+    }
+
+    // ── TIER 1: Trim per-line comparison ───────────────────────
+    let windows = findWindows(masterLines, needle, 'trim');
+
+    if (windows.length === 1) {
+      const { start, count } = windows[0];
+      masterLines.splice(start, count, ...replacement);
+      stats.applied++;
+      return;
+    }
+
+    if (windows.length > 1) {
+      stats.failed++;
+      diagItems.push({
+        type: 'fail', num, tier: 'T1',
+        text: rawFindText,
+        reason: `DUPLICATE LOCK — found ${windows.length} identical locations.\n` +
+                `The targeted change is ambiguous inside the file.\n` +
+                `Ensure your prompt forces the AI to output unique context lines before and after edits.`
+      });
+      return;
+    }
+
+    // ── TIER 2: Fuzzy per-line comparison ──────────────────────
+    windows = findWindows(masterLines, needle, 'fuzzy');
+
+    if (windows.length === 1) {
+      const { start, count } = windows[0];
+      masterLines.splice(start, count, ...replacement);
+      stats.applied++;
+      return;
+    }
+
+    if (windows.length > 1) {
+      stats.failed++;
+      diagItems.push({
+        type: 'fail', num, tier: 'T2',
+        text: rawFindText,
+        reason: `DUPLICATE LOCK (fuzzy) — found ${windows.length} similar locations after whitespace normalisation.`
+      });
+      return;
+    }
+
+    // ── TIER 3: Idempotency check ───────────────────────────────
+    if (!isDeletion && looksAlreadyApplied(masterLines, patch.replaceLines)) {
+      stats.verified++;
+      diagItems.push({
+        type: 'pass', num, tier: 'V',
+        text: rawFindText,
+        reason: 'Already applied — replacement content detected in master. Patch skipped.'
+      });
+      return;
+    }
+
+    // ── TIER 4: Deletion patch — block already gone ─────────────
+    if (isDeletion) {
+      stats.verified++;
+      diagItems.push({
+        type: 'pass', num, tier: 'V',
+        text: rawFindText,
+        reason: 'Deletion patch: target block not found in master — may have already been deleted. Skipped.'
+      });
+      return;
+    }
+
+    // ── TIER 5: True failure ─────────────────────────────────────
+    stats.failed++;
+    diagItems.push({
+      type: 'fail', num, tier: 'T5',
+      text: rawFindText,
+      reason: 'Block not found (exact or fuzzy). Ensure the FIND block exactly matches the master file structure.'
+    });
+  });
+
   masterEl.value = masterLines.join('\n');
   renderDiagnostics(scopeBtn);
 }
 
-
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 //  RENDER DIAGNOSTICS
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 function renderDiagnostics(scopeBtn) {
   const list = document.getElementById('diagList');
   list.innerHTML = '';
 
-  // Stats chips
-  const row = document.createElement('div');
-  row.className = 'stats-row';
-  let chipsHtml = `<span class="stat-chip sc-green">✅ Applied: ${patchStats.applied}</span>`;
-  if (patchStats.resolved) {
-    chipsHtml += `<span class="stat-chip sc-warn">🔀 Diff-Resolved: ${patchStats.resolved}</span>`;
-  }
-  if (patchStats.verified) {
-    chipsHtml += `<span class="stat-chip sc-blue">ℹ️ Already Present: ${patchStats.verified}</span>`;
-  }
-  if (patchStats.failed) {
-    chipsHtml += `<span class="stat-chip sc-red">❌ Failed: ${patchStats.failed}</span>`;
-  }
-  row.innerHTML = chipsHtml;
-  list.appendChild(row);
+  const statsRow = document.createElement('div');
+  statsRow.className = 'stats-row';
+  statsRow.innerHTML =
+    `<span class="stat-chip sc-green">✅ Applied: ${stats.applied}</span>` +
+    (stats.verified ? `<span class="stat-chip sc-blue">ℹ️ Already Present: ${stats.verified}</span>` : '') +
+    (stats.failed   ? `<span class="stat-chip sc-red">❌ Failed: ${stats.failed}</span>` : '');
+  list.appendChild(statsRow);
 
-  // Individual diagnostic items
-  for (const item of diagItems) {
-    const cls  = item.type = 'fail' ? 'diag-fail'
-               : item.type = 'pass' ? 'diag-pass'
-               : 'diag-warn';
-    const wrap = document.createElement('div');
+  diagItems.forEach(item => {
+    const wrap  = document.createElement('div');
+    const cls   = item.type === 'fail' ? 'diag-fail' :
+                  item.type === 'pass' ? 'diag-pass' : 'diag-warn';
     wrap.className = `diag-item ${cls}`;
 
-    const lbl = document.createElement('div');
-    lbl.className   = 'diag-label';
-    lbl.textContent = `[Patch #${item.num}] [${item.tier}]  ${item.reason}`;
+    const label = document.createElement('div');
+    label.className = 'diag-label';
+    label.textContent = `[Patch #${item.num}] [${item.tier}] ${item.reason}`;
 
     const pre = document.createElement('pre');
     pre.textContent = item.text || '(empty)';
 
-    wrap.appendChild(lbl);
+    wrap.appendChild(label);
     wrap.appendChild(pre);
     list.appendChild(wrap);
-  }
+  });
 
-  // Status bar + scope button
-  if (patchStats.failed > 0) {
+  if (stats.failed > 0) {
     scopeBtn.style.display = 'flex';
     scopeBtn.classList.add('pulse');
-    let msg = `⚠️ Applied: ${patchStats.applied}`;
-    if (patchStats.resolved) msg += `  ·  Diff-resolved: ${patchStats.resolved}`;
-    if (patchStats.verified) msg += `  ·  Present: ${patchStats.verified}`;
-    msg += `  ·  Failed: ${patchStats.failed}  →  tap 🔬 for details`;
+    let msg = `⚠️ Applied: ${stats.applied}`;
+    if (stats.verified) msg += `  ·  Already present: ${stats.verified}`;
+    msg += `  ·  Failed: ${stats.failed}  — tap 🔬 for details`;
     showStatus(msg, 'warning', false);
-
-  } else if (patchStats.applied = 0 && patchStats.verified > 0) {
-    showStatus(`✅ All ${patchStats.verified} patches were already applied — nothing changed.`, 'success', true);
-
+  } else if (stats.applied === 0 && stats.verified > 0) {
+    showStatus(`✅ All ${stats.verified} patches were already applied.`, 'success', true);
   } else {
-    let msg = `✅ ${patchStats.applied} patch${patchStats.applied ! 1 ? 'es' : ''} applied`;
-    if (patchStats.resolved) msg += `  (${patchStats.resolved} via diff-resolution)`;
-    if (patchStats.verified) msg += `  ·  ${patchStats.verified} already present`;
+    let msg = `✅ ${stats.applied} patch${stats.applied !== 1 ? 'es' : ''} applied`;
+    if (stats.verified) msg += `  ·  ${stats.verified} already present`;
     showStatus(msg, 'success', true);
   }
 }
 
-
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 //  DEBUG OVERLAY
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 function toggleDebug() {
-  debugOpen = !debugOpen;
-  document.getElementById('debugOverlay').style.display = debugOpen ? 'flex' : 'none';
-  const sb = document.getElementById('scopeBtn');
-  if (!debugOpen && patchStats.failed > 0) sb.classList.add('pulse');
-  else sb.classList.remove('pulse');
+  const overlay  = document.getElementById('debugOverlay');
+  const scopeBtn = document.getElementById('scopeBtn');
+  isDebugOpen    = !isDebugOpen;
+  overlay.style.display = isDebugOpen ? 'flex' : 'none';
+
+  if (!isDebugOpen && stats.failed > 0) scopeBtn.classList.add('pulse');
+  else scopeBtn.classList.remove('pulse');
 }
 
 async function copyDebugLog() {
-  const hdr  = `AUTO-PATCHER V14 — DIAGNOSTIC LOG\n` +
-               `Applied: ${patchStats.applied} | Diff-Resolved: ${patchStats.resolved} | ` +
-               `Present: ${patchStats.verified} | Failed: ${patchStats.failed}\n` +
-               `${'═'.repeat(52)}\n\n`;
+  const hdr  = `DIAGNOSTIC SUMMARY\nApplied: ${stats.applied} | Verified: ${stats.verified} | Failed: ${stats.failed}\n\n`;
   const body = diagItems.map(d =>
-    `[Patch #${d.num}] [${d.tier}]\n${d.reason}\n\n--- FIND ---\n${d.text}`
-  ).join('\n\n' + '─'.repeat(40) + '\n\n');
+    `[Patch #${d.num}] [${d.tier}]\nReason: ${d.reason}\n--- FIND ---\n${d.text}`
+  ).join('\n\n─────────────────────────────────\n\n');
   const ok = await copyToClipboard(hdr + body);
-  // Use showStatus instead of alert() — alert() can freeze iframes
-  showStatus(ok ? '📋 Diagnostic log copied to clipboard.' : '❌ Copy failed — select text manually.', ok ? 'success' : 'error', true);
+  alert(ok ? 'Diagnostic log copied to clipboard.' : 'Copy failed — select text manually.');
 }
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    if (debugOpen) toggleDebug();
-    hideConfirmModal();
-  }
+  if (e.key === 'Escape' && isDebugOpen) toggleDebug();
 });
 
-
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 //  UI HELPERS
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 function clearPatches() {
   document.getElementById('patchCode').value = '';
-  showStatus('🧹 Patch block cleared.', 'success', true);
 }
 
-function doHardReset() {
-  try {
-    document.getElementById('masterCode').value = '';
-    document.getElementById('patchCode').value  = '';
-    try { document.getElementById('fileUploader').value = ''; } catch {}
-
-    fileName    = 'patched_master.txt';
-    patchStats  = { applied: 0, resolved: 0, verified: 0, failed: 0 };
-    diagItems   = [];
-
-    document.getElementById('diagList').innerHTML = '';
-
-    const sb = document.getElementById('scopeBtn');
-    sb.style.display = 'none';
-    sb.classList.remove('pulse');
-
-    if (debugOpen) {
-      debugOpen = false;
-      document.getElementById('debugOverlay').style.display = 'none';
-    }
-
-    showStatus('🚨 Reset complete — all data cleared.', 'error', true);
-  } catch (err) {
-    showStatus('❌ Reset error: ' + err.message, 'error', false);
-  }
+function hardReset() {
+  if (!confirm('Clear all fields and reset the patcher?')) return;
+  document.getElementById('masterCode').value = '';
+  document.getElementById('patchCode').value  = '';
+  document.getElementById('fileUploader').value = '';
+  currentFileName = 'patched_master.txt';
+  stats     = { applied: 0, verified: 0, failed: 0 };
+  diagItems = [];
+  const scopeBtn = document.getElementById('scopeBtn');
+  scopeBtn.style.display = 'none';
+  scopeBtn.classList.remove('pulse');
+  if (isDebugOpen) toggleDebug();
+  showStatus('🚨 Reset complete.', 'error', true);
 }
 
 async function copyMaster() {
-  const val = document.getElementById('masterCode').value;
-  if (!val.trim()) { showStatus('⚠️ Master code is empty.', 'warning', true); return; }
-  const ok = await copyToClipboard(val);
-  showStatus(ok ? '📋 Master code copied to clipboard!' : '❌ Copy failed.', ok ? 'success' : 'error', true);
+  const ok = await copyToClipboard(document.getElementById('masterCode').value);
+  showStatus(ok ? '📋 Code copied to clipboard!' : '❌ Copy failed.', ok ? 'success' : 'error', true);
 }
 
 function downloadFile() {
   const code = document.getElementById('masterCode').value;
-  if (!code.trim()) { showStatus('⚠️ Nothing to download.', 'warning', true); return; }
-  try {
-    const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
-    const url  = URL.createObjectURL(blob);
-    const a    = Object.assign(document.createElement('a'), { href: url, download: fileName });
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-    showStatus(`📥 Downloaded as "${fileName}"`, 'success', true);
-  } catch (err) {
-    showStatus('❌ Download failed: ' + err.message, 'error', false);
-  }
+  const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement('a'), { href: url, download: currentFileName });
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function showStatus(msg, type, autoHide) {
   if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
-  const el      = document.getElementById('statusMsg');
-  el.className  = `status st-${type}`;
-  el.textContent = msg;
+  const el = document.getElementById('statusMsg');
+  el.className     = `status st-${type}`;
   el.style.display = 'block';
-  if (autoHide) {
-    statusTimer = setTimeout(() => {
-      const s = document.getElementById('statusMsg');
-      if (s) s.style.display = 'none';
-      statusTimer = null;
-    }, 3500);
-  }
+  el.textContent   = msg;
+  if (autoHide) statusTimer = setTimeout(() => { el.style.display = 'none'; }, 3200);
 }
 </script>
-
 
 </body>
 </html>
