@@ -1,3 +1,4 @@
+B
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -336,59 +337,28 @@ MANDATORY RULES:
    - You MUST include at least 4 to 6 lines of exact, literal code directly following the target change.
    Never target a raw, standalone line that appears elsewhere in the file. Use this surrounding context to pinpoint exactly ONE unique spot.
 
-2. NO PLACEHOLDERS OR TRUNCATIONS:
-   The code inside ---FIND--- must be complete and exact. Never use "..." or skip any lines within the context block.
+2. NO PLACEHOLDERS, ELLIPSES, OR TRUNCATIONS:
+   The code inside ---FIND--- and ---REPLACE--- must be complete and exact. Never use "..." or skip any lines within the context blocks.
 
 3. SINGLE MARKDOWN BLOCK:
    Place all sequential patches inside ONE continuous \`\`\`markdown block. Do not include conversational remarks, comments, or explanations inside this block.
 
-4. MATCHING MARKERS:
-   Each patch block must be structured as:
-   ---FIND---
-   [4-6 lines of preceding context]
-   [original code to edit]
-   [4-6 lines of succeeding context]
-   ---REPLACE---
-   [4-6 lines of preceding context]
-   [modified code]
-   [4-6 lines of succeeding context]
-   ---END---
+4. 100% MIRRORED REPLACE BLOCK (CRITICAL):
+   The preceding and succeeding context lines inside your ---REPLACE--- block MUST be 100% identical, line-for-line, to the context lines inside your ---FIND--- block. 
+   
+   If you omit or truncate these context lines from the ---REPLACE--- block, the patcher will permanently delete them from my code. You must mirror them exactly.
 
-5. VISUAL EXAMPLE OF STRICT MATCHING:
-   If the master code contains:
-   \`\`\`javascript
-   function calculateAverage(arr) {
-     if (!arr || arr.length === 0) return 0;
-     let sum = 0;
-     for (let i = 0; i < arr.length; i++) {
-       sum += arr[i];
-     }
-     return sum / arr.length;
-   }
-   \`\`\`
+   Structure your blocks precisely like this:
 
-   To change ONLY the line "sum += arr[i];", your patch MUST look like this:
-   \`\`\`markdown
    ---FIND---
-   function calculateAverage(arr) {
-     if (!arr || arr.length === 0) return 0;
-     let sum = 0;
-     for (let i = 0; i < arr.length; i++) {
-       sum += arr[i];
-     }
-     return sum / arr.length;
-   }
+   [4-6 lines of exact preceding context]
+   [original code line(s) to be replaced]
+   [4-6 lines of exact succeeding context]
    ---REPLACE---
-   function calculateAverage(arr) {
-     if (!arr || arr.length === 0) return 0;
-     let sum = 0;
-     for (let i = 0; i < arr.length; i++) {
-       sum += Number(arr[i]);
-     }
-     return sum / arr.length;
-   }
-   ---END---
-   \`\`\``;
+   [4-6 lines of exact preceding context (identical to above)]
+   [modified code line(s)]
+   [4-6 lines of exact succeeding context (identical to above)]
+   ---END---`;
 
 document.getElementById('promptContent').textContent = PROMPT;
 
@@ -419,25 +389,33 @@ async function copyToClipboard(text) {
 }
 
 async function copyPrompt() {
-  const ok = await copyToClipboard(PROMPT);
-  showStatus(ok ? '📋 Prompt copied to clipboard!' : '❌ Copy failed — select manually.', ok ? 'success' : 'error', true);
+  try {
+    const ok = await copyToClipboard(PROMPT);
+    showStatus(ok ? '📋 Prompt copied to clipboard!' : '❌ Copy failed — select manually.', ok ? 'success' : 'error', true);
+  } catch (err) {
+    showStatus('❌ Copy process error: ' + err.message, 'error', false);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
 //  FILE UPLOAD
 // ═══════════════════════════════════════════════════════════════
 document.getElementById('fileUploader').addEventListener('change', function (e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  currentFileName = file.name;
-  const r = new FileReader();
-  r.onerror = () => showStatus('❌ Failed to read file.', 'error', false);
-  r.onload  = ev => {
-    document.getElementById('masterCode').value = ev.target.result;
-    showStatus(`✅ "${file.name}" loaded.`, 'success', true);
-  };
-  r.readAsText(file);
-  e.target.value = '';
+  try {
+    const file = e.target.files[0];
+    if (!file) return;
+    currentFileName = file.name;
+    const r = new FileReader();
+    r.onerror = () => showStatus('❌ Failed to read file.', 'error', false);
+    r.onload  = ev => {
+      document.getElementById('masterCode').value = ev.target.result;
+      showStatus(`✅ "${file.name}" loaded.`, 'success', true);
+    };
+    r.readAsText(file);
+    e.target.value = '';
+  } catch (err) {
+    showStatus('❌ File loading error: ' + err.message, 'error', false);
+  }
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -522,126 +500,131 @@ function looksAlreadyApplied(masterLines, replaceLines) {
 //  CORE ENGINE
 // ═══════════════════════════════════════════════════════════════
 function applyPatches() {
-  const masterEl = document.getElementById('masterCode');
-  const patchEl  = document.getElementById('patchCode');
-  const scopeBtn = document.getElementById('scopeBtn');
+  try {
+    const masterEl = document.getElementById('masterCode');
+    const patchEl  = document.getElementById('patchCode');
+    const scopeBtn = document.getElementById('scopeBtn');
 
-  if (isDebugOpen) toggleDebug();
-  scopeBtn.style.display = 'none';
-  scopeBtn.classList.remove('pulse');
+    if (isDebugOpen) toggleDebug();
+    scopeBtn.style.display = 'none';
+    scopeBtn.classList.remove('pulse');
 
-  if (!masterEl.value.trim() || !patchEl.value.trim()) {
-    showStatus('⚠️ Master code or patch instructions are empty.', 'warning', false);
-    return;
-  }
+    if (!masterEl.value.trim() || !patchEl.value.trim()) {
+      showStatus('⚠️ Master code or patch instructions are empty.', 'warning', false);
+      return;
+    }
 
-  const masterText = masterEl.value.replace(/\r\n/g, '\n');
-  const rawPatches = patchEl.value.replace(/\r\n/g, '\n');
-  const parsed     = parsePatches(rawPatches);
+    const masterText = masterEl.value.replace(/\r\n/g, '\n');
+    const rawPatches = patchEl.value.replace(/\r\n/g, '\n');
+    const parsed     = parsePatches(rawPatches);
 
-  if (!parsed.length) {
-    showStatus('⚠️ No ---FIND--- markers found in patch instructions.', 'warning', false);
-    return;
-  }
+    if (!parsed.length) {
+      showStatus('⚠️ No ---FIND--- markers found in patch instructions.', 'warning', false);
+      return;
+    }
 
-  stats     = { applied: 0, verified: 0, failed: 0 };
-  diagItems = [];
+    stats     = { applied: 0, verified: 0, failed: 0 };
+    diagItems = [];
 
-  let masterLines = masterText.split('\n');
+    let masterLines = masterText.split('\n');
 
-  parsed.forEach((patch, idx) => {
-    const num         = idx + 1;
-    const rawFindText = patch.findLines.join('\n');
-    const needle      = stripBlanks(patch.findLines);
-    const replacement = stripBlanks(patch.replaceLines);
-    const isDeletion  = replacement.length === 0;
+    parsed.forEach((patch, idx) => {
+      const num         = idx + 1;
+      const rawFindText = patch.findLines.join('\n');
+      const needle      = stripBlanks(patch.findLines);
+      const replacement = stripBlanks(patch.replaceLines);
+      const isDeletion  = replacement.length === 0;
 
-    // ── Guard: empty FIND ──────────────────────────────────────
-    if (!needle.length) {
+      // ── Guard: empty FIND ──────────────────────────────────────
+      if (!needle.length) {
+        stats.failed++;
+        diagItems.push({
+          type: 'fail', num, tier: '!',
+          text: rawFindText,
+          reason: 'Empty ---FIND--- block — nothing to search for.'
+        });
+        return;
+      }
+
+      // ── TIER 1: Trim per-line comparison ───────────────────────
+      let windows = findWindows(masterLines, needle, 'trim');
+
+      if (windows.length === 1) {
+        const { start, count } = windows[0];
+        masterLines.splice(start, count, ...replacement);
+        stats.applied++;
+        return;
+      }
+
+      if (windows.length > 1) {
+        stats.failed++;
+        diagItems.push({
+          type: 'fail', num, tier: 'T1',
+          text: rawFindText,
+          reason: `DUPLICATE LOCK — found ${windows.length} identical locations.\n` +
+                  `The targeted change is ambiguous inside the file.\n` +
+                  `Ensure your prompt forces the AI to output unique context lines before and after edits.`
+        });
+        return;
+      }
+
+      // ── TIER 2: Fuzzy per-line comparison ──────────────────────
+      windows = findWindows(masterLines, needle, 'fuzzy');
+
+      if (windows.length === 1) {
+        const { start, count } = windows[0];
+        masterLines.splice(start, count, ...replacement);
+        stats.applied++;
+        return;
+      }
+
+      if (windows.length > 1) {
+        stats.failed++;
+        diagItems.push({
+          type: 'fail', num, tier: 'T2',
+          text: rawFindText,
+          reason: `DUPLICATE LOCK (fuzzy) — found ${windows.length} similar locations after whitespace normalisation.`
+        });
+        return;
+      }
+
+      // ── TIER 3: Idempotency check ───────────────────────────────
+      if (!isDeletion && looksAlreadyApplied(masterLines, patch.replaceLines)) {
+        stats.verified++;
+        diagItems.push({
+          type: 'pass', num, tier: 'V',
+          text: rawFindText,
+          reason: 'Already applied — replacement content detected in master. Patch skipped.'
+        });
+        return;
+      }
+
+      // ── TIER 4: Deletion patch — block already gone ─────────────
+      if (isDeletion) {
+        stats.verified++;
+        diagItems.push({
+          type: 'pass', num, tier: 'V',
+          text: rawFindText,
+          reason: 'Deletion patch: target block not found in master — may have already been deleted. Skipped.'
+        });
+        return;
+      }
+
+      // ── TIER 5: True failure ─────────────────────────────────────
       stats.failed++;
       diagItems.push({
-        type: 'fail', num, tier: '!',
+        type: 'fail', num, tier: 'T5',
         text: rawFindText,
-        reason: 'Empty ---FIND--- block — nothing to search for.'
+        reason: 'Block not found (exact or fuzzy). Ensure the FIND block exactly matches the master file structure.'
       });
-      return;
-    }
-
-    // ── TIER 1: Trim per-line comparison ───────────────────────
-    let windows = findWindows(masterLines, needle, 'trim');
-
-    if (windows.length === 1) {
-      const { start, count } = windows[0];
-      masterLines.splice(start, count, ...replacement);
-      stats.applied++;
-      return;
-    }
-
-    if (windows.length > 1) {
-      stats.failed++;
-      diagItems.push({
-        type: 'fail', num, tier: 'T1',
-        text: rawFindText,
-        reason: `DUPLICATE LOCK — found ${windows.length} identical locations.\n` +
-                `The targeted change is ambiguous inside the file.\n` +
-                `Ensure your prompt forces the AI to output unique context lines before and after edits.`
-      });
-      return;
-    }
-
-    // ── TIER 2: Fuzzy per-line comparison ──────────────────────
-    windows = findWindows(masterLines, needle, 'fuzzy');
-
-    if (windows.length === 1) {
-      const { start, count } = windows[0];
-      masterLines.splice(start, count, ...replacement);
-      stats.applied++;
-      return;
-    }
-
-    if (windows.length > 1) {
-      stats.failed++;
-      diagItems.push({
-        type: 'fail', num, tier: 'T2',
-        text: rawFindText,
-        reason: `DUPLICATE LOCK (fuzzy) — found ${windows.length} similar locations after whitespace normalisation.`
-      });
-      return;
-    }
-
-    // ── TIER 3: Idempotency check ───────────────────────────────
-    if (!isDeletion && looksAlreadyApplied(masterLines, patch.replaceLines)) {
-      stats.verified++;
-      diagItems.push({
-        type: 'pass', num, tier: 'V',
-        text: rawFindText,
-        reason: 'Already applied — replacement content detected in master. Patch skipped.'
-      });
-      return;
-    }
-
-    // ── TIER 4: Deletion patch — block already gone ─────────────
-    if (isDeletion) {
-      stats.verified++;
-      diagItems.push({
-        type: 'pass', num, tier: 'V',
-        text: rawFindText,
-        reason: 'Deletion patch: target block not found in master — may have already been deleted. Skipped.'
-      });
-      return;
-    }
-
-    // ── TIER 5: True failure ─────────────────────────────────────
-    stats.failed++;
-    diagItems.push({
-      type: 'fail', num, tier: 'T5',
-      text: rawFindText,
-      reason: 'Block not found (exact or fuzzy). Ensure the FIND block exactly matches the master file structure.'
     });
-  });
 
-  masterEl.value = masterLines.join('\n');
-  renderDiagnostics(scopeBtn);
+    masterEl.value = masterLines.join('\n');
+    renderDiagnostics(scopeBtn);
+  } catch (err) {
+    console.error(err);
+    showStatus('❌ Engine execution halted: ' + err.message, 'error', false);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -707,12 +690,16 @@ function toggleDebug() {
 }
 
 async function copyDebugLog() {
-  const hdr  = `DIAGNOSTIC SUMMARY\nApplied: ${stats.applied} | Verified: ${stats.verified} | Failed: ${stats.failed}\n\n`;
-  const body = diagItems.map(d =>
-    `[Patch #${d.num}] [${d.tier}]\nReason: ${d.reason}\n--- FIND ---\n${d.text}`
-  ).join('\n\n─────────────────────────────────\n\n');
-  const ok = await copyToClipboard(hdr + body);
-  alert(ok ? 'Diagnostic log copied to clipboard.' : 'Copy failed — select text manually.');
+  try {
+    const hdr  = `DIAGNOSTIC SUMMARY\nApplied: ${stats.applied} | Verified: ${stats.verified} | Failed: ${stats.failed}\n\n`;
+    const body = diagItems.map(d =>
+      `[Patch #${d.num}] [${d.tier}]\nReason: ${d.reason}\n--- FIND ---\n${d.text}`
+    ).join('\n\n─────────────────────────────────\n\n');
+    const ok = await copyToClipboard(hdr + body);
+    alert(ok ? 'Diagnostic log copied to clipboard.' : 'Copy failed — select text manually.');
+  } catch (err) {
+    alert('Failed to construct log: ' + err.message);
+  }
 }
 
 document.addEventListener('keydown', e => {
@@ -727,39 +714,53 @@ function clearPatches() {
 }
 
 function hardReset() {
-  if (!confirm('Clear all fields and reset the patcher?')) return;
-  document.getElementById('masterCode').value = '';
-  document.getElementById('patchCode').value  = '';
-  document.getElementById('fileUploader').value = '';
-  currentFileName = 'patched_master.txt';
-  stats     = { applied: 0, verified: 0, failed: 0 };
-  diagItems = [];
-  const scopeBtn = document.getElementById('scopeBtn');
-  scopeBtn.style.display = 'none';
-  scopeBtn.classList.remove('pulse');
-  if (isDebugOpen) toggleDebug();
-  showStatus('🚨 Reset complete.', 'error', true);
+  try {
+    if (!confirm('Clear all fields and reset the patcher?')) return;
+    document.getElementById('masterCode').value = '';
+    document.getElementById('patchCode').value  = '';
+    document.getElementById('fileUploader').value = '';
+    currentFileName = 'patched_master.txt';
+    stats     = { applied: 0, verified: 0, failed: 0 };
+    diagItems = [];
+    const scopeBtn = document.getElementById('scopeBtn');
+    scopeBtn.style.display = 'none';
+    scopeBtn.classList.remove('pulse');
+    if (isDebugOpen) toggleDebug();
+    showStatus('🚨 Reset complete.', 'error', true);
+  } catch (err) {
+    console.error(err);
+    showStatus('❌ Reset action failed: ' + err.message, 'error', false);
+  }
 }
 
 async function copyMaster() {
-  const ok = await copyToClipboard(document.getElementById('masterCode').value);
-  showStatus(ok ? '📋 Code copied to clipboard!' : '❌ Copy failed.', ok ? 'success' : 'error', true);
+  try {
+    const ok = await copyToClipboard(document.getElementById('masterCode').value);
+    showStatus(ok ? '📋 Code copied to clipboard!' : '❌ Copy failed.', ok ? 'success' : 'error', true);
+  } catch (err) {
+    showStatus('❌ Clipboard error: ' + err.message, 'error', false);
+  }
 }
 
 function downloadFile() {
-  const code = document.getElementById('masterCode').value;
-  const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  const a    = Object.assign(document.createElement('a'), { href: url, download: currentFileName });
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  try {
+    const code = document.getElementById('masterCode').value;
+    const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = Object.assign(document.createElement('a'), { href: url, download: currentFileName });
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err) {
+    showStatus('❌ File generation failed: ' + err.message, 'error', false);
+  }
 }
 
 function showStatus(msg, type, autoHide) {
   if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
   const el = document.getElementById('statusMsg');
+  if (!el) return;
   el.className     = `status st-${type}`;
   el.style.display = 'block';
   el.textContent   = msg;
