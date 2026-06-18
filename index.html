@@ -1,4 +1,3 @@
-A
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -376,8 +375,6 @@ let isDebugOpen     = false;
 let diagItems       = [];
 let stats           = { applied: 0, verified: 0, failed: 0 };
 let statusTimer     = null;
-let resetPending    = false;
-let resetTimer      = null;
 
 // ═══════════════════════════════════════════════════════════════
 //  CLIPBOARD
@@ -723,29 +720,18 @@ function clearPatches() {
 
 function hardReset() {
   try {
-    const btn = document.querySelector('.btn-sm.danger');
-    if (!resetPending) {
-      resetPending = true;
-      btn.textContent = '⚠️ Tap again to confirm';
-      resetTimer = setTimeout(() => {
-        resetPending = false;
-        btn.textContent = '🚨 Hard Reset';
-      }, 2500);
-      return;
-    }
-    clearTimeout(resetTimer);
-    resetPending = false;
-    btn.textContent = '🚨 Hard Reset';
-    document.getElementById('masterCode').value = '';
-    document.getElementById('patchCode').value  = '';
+    document.getElementById('masterCode').value   = '';
+    document.getElementById('patchCode').value    = '';
     document.getElementById('fileUploader').value = '';
     currentFileName = 'patched_master.txt';
     stats     = { applied: 0, verified: 0, failed: 0 };
     diagItems = [];
     const scopeBtn = document.getElementById('scopeBtn');
+    const overlay  = document.getElementById('debugOverlay');
     scopeBtn.style.display = 'none';
     scopeBtn.classList.remove('pulse');
-    if (isDebugOpen) toggleDebug();
+    overlay.style.display  = 'none';
+    isDebugOpen = false;
     showStatus('🚨 Reset complete.', 'error', true);
   } catch (err) {
     console.error(err);
